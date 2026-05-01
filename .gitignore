@@ -1,0 +1,13 @@
+build/
+cmake-build-*/
+__pycache__/
+*.pyc
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.dylib
+*.exe
+.DS_Store
+
