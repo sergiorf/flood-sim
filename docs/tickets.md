@@ -44,7 +44,7 @@ Required documentation updates:
 
 ## FS-001 - Lock down core flow semantics
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P1
 
