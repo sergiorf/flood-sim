@@ -42,68 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-001 - Lock down core flow semantics
-
-Status: Done
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- The MVP flow algorithm exists, but its intended semantics are still underspecified.
-- Terms such as surface height, transfer fraction, and full-grid delta application need to be fixed clearly before later phases build on them.
-
-Proposed change:
-- Define and document the exact step semantics for rainfall addition and downhill redistribution.
-- Ensure the implementation matches the documented behavior for one simulation step.
-
-Constraints:
-- Keep the model intentionally simple and raster-first.
-- Avoid introducing physically richer hydrology beyond the Phase 1 MVP.
-
-Acceptance criteria:
-- One simulation step is documented precisely enough to reproduce expected behavior from the docs and tests.
-- The implementation and docs agree on rainfall ordering, neighbor selection, and transfer application timing.
-- Any behavior changes needed to align code and docs are covered by tests.
-
-Required tests:
-- Deterministic step-level tests that validate the documented ordering and redistribution behavior.
-- Conservation checks for no-rainfall scenarios where out-of-domain loss is not intended.
-
-Required documentation updates:
-- `docs/simulation_model.md`
-- `docs/architecture.md`
-
-## FS-002 - Define and test boundary behavior
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Boundary handling is listed as a known limitation and is not yet an explicit modeling choice.
-- Without a defined edge policy, Phase 1 results are harder to reason about and compare.
-
-Proposed change:
-- Choose an explicit boundary behavior for the toy grid simulation and apply it consistently in the step logic.
-- Document whether grid edges behave as closed boundaries, open outflow, or another clearly defined MVP rule.
-
-Constraints:
-- Keep the first version simple and easy to test.
-- Avoid introducing a large configuration surface unless it is necessary to make the model understandable.
-
-Acceptance criteria:
-- Boundary behavior is an explicit documented rule instead of an implicit side effect.
-- Tests cover edge and corner cases under the chosen rule.
-- The example and simulation docs reflect the chosen behavior.
-
-Required tests:
-- Edge and corner flow tests.
-- Water conservation or outflow tests, depending on the chosen boundary rule.
-
-Required documentation updates:
-- `docs/simulation_model.md`
-- `examples/simple_grid/README.md`
-
 ## FS-003 - Expand Phase 1 simulation test coverage
 
 Status: Todo

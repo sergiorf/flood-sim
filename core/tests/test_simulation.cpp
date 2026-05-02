@@ -129,6 +129,47 @@ void test_flow_uses_a_full_grid_snapshot() {
     expect_true(nearly_equal(grid.water_depth(0, 2), 0.0), "right cell should remain dry until a later step");
 }
 
+void test_closed_boundary_keeps_corner_water_in_domain() {
+    Grid grid(2, 2);
+    grid.set_elevation(0, 0, 2.0);
+    grid.set_elevation(0, 1, 1.0);
+    grid.set_elevation(1, 0, 0.0);
+    grid.set_elevation(1, 1, 3.0);
+    grid.set_water_depth(0, 0, 1.0);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.5), "corner cell should only route water to in-domain lower neighbors");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.2), "edge neighbor should receive two fifths of the routed water");
+    expect_true(nearly_equal(grid.water_depth(1, 0), 0.3), "lower in-domain neighbor should receive three fifths of the routed water");
+    expect_true(nearly_equal(grid.total_water_depth(), 1.0), "closed boundary should not lose water off the grid");
+}
+
+void test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists() {
+    Grid grid(1, 2);
+    grid.set_elevation(0, 0, 5.0);
+    grid.set_elevation(0, 1, 6.0);
+    grid.set_water_depth(0, 0, 0.8);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.75,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.8), "edge cell should retain water when the only in-domain neighbor is not lower");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.0), "higher edge neighbor should not receive flow");
+    expect_true(nearly_equal(grid.total_water_depth(), 0.8), "closed boundary should preserve water when out-of-domain space is ignored");
+}
+
 void test_water_is_conserved_without_rainfall() {
     Grid grid(3, 3);
     grid.set_elevation(1, 1, 2.0);
@@ -163,6 +204,8 @@ int main() {
         test_outflow_is_split_by_relative_drop();
         test_surface_height_includes_existing_water();
         test_flow_uses_a_full_grid_snapshot();
+        test_closed_boundary_keeps_corner_water_in_domain();
+        test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';

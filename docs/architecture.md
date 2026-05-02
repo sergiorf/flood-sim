@@ -28,11 +28,12 @@ Current responsibilities:
 - apply uniform rainfall before each flow step
 - route a fraction of water to lower orthogonal neighbors using surface height (`elevation + water depth`)
 - accumulate transfers across the full grid and apply them after the scan completes
+- treat the Phase 1 grid boundary as closed, so flow is limited to cells inside the simulated raster
 
 Later responsibilities may include:
 
 - import-ready raster adapters
-- boundary conditions
+- configurable boundary conditions
 - drainage and impervious surface effects
 - better time stepping and calibration hooks
 

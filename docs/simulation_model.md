@@ -35,9 +35,23 @@ The current Phase 1 model makes these explicit choices:
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone
 - only neighbors with strictly lower surface height receive flow
+- the grid uses a closed boundary: water can move only to in-domain neighbors and cannot leave the raster across an edge
 - outflow is capped as a fraction of the source cell's water depth for that step
 - transfers are accumulated and applied after the grid scan completes
 - cells with flat or higher neighboring surfaces do not shed water during that step
+
+## Boundary behavior
+
+Phase 1 uses a closed boundary condition.
+
+In practice this means:
+
+- cells on the edge of the grid only consider neighbors that exist inside the grid
+- cells in corners have at most two orthogonal neighbors
+- water does not flow off the raster, even if the terrain would appear to slope outward beyond the simulated domain
+- total water in the grid changes only through rainfall, not through edge outflow
+
+This is a deliberate simplification for the toy-grid MVP. It is less realistic than open outflow for many real landscapes, but it keeps the early model easier to reason about, easier to test, and easier to compare while core routing semantics are still being stabilized.
 
 ## Why start here
 
@@ -56,6 +70,7 @@ The current model does not yet include:
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events
-- configurable or validated boundary conditions
+- configurable boundary conditions
+- validated edge behavior for real landscapes
 
 Any outputs from this version should be treated as prototype behavior only.
