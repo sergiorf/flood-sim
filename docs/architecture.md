@@ -4,7 +4,7 @@ FloodSim is planned as a pipeline with clear boundaries between data preparation
 
 ## Planned flow
 
-`data ingestion -> simulation core -> output raster/tiles -> web visualization`
+`data ingestion -> simulation core -> output raster/tiles -> graphical visualization`
 
 ## Components
 
@@ -45,7 +45,6 @@ Simulation outputs should eventually be exportable as:
 
 The MVP currently prints CLI output only.
 
-### 4. Web visualization
+### 4. Graphical visualization
 
-A future visualization layer can render flood depth over basemaps and city layers. It is intentionally not included in the first version of this repository.
-
+A future visualization layer can render flood depth over basemaps and city layers. This may begin as a lightweight local viewer and later evolve into a richer graphical application if the simulation outputs and workflows justify it. It is intentionally not included in the first version of this repository.
