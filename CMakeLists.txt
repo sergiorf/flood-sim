@@ -7,10 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(FLOODSIM_BUILD_TESTS "Build FloodSim tests" ON)
+option(FLOODSIM_ENABLE_GDAL "Enable GDAL-backed terrain ingestion support" ON)
 
 if(FLOODSIM_BUILD_TESTS)
     enable_testing()
     find_package(Python3 COMPONENTS Interpreter)
+endif()
+
+if(FLOODSIM_ENABLE_GDAL)
+    find_package(GDAL REQUIRED)
 endif()
 
 add_subdirectory(core)

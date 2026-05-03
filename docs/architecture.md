@@ -16,7 +16,7 @@ The ingestion layer will prepare terrain and scenario inputs:
 - raster normalization and clipping
 - scenario metadata such as rainfall intensity and duration
 
-The initial repository does not require GDAL yet, but the code structure is intended to make that integration straightforward later.
+The build now supports optional GDAL integration as the intended path for the first real DEM and GeoTIFF ingestion work. That support should stay narrow in the early Phase 2 implementation: one-band terrain rasters first, broader GIS workflows later.
 
 For the first real-terrain workflow, ingestion should target the contract described in [docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md). That contract keeps the initial imported terrain object narrow: raster dimensions, square cell size, row-major elevations, a valid-cell mask for nodata handling, and optional origin / CRS metadata preserved for later map alignment.
 

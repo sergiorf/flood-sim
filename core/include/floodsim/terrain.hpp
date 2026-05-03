@@ -35,4 +35,12 @@ struct TerrainRaster {
 
 void validate_terrain_raster(const TerrainRaster& terrain);
 
+// Load a terrain raster through the first GDAL-backed ingestion path.
+// Phase 2 intentionally supports a narrow scope first:
+// - one raster band
+// - square pixels
+// - no rotated/sheared geotransform
+// - nodata mapped into valid_cell_mask
+TerrainRaster load_terrain_raster_from_file(const std::string& path);
+
 }  // namespace floodsim

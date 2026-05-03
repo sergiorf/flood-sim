@@ -5,10 +5,16 @@
 
 #include <cmath>
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+
+#if FLOODSIM_HAS_GDAL
+#include <gdal_priv.h>
+#include <ogr_spatialref.h>
+#endif
 
 namespace {
 
@@ -368,6 +374,173 @@ void test_terrain_raster_requires_complete_origin_metadata() {
         "terrain raster should reject origin metadata that provides only one coordinate");
 }
 
+#if FLOODSIM_HAS_GDAL
+
+std::filesystem::path make_temp_raster_path(const std::string& stem) {
+    const auto unique_id = std::to_string(std::hash<std::string> {}(stem));
+    return std::filesystem::temp_directory_path() / ("floodsim_" + stem + "_" + unique_id + ".tif");
+}
+
+void write_test_geotiff(
+    const std::filesystem::path& path,
+    int rows,
+    int cols,
+    int bands,
+    const std::vector<double>& values,
+    const double* geotransform,
+    std::optional<double> nodata_value,
+    const char* crs_authority = "EPSG",
+    int crs_code = 31370) {
+    GDALAllRegister();
+
+    GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+    expect_true(driver != nullptr, "GTiff driver should be available for ingestion tests");
+
+    std::unique_ptr<GDALDataset, decltype(&GDALClose)> dataset(
+        driver->Create(path.string().c_str(), cols, rows, bands, GDT_Float64, nullptr),
+        GDALClose);
+    expect_true(dataset != nullptr, "test GeoTIFF should be created successfully");
+
+    expect_true(dataset->SetGeoTransform(const_cast<double*>(geotransform)) == CE_None, "test GeoTIFF should accept geotransform");
+
+    OGRSpatialReference spatial_ref;
+    spatial_ref.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    expect_true(spatial_ref.SetFromUserInput((std::string(crs_authority) + ":" + std::to_string(crs_code)).c_str()) == OGRERR_NONE, "test CRS should be configured");
+    char* wkt = nullptr;
+    expect_true(spatial_ref.exportToWkt(&wkt) == OGRERR_NONE, "test CRS should export to WKT");
+    expect_true(dataset->SetProjection(wkt) == CE_None, "test GeoTIFF should accept projection");
+    CPLFree(wkt);
+
+    const std::size_t cells_per_band = static_cast<std::size_t>(rows * cols);
+    expect_true(values.size() == cells_per_band * static_cast<std::size_t>(bands), "test raster values should match rows * cols * bands");
+
+    for (int band_index = 0; band_index < bands; ++band_index) {
+        GDALRasterBand* band = dataset->GetRasterBand(band_index + 1);
+        expect_true(band != nullptr, "test GeoTIFF band should exist");
+
+        if (nodata_value.has_value()) {
+            expect_true(band->SetNoDataValue(*nodata_value) == CE_None, "test nodata value should be set");
+        }
+
+        const double* band_values = values.data() + (cells_per_band * static_cast<std::size_t>(band_index));
+        expect_true(
+            band->RasterIO(
+                GF_Write,
+                0,
+                0,
+                cols,
+                rows,
+                const_cast<double*>(band_values),
+                cols,
+                rows,
+                GDT_Float64,
+                0,
+                0) == CE_None,
+            "test GeoTIFF values should be written");
+    }
+}
+
+void test_gdal_loader_reads_single_band_terrain_raster() {
+    const std::filesystem::path path = make_temp_raster_path("single_band");
+    const double geotransform[6] = {
+        154320.0,
+        2.0,
+        0.0,
+        171205.0,
+        0.0,
+       -2.0,
+    };
+    const double nodata = -9999.0;
+
+    write_test_geotiff(
+        path,
+        2,
+        3,
+        1,
+        {
+            101.2, 100.7, 100.1,
+             99.9, nodata, 98.8,
+        },
+        geotransform,
+        nodata);
+
+    const TerrainRaster terrain = floodsim::load_terrain_raster_from_file(path.string());
+
+    expect_true(terrain.rows == 2, "loaded terrain should preserve raster row count");
+    expect_true(terrain.cols == 3, "loaded terrain should preserve raster column count");
+    expect_true(nearly_equal(terrain.cell_size_m, 2.0), "loaded terrain should preserve square pixel size");
+    expect_true(terrain.origin_x_m.has_value() && nearly_equal(*terrain.origin_x_m, 154320.0), "loaded terrain should preserve x origin");
+    expect_true(terrain.origin_y_m.has_value() && nearly_equal(*terrain.origin_y_m, 171205.0), "loaded terrain should preserve y origin");
+    expect_true(terrain.crs_id.has_value() && *terrain.crs_id == "EPSG:31370", "loaded terrain should preserve CRS authority metadata");
+    expect_true(terrain.elevation_m.size() == 6, "loaded terrain should preserve cell array size");
+    expect_true(terrain.valid_cell_mask.size() == 6, "loaded terrain should preserve valid-cell mask size");
+    expect_true(terrain.valid_cell_mask[4] == 0, "nodata cell should be excluded from the valid domain");
+    expect_true(terrain.valid_cell_mask[0] == 1 && terrain.valid_cell_mask[5] == 1, "non-nodata cells should remain valid");
+
+    std::filesystem::remove(path);
+}
+
+void test_gdal_loader_rejects_multi_band_rasters() {
+    const std::filesystem::path path = make_temp_raster_path("multi_band");
+    const double geotransform[6] = {
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+       -1.0,
+    };
+
+    write_test_geotiff(
+        path,
+        1,
+        2,
+        2,
+        {
+            1.0, 2.0,
+            3.0, 4.0,
+        },
+        geotransform,
+        std::nullopt);
+
+    expect_throws<std::invalid_argument>(
+        [&path]() { (void)floodsim::load_terrain_raster_from_file(path.string()); },
+        "gdal loader should reject multi-band rasters");
+
+    std::filesystem::remove(path);
+}
+
+void test_gdal_loader_rejects_non_square_pixels() {
+    const std::filesystem::path path = make_temp_raster_path("non_square");
+    const double geotransform[6] = {
+        0.0,
+        2.0,
+        0.0,
+        0.0,
+        0.0,
+       -3.0,
+    };
+
+    write_test_geotiff(
+        path,
+        1,
+        2,
+        1,
+        {
+            1.0, 2.0,
+        },
+        geotransform,
+        std::nullopt);
+
+    expect_throws<std::invalid_argument>(
+        [&path]() { (void)floodsim::load_terrain_raster_from_file(path.string()); },
+        "gdal loader should reject non-square pixels");
+
+    std::filesystem::remove(path);
+}
+
+#endif
+
 }  // namespace
 
 int main() {
@@ -391,6 +564,11 @@ int main() {
         test_terrain_raster_requires_positive_cell_size();
         test_terrain_raster_requires_at_least_one_valid_cell();
         test_terrain_raster_requires_complete_origin_metadata();
+#if FLOODSIM_HAS_GDAL
+        test_gdal_loader_reads_single_band_terrain_raster();
+        test_gdal_loader_rejects_multi_band_rasters();
+        test_gdal_loader_rejects_non_square_pixels();
+#endif
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';
         return 1;

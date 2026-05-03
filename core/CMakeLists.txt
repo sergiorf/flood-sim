@@ -12,6 +12,19 @@ target_include_directories(floodsim_core
 
 target_compile_features(floodsim_core PUBLIC cxx_std_20)
 
+if(FLOODSIM_ENABLE_GDAL)
+    if(TARGET GDAL::GDAL)
+        target_link_libraries(floodsim_core PUBLIC GDAL::GDAL)
+    else()
+        target_include_directories(floodsim_core PUBLIC ${GDAL_INCLUDE_DIRS})
+        target_link_libraries(floodsim_core PUBLIC ${GDAL_LIBRARIES})
+    endif()
+
+    target_compile_definitions(floodsim_core PUBLIC FLOODSIM_HAS_GDAL=1)
+else()
+    target_compile_definitions(floodsim_core PUBLIC FLOODSIM_HAS_GDAL=0)
+endif()
+
 if(FLOODSIM_BUILD_TESTS)
     add_executable(floodsim_core_tests
         tests/test_simulation.cpp

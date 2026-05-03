@@ -42,37 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-011 - Add a minimal DEM/GeoTIFF ingestion path
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- The simulator cannot yet run on real terrain because it has no ingestion path from DEM or GeoTIFF inputs.
-- This blocks the first real-terrain milestone described in the roadmap.
-
-Proposed change:
-- Add a minimal terrain loading path for a clipped DEM or GeoTIFF input.
-- Keep the implementation small and focused on producing the Phase 2 terrain contract.
-
-Constraints:
-- Avoid heavy abstraction layers beyond what is needed for the first import path.
-- If GDAL is introduced, keep it optional or narrowly scoped.
-
-Acceptance criteria:
-- A small real-terrain raster can be loaded into an internal terrain representation.
-- The ingestion path handles the basic metadata required by the simulation core.
-- The implementation is documented well enough to support a first real-area example.
-
-Required tests:
-- Small ingestion tests for representative terrain input.
-- Failure-path coverage for malformed or unsupported input where practical.
-
-Required documentation updates:
-- `README.md`
-- `docs/architecture.md`
-
 ## FS-012 - Make nodata and terrain-domain handling explicit
 
 Status: Todo

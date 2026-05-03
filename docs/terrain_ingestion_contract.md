@@ -9,6 +9,95 @@ The purpose of the contract is to separate:
 
 For the first real-terrain workflow, every ingestion path should produce a `TerrainRaster`-style object with the fields documented below.
 
+## Plain-language glossary
+
+These terms appear frequently in Phase 2 work. For the first implementation, a practical understanding is enough.
+
+### DEM
+
+DEM stands for Digital Elevation Model.
+
+For FloodSim, think of it as:
+
+- a height map of the ground
+- one elevation value per raster cell
+
+The simulator does not need a perfect GIS worldview first. It needs a real terrain grid.
+
+### GeoTIFF
+
+A GeoTIFF is a TIFF raster file with geospatial metadata attached.
+
+For FloodSim, that usually means a file can carry:
+
+- raster dimensions
+- cell size
+- georeferencing
+- CRS metadata
+- nodata metadata
+- elevation values
+
+Many DEM datasets are distributed as GeoTIFF files.
+
+### Raster
+
+A raster is a rectangular grid of cells.
+
+For this project, a raster means:
+
+- rows and columns
+- one value stored per cell
+
+In Phase 2, the raster values of interest are terrain elevations.
+
+### Single-band raster
+
+A band is one layer of values in a raster file.
+
+A single-band raster means:
+
+- each cell stores one main value
+- for DEM work, that value is terrain elevation
+
+This is a useful first limitation because the first loader only needs one terrain layer, not a multi-layer remote-sensing stack.
+
+### CRS
+
+CRS stands for Coordinate Reference System.
+
+For practical Phase 2 work, it answers:
+
+- what map coordinate system the raster uses
+- how the terrain should line up with other spatial data later
+
+The first simulation step does not compute differently because of CRS, but later export and mapping work will care about it.
+
+### Nodata
+
+Nodata means a raster cell does not contain valid terrain data.
+
+Common reasons:
+
+- clipped edges
+- gaps in the source data
+- masked-out areas
+
+For the first FloodSim terrain contract:
+
+- nodata cells stay present in the raster shape
+- nodata cells are excluded from the simulation domain using `valid_cell_mask`
+
+### Reprojection
+
+Reprojection means converting spatial data from one CRS into another.
+
+Example:
+
+- source data may arrive in one map coordinate system
+- later visualization or comparison layers may use another
+
+Phase 2 does not need full reprojection support yet. The first loader can preserve the source CRS and fail on unsupported cases rather than transforming everything automatically.
+
 ## Contract summary
 
 Required fields for Phase 2 simulation use:
@@ -249,6 +338,32 @@ Minimum validation:
 - `valid_cell_mask.size() == rows * cols`
 - at least one valid cell exists
 - `origin_x_m` and `origin_y_m` are both present or both absent
+
+## First GDAL-backed loader scope
+
+The first implementation of Phase 2 ingestion is intentionally narrow.
+
+Supported in the first pass:
+
+- one raster band
+- one elevation value per cell
+- square pixels
+- no raster rotation or shear
+- optional nodata value mapped into `valid_cell_mask`
+- preserved origin and CRS metadata when available
+
+Rejected in the first pass:
+
+- multi-band rasters
+- rotated or sheared rasters
+- non-square pixels
+- files that do not expose the minimum geotransform metadata needed to derive cell size
+
+Why keep it narrow:
+
+- it anchors the project on real DEM and GeoTIFF formats immediately
+- it avoids pretending the first loader is already a full GIS pipeline
+- it keeps errors explicit while the first real-terrain workflow is still being established
 
 ## What this contract does not solve yet
 
