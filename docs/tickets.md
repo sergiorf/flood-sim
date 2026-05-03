@@ -42,38 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-010 - Define the Phase 2 terrain-ingestion contract
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Phase 2 needs a clear contract for what terrain ingestion produces before any DEM reader is implemented.
-- Without an explicit contract, later loading code may hard-code assumptions about extent, resolution, nodata handling, or coordinate metadata.
-
-Proposed change:
-- Define the in-repository terrain-ingestion contract for the first real-terrain workflow.
-- Specify the minimum metadata and raster content the simulation core will need from imported terrain.
-
-Constraints:
-- Keep the first contract minimal and compatible with the current raster-grid MVP.
-- Do not expand into a full GIS abstraction layer yet.
-
-Acceptance criteria:
-- The expected imported terrain representation is documented clearly.
-- Required metadata such as rows, cols, cell size, and nodata behavior are explicit.
-- The contract is narrow enough to support a first implementation without overdesign.
-
-Required tests:
-- None required if this ticket remains design-and-docs only.
-- Any helper types added in code should receive narrow construction or validation tests.
-
-Required documentation updates:
-- `docs/architecture.md`
-- `docs/roadmap.md`
-- a new ingestion-specific note if needed
-
 ## FS-011 - Add a minimal DEM/GeoTIFF ingestion path
 
 Status: Todo

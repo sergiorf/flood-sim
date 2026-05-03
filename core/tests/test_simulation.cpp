@@ -1,6 +1,7 @@
 #include "floodsim/export.hpp"
 #include "floodsim/grid.hpp"
 #include "floodsim/simulation.hpp"
+#include "floodsim/terrain.hpp"
 
 #include <cmath>
 #include <exception>
@@ -15,6 +16,7 @@ using floodsim::BoundaryMode;
 using floodsim::Grid;
 using floodsim::RainfallScenario;
 using floodsim::SimulationConfig;
+using floodsim::TerrainRaster;
 
 bool nearly_equal(double lhs, double rhs, double epsilon = 1e-9) {
     return std::fabs(lhs - rhs) <= epsilon;
@@ -24,6 +26,19 @@ void expect_true(bool condition, const std::string& message) {
     if (!condition) {
         throw std::runtime_error(message);
     }
+}
+
+template <typename ExceptionType, typename Function>
+void expect_throws(Function&& function, const std::string& message) {
+    try {
+        function();
+    } catch (const ExceptionType&) {
+        return;
+    } catch (...) {
+        throw std::runtime_error(message + ": wrong exception type");
+    }
+
+    throw std::runtime_error(message + ": expected exception was not thrown");
 }
 
 void test_rainfall_adds_water() {
@@ -287,6 +302,72 @@ void test_csv_export_writes_metadata_header_and_per_cell_rows() {
     expect_true(output.str() == expected, "CSV export should write stable metadata and row-major cell records");
 }
 
+TerrainRaster make_valid_terrain_raster() {
+    TerrainRaster terrain;
+    terrain.rows = 2;
+    terrain.cols = 3;
+    terrain.cell_size_m = 2.0;
+    terrain.elevation_m = {
+        101.2, 100.7, 100.1,
+         99.9,   0.0,  98.8,
+    };
+    terrain.valid_cell_mask = {
+        1, 1, 1,
+        1, 0, 1,
+    };
+    terrain.origin_x_m = 154320.0;
+    terrain.origin_y_m = 171205.0;
+    terrain.crs_id = "EPSG:31370";
+    return terrain;
+}
+
+void test_valid_terrain_raster_contract_passes_validation() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+
+    floodsim::validate_terrain_raster(terrain);
+
+    expect_true(terrain.cell_count() == 6, "terrain cell count should match rows * cols");
+}
+
+void test_terrain_raster_requires_matching_array_sizes() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+    terrain.valid_cell_mask.pop_back();
+
+    expect_throws<std::invalid_argument>(
+        [&terrain]() { floodsim::validate_terrain_raster(terrain); },
+        "terrain raster should reject a mask length that does not match rows * cols");
+}
+
+void test_terrain_raster_requires_positive_cell_size() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+    terrain.cell_size_m = 0.0;
+
+    expect_throws<std::invalid_argument>(
+        [&terrain]() { floodsim::validate_terrain_raster(terrain); },
+        "terrain raster should reject non-positive cell sizes");
+}
+
+void test_terrain_raster_requires_at_least_one_valid_cell() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+    terrain.valid_cell_mask = {
+        0, 0, 0,
+        0, 0, 0,
+    };
+
+    expect_throws<std::invalid_argument>(
+        [&terrain]() { floodsim::validate_terrain_raster(terrain); },
+        "terrain raster should reject a domain with no valid cells");
+}
+
+void test_terrain_raster_requires_complete_origin_metadata() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+    terrain.origin_y_m.reset();
+
+    expect_throws<std::invalid_argument>(
+        [&terrain]() { floodsim::validate_terrain_raster(terrain); },
+        "terrain raster should reject origin metadata that provides only one coordinate");
+}
+
 }  // namespace
 
 int main() {
@@ -305,6 +386,11 @@ int main() {
         test_water_is_conserved_without_rainfall();
         test_repeated_steps_accumulate_rainfall_linearly_without_flow();
         test_csv_export_writes_metadata_header_and_per_cell_rows();
+        test_valid_terrain_raster_contract_passes_validation();
+        test_terrain_raster_requires_matching_array_sizes();
+        test_terrain_raster_requires_positive_cell_size();
+        test_terrain_raster_requires_at_least_one_valid_cell();
+        test_terrain_raster_requires_complete_origin_metadata();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';
         return 1;

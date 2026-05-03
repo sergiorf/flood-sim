@@ -2,6 +2,7 @@ add_library(floodsim_core
     src/export.cpp
     src/grid.cpp
     src/simulation.cpp
+    src/terrain.cpp
 )
 
 target_include_directories(floodsim_core

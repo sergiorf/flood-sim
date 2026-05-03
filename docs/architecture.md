@@ -18,6 +18,8 @@ The ingestion layer will prepare terrain and scenario inputs:
 
 The initial repository does not require GDAL yet, but the code structure is intended to make that integration straightforward later.
 
+For the first real-terrain workflow, ingestion should target the contract described in [docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md). That contract keeps the initial imported terrain object narrow: raster dimensions, square cell size, row-major elevations, a valid-cell mask for nodata handling, and optional origin / CRS metadata preserved for later map alignment.
+
 ### 2. Simulation core
 
 The simulation core is implemented in C++20 for deterministic behavior and future performance headroom.

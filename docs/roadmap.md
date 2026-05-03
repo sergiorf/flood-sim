@@ -64,6 +64,7 @@ Why this phase matters:
 Expected outcome:
 
 - a user can load a small real terrain clip, run a rainfall case, and export map-aligned outputs for inspection
+- early Phase 2 work should start from a narrow validated terrain contract before adding broader DEM or GeoTIFF support
 
 ## Phase 3. Map visualization
 
