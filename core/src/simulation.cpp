@@ -32,6 +32,10 @@ void add_uniform_rainfall(Grid& grid, const RainfallScenario& rainfall, double d
 
     for (std::size_t row = 0; row < grid.rows(); ++row) {
         for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
             grid.add_water_depth(row, col, added_depth);
         }
     }
@@ -61,6 +65,10 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
 
     for (std::size_t row = 0; row < grid.rows(); ++row) {
         for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
             const double available_water = grid.water_depth(row, col);
             if (available_water <= 0.0) {
                 continue;
@@ -79,6 +87,11 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
                 }
                 if (neighbor_row >= static_cast<int>(grid.rows()) ||
                     neighbor_col >= static_cast<int>(grid.cols())) {
+                    continue;
+                }
+                if (!grid.is_cell_valid(
+                        static_cast<std::size_t>(neighbor_row),
+                        static_cast<std::size_t>(neighbor_col))) {
                     continue;
                 }
 
@@ -119,6 +132,10 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     // Apply the accumulated changes after all cells have computed their outflow.
     for (std::size_t row = 0; row < grid.rows(); ++row) {
         for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
             const std::size_t idx = row * grid.cols() + col;
             grid.add_water_depth(row, col, delta[idx]);
         }

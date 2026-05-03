@@ -71,6 +71,20 @@ In practice this means:
 
 This is a deliberate simplification for the toy-grid MVP. It is less realistic than open outflow for many real landscapes, but it keeps the early model easier to reason about, easier to test, and easier to compare while core routing semantics are still being stabilized.
 
+## Imported terrain domain behavior
+
+Phase 2 imported terrain adds an explicit valid-cell domain on top of the raster shape.
+
+For the first real-terrain workflow:
+
+- valid cells define the simulation domain
+- invalid or nodata cells remain part of the raster shape for indexing purposes
+- rainfall is applied only to valid cells
+- flow cannot route into invalid or nodata cells
+- invalid neighbors are ignored during routing, which means clipped or nodata-adjacent edges behave like absent neighbors in the current closed-boundary model
+
+This keeps imported terrain behavior aligned with the existing conservative boundary philosophy: water remains inside the valid simulated domain unless a later phase introduces a different explicit boundary or nodata rule.
+
 ## Why start here
 
 This first model is useful because it:

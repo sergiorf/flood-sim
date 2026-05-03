@@ -31,6 +31,7 @@ Current responsibilities:
 - route a fraction of water to lower orthogonal neighbors using surface height (`elevation + water depth`)
 - accumulate transfers across the full grid and apply them after the scan completes
 - expose boundary handling as an explicit simulation setting, with Phase 1 currently supporting closed boundaries only
+- treat invalid imported-terrain cells as out-of-domain cells that do not receive rainfall and cannot receive routed flow
 
 Later responsibilities may include:
 

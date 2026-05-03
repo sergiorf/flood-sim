@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace floodsim {
@@ -16,10 +17,12 @@ public:
     [[nodiscard]] double elevation(std::size_t row, std::size_t col) const;
     [[nodiscard]] double water_depth(std::size_t row, std::size_t col) const;
     [[nodiscard]] double surface_height(std::size_t row, std::size_t col) const;
+    [[nodiscard]] bool is_cell_valid(std::size_t row, std::size_t col) const;
 
     void set_elevation(std::size_t row, std::size_t col, double elevation_m);
     void set_water_depth(std::size_t row, std::size_t col, double water_depth_m);
     void add_water_depth(std::size_t row, std::size_t col, double delta_m);
+    void set_cell_valid(std::size_t row, std::size_t col, bool is_valid);
 
     [[nodiscard]] double total_water_depth() const noexcept;
 
@@ -31,7 +34,7 @@ private:
     double cell_size_m_;
     std::vector<double> elevation_m_;
     std::vector<double> water_depth_m_;
+    std::vector<std::uint8_t> valid_cell_mask_;
 };
 
 }  // namespace floodsim
-

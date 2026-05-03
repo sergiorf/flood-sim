@@ -42,37 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-012 - Make nodata and terrain-domain handling explicit
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Real terrain data introduces nodata cells, clipped extents, and edge behavior that the toy-grid phase did not need to handle explicitly.
-- If those rules stay implicit, imported runs will be hard to trust or compare.
-
-Proposed change:
-- Define and implement how nodata cells and domain edges behave in the first real-terrain workflow.
-- Align the behavior with the current explicit-boundary approach where possible.
-
-Constraints:
-- Keep the first rule set simple and easy to explain.
-- Do not attempt to solve every GIS edge case in the first Phase 2 pass.
-
-Acceptance criteria:
-- Nodata handling rules are explicit in code and docs.
-- Domain-edge behavior for imported terrain is stated clearly.
-- Tests cover at least one representative nodata or clipped-domain case.
-
-Required tests:
-- Focused nodata or domain-edge tests.
-- Any simulation-adjacent behavior changes should be covered in `core/tests` or equivalent small tests.
-
-Required documentation updates:
-- `docs/simulation_model.md`
-- `docs/architecture.md`
-
 ## FS-013 - Add the first real-terrain example workflow
 
 Status: Todo
@@ -104,6 +73,38 @@ Required documentation updates:
 - `README.md`
 - example-specific docs
 - `docs/roadmap.md` if the milestone wording needs refinement
+
+## FS-014 - Apply Phase 2 hot-path cleanup before larger terrain runs
+
+Status: Todo
+Owner: Unassigned
+Priority: P3
+
+Problem:
+- The current simulation implementation is clear and correct, but it still carries obvious per-step overhead that will matter more once real terrain clips and longer runs become common.
+- Waiting too long to address the simplest hot-path waste will make early Phase 2 performance harder to interpret.
+
+Proposed change:
+- Apply only the low-risk performance cleanups that improve the current hot path without changing model semantics.
+- Focus on removing avoidable allocation and container overhead before considering deeper optimization work.
+
+Constraints:
+- Preserve the current simulation behavior exactly.
+- Keep the code readable and testable.
+- Do not introduce speculative large-scale optimization architecture yet.
+
+Acceptance criteria:
+- Per-step temporary neighbor storage no longer performs avoidable dynamic allocation.
+- The step update buffer is reused or otherwise avoids unnecessary per-step allocation churn.
+- Any fast-path access changes preserve the current documented semantics.
+- The change is accompanied by at least a small before/after rationale in code comments or docs if the implementation becomes less obvious.
+
+Required tests:
+- Existing simulation tests continue to pass unchanged.
+- Any new helper abstractions for the hot path receive narrow coverage if they introduce nontrivial logic.
+
+Required documentation updates:
+- None required unless implementation tradeoffs need a brief note in `docs/architecture.md`
 
 ## In Progress
 

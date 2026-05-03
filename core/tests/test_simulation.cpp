@@ -282,6 +282,62 @@ void test_repeated_steps_accumulate_rainfall_linearly_without_flow() {
     expect_true(nearly_equal(grid.water_depth(0, 0), 0.008), "four fifteen-minute steps should accumulate one hour of rainfall depth");
 }
 
+void test_invalid_cells_do_not_receive_rainfall() {
+    Grid grid(1, 2);
+    grid.set_cell_valid(0, 1, false);
+
+    RainfallScenario rainfall {0.012};
+
+    floodsim::add_uniform_rainfall(grid, rainfall, 3600.0);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.012), "valid cell should receive rainfall");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.0), "invalid cell should not receive rainfall");
+}
+
+void test_flow_does_not_route_into_invalid_neighbor_cells() {
+    Grid grid(1, 3);
+    grid.set_elevation(0, 0, 3.0);
+    grid.set_elevation(0, 1, 0.0);
+    grid.set_elevation(0, 2, 1.0);
+    grid.set_water_depth(0, 1, 1.0);
+    grid.set_cell_valid(0, 0, false);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.0), "invalid neighbor should remain dry");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.5), "source cell should retain the non-routed half of its water");
+    expect_true(nearly_equal(grid.water_depth(0, 2), 0.5), "all routed water should go to the only lower valid neighbor");
+}
+
+void test_invalid_cells_behave_like_out_of_domain_clipped_terrain() {
+    Grid grid(2, 2);
+    grid.set_elevation(0, 0, 5.0);
+    grid.set_elevation(0, 1, 0.0);
+    grid.set_elevation(1, 0, 1.0);
+    grid.set_elevation(1, 1, 2.0);
+    grid.set_water_depth(0, 0, 1.0);
+    grid.set_cell_valid(0, 1, false);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.5), "source cell should lose only the configured outflow fraction");
+    expect_true(nearly_equal(grid.water_depth(1, 0), 0.5), "water should route only to the lower valid in-domain neighbor");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.0), "invalid clipped cell should remain outside the simulated domain");
+    expect_true(nearly_equal(grid.total_water_depth(), 1.0), "water should remain conserved inside the valid simulation domain");
+}
+
 void test_csv_export_writes_metadata_header_and_per_cell_rows() {
     Grid grid(2, 2);
     grid.set_elevation(0, 0, 1.0);
@@ -558,6 +614,9 @@ int main() {
         test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
         test_repeated_steps_accumulate_rainfall_linearly_without_flow();
+        test_invalid_cells_do_not_receive_rainfall();
+        test_flow_does_not_route_into_invalid_neighbor_cells();
+        test_invalid_cells_behave_like_out_of_domain_clipped_terrain();
         test_csv_export_writes_metadata_header_and_per_cell_rows();
         test_valid_terrain_raster_contract_passes_validation();
         test_terrain_raster_requires_matching_array_sizes();

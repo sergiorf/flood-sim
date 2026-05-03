@@ -222,6 +222,7 @@ Phase 2 default behavior:
 - valid cells form the simulation domain
 - nodata cells are excluded from the domain
 - later simulation work should not route flow into nodata cells
+- later simulation work should not apply rainfall to nodata cells
 
 Rules:
 - array length must equal `rows * cols`
@@ -351,6 +352,13 @@ Supported in the first pass:
 - no raster rotation or shear
 - optional nodata value mapped into `valid_cell_mask`
 - preserved origin and CRS metadata when available
+
+Runtime behavior coupled to that loader:
+
+- invalid cells behave as out-of-domain cells
+- rainfall is applied only to valid cells
+- routing ignores invalid neighbors entirely
+- clipped or nodata-adjacent edges behave like absent neighbors in the current closed-boundary model
 
 Rejected in the first pass:
 
