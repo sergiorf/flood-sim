@@ -23,6 +23,8 @@ void add_uniform_rainfall(Grid& grid, const RainfallScenario& rainfall, double d
         throw std::invalid_argument("Rainfall duration cannot be negative");
     }
 
+    // RainfallScenario stores an intensity, not a per-step depth. Convert it
+    // into a depth increment for this specific step duration.
     const double added_depth = rainfall.intensity_m_per_hour * (duration_seconds / 3600.0);
     if (added_depth <= 0.0) {
         return;

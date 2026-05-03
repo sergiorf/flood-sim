@@ -35,6 +35,15 @@ void test_rainfall_adds_water() {
     expect_true(nearly_equal(grid.total_water_depth(), 0.048), "total rainfall water mismatch");
 }
 
+void test_rainfall_scales_with_step_duration() {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    floodsim::add_uniform_rainfall(grid, rainfall, 1800.0);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.006), "half-hour rainfall should add half of the hourly depth");
+}
+
 void test_water_flows_downhill() {
     Grid grid(1, 2);
     grid.set_elevation(0, 0, 2.0);
@@ -217,6 +226,21 @@ void test_water_is_conserved_without_rainfall() {
     expect_true(nearly_equal(before, after, 1e-8), "water should remain conserved");
 }
 
+void test_repeated_steps_accumulate_rainfall_linearly_without_flow() {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.008};
+    SimulationConfig config {
+        .time_step_seconds = 900.0,
+        .max_outflow_fraction = 0.25,
+    };
+
+    for (int i = 0; i < 4; ++i) {
+        floodsim::step(grid, rainfall, config);
+    }
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.008), "four fifteen-minute steps should accumulate one hour of rainfall depth");
+}
+
 void test_csv_export_writes_header_and_per_cell_rows() {
     Grid grid(2, 2);
     grid.set_elevation(0, 0, 1.0);
@@ -244,6 +268,7 @@ void test_csv_export_writes_header_and_per_cell_rows() {
 int main() {
     try {
         test_rainfall_adds_water();
+        test_rainfall_scales_with_step_duration();
         test_water_flows_downhill();
         test_rainfall_is_applied_before_flow();
         test_outflow_is_split_by_relative_drop();
@@ -253,6 +278,7 @@ int main() {
         test_closed_boundary_keeps_corner_water_in_domain();
         test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
+        test_repeated_steps_accumulate_rainfall_linearly_without_flow();
         test_csv_export_writes_header_and_per_cell_rows();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';

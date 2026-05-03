@@ -15,6 +15,22 @@ The MVP uses a raster/grid representation with:
 - uniform rainfall added each time step
 - simple downhill redistribution to lower orthogonal neighbors
 
+## Rainfall contract
+
+Phase 1 rainfall input is defined as a uniform intensity in meters per hour.
+
+This is an intensity contract, not a per-step depth contract. For a step of
+duration `time_step_seconds`, each cell receives:
+
+`intensity_m_per_hour * (time_step_seconds / 3600.0)`
+
+Implications:
+
+- changing `time_step_seconds` changes the rainfall depth injected during each step
+- multiple shorter steps accumulate the same rainfall depth as one longer step over the same total simulated duration
+- rainfall is applied to every cell before any flow routing happens in that step
+- a zero rainfall intensity adds no water regardless of step size
+
 The current algorithm is deliberately simple and should be read as an exact behavioral contract for the toy-grid MVP:
 
 1. add rainfall depth to every cell
@@ -31,6 +47,7 @@ This means the step uses a shared snapshot of the grid state after rainfall has 
 The current Phase 1 model makes these explicit choices:
 
 - rainfall is spatially uniform across all cells
+- rainfall input is expressed as intensity in meters per hour, then converted to per-step depth using `time_step_seconds`
 - rainfall is applied before flow during each step
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone

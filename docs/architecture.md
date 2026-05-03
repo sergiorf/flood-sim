@@ -25,7 +25,7 @@ The simulation core is implemented in C++20 for deterministic behavior and futur
 Current responsibilities:
 
 - store terrain elevation and water depth on a raster grid
-- apply uniform rainfall before each flow step
+- apply uniform rainfall before each flow step, with rainfall scenario intensity expressed in meters per hour and converted using `time_step_seconds`
 - route a fraction of water to lower orthogonal neighbors using surface height (`elevation + water depth`)
 - accumulate transfers across the full grid and apply them after the scan completes
 - treat the Phase 1 grid boundary as closed, so flow is limited to cells inside the simulated raster
