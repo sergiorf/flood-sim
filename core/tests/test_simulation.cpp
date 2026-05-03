@@ -261,7 +261,7 @@ void test_repeated_steps_accumulate_rainfall_linearly_without_flow() {
     expect_true(nearly_equal(grid.water_depth(0, 0), 0.008), "four fifteen-minute steps should accumulate one hour of rainfall depth");
 }
 
-void test_csv_export_writes_header_and_per_cell_rows() {
+void test_csv_export_writes_metadata_header_and_per_cell_rows() {
     Grid grid(2, 2);
     grid.set_elevation(0, 0, 1.0);
     grid.set_elevation(0, 1, 1.5);
@@ -274,13 +274,17 @@ void test_csv_export_writes_header_and_per_cell_rows() {
     floodsim::write_grid_csv(grid, output);
 
     const std::string expected =
+        "# floodsim_csv_version,1\n"
+        "# rows,2\n"
+        "# cols,2\n"
+        "# cell_size_m,1.000000\n"
         "row,col,elevation_m,water_depth_m,surface_height_m\n"
         "0,0,1.000000,0.250000,1.250000\n"
         "0,1,1.500000,0.000000,1.500000\n"
         "1,0,2.000000,0.000000,2.000000\n"
         "1,1,2.500000,0.750000,3.250000\n";
 
-    expect_true(output.str() == expected, "CSV export should write a stable header and row-major cell records");
+    expect_true(output.str() == expected, "CSV export should write stable metadata and row-major cell records");
 }
 
 }  // namespace
@@ -300,7 +304,7 @@ int main() {
         test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
         test_repeated_steps_accumulate_rainfall_linearly_without_flow();
-        test_csv_export_writes_header_and_per_cell_rows();
+        test_csv_export_writes_metadata_header_and_per_cell_rows();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';
         return 1;

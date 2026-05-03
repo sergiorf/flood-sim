@@ -45,7 +45,14 @@ Simulation outputs should eventually be exportable as:
 - tiled outputs for map display
 - summary metrics for scenario comparison
 
-The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs. The current export format writes one row per cell with:
+The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs. The current export format begins with metadata lines for:
+
+- `floodsim_csv_version`
+- `rows`
+- `cols`
+- `cell_size_m`
+
+After the metadata preamble, the file writes one row per cell with:
 
 - `row`
 - `col`
@@ -53,7 +60,7 @@ The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs. The cu
 - `water_depth_m`
 - `surface_height_m`
 
-This keeps the output stable and easy to consume from scripts or a future viewer without introducing heavier raster or GIS dependencies yet.
+This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet.
 
 ### 4. Graphical visualization
 

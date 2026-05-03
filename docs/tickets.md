@@ -42,37 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-007 - Stabilize Phase 1 CSV export metadata
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The current CSV export records per-cell values, but it does not yet carry lightweight metadata such as grid dimensions or cell size.
-- Follow-on tooling will be more brittle if consumers must infer raster shape or rely only on row scans.
-
-Proposed change:
-- Extend the Phase 1 export format with minimal metadata that keeps the output easy to parse.
-- Record and document the stable CSV contract for downstream scripts and future viewers.
-
-Constraints:
-- Keep the format lightweight and text-based.
-- Do not introduce GIS-specific dependencies or complex file containers.
-
-Acceptance criteria:
-- Exported outputs include the agreed minimal metadata needed to reconstruct the grid consistently.
-- The output format remains simple to inspect by hand and consume from scripts.
-- The format contract is documented clearly enough for later visualization work.
-
-Required tests:
-- Output-format tests covering the metadata contract.
-- Golden-file style or exact-string checks for representative small grids.
-
-Required documentation updates:
-- `examples/simple_grid/README.md`
-- `docs/architecture.md`
-
 ## FS-008 - Add a simple exported-output consumer example
 
 Status: Todo

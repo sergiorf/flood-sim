@@ -18,10 +18,14 @@ To also export the final grid state as CSV:
 ./build/floodsim_simple_grid final_grid.csv
 ```
 
-The CSV contains one row per cell with this schema:
+The CSV starts with a small metadata preamble and then one row per cell:
 
 ```text
+# floodsim_csv_version,1
+# rows,<grid_rows>
+# cols,<grid_cols>
+# cell_size_m,<cell_size_m>
 row,col,elevation_m,water_depth_m,surface_height_m
 ```
 
-Rows are written in row-major order. This keeps the Phase 1 output format simple for scripts and future viewers while preserving both terrain and simulated water depth in a single file.
+The metadata lines make the export self-describing for downstream tools. Data rows are written in row-major order. Lines beginning with `# ` are metadata; the first non-metadata line is the CSV column header.
