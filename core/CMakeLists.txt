@@ -1,4 +1,5 @@
 add_library(floodsim_core
+    src/export.cpp
     src/grid.cpp
     src/simulation.cpp
 )

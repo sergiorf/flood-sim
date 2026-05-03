@@ -1,8 +1,11 @@
+#include "floodsim/export.hpp"
 #include "floodsim/grid.hpp"
 #include "floodsim/simulation.hpp"
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 
 namespace {
 
@@ -30,9 +33,24 @@ void print_water_depth(const floodsim::Grid& grid) {
     }
 }
 
+void export_grid_if_requested(const floodsim::Grid& grid, int argc, char** argv) {
+    if (argc < 2) {
+        return;
+    }
+
+    const char* output_path = argv[1];
+    std::ofstream output(output_path);
+    if (!output) {
+        throw std::runtime_error("Failed to open CSV output path");
+    }
+
+    floodsim::write_grid_csv(grid, output);
+    std::cout << "wrote_csv=" << output_path << '\n';
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     floodsim::Grid grid(10, 10, 2.0);
     initialize_bowl_terrain(grid);
 
@@ -52,6 +70,6 @@ int main() {
     }
 
     print_water_depth(grid);
+    export_grid_if_requested(grid, argc, argv);
     return 0;
 }
-

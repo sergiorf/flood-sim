@@ -45,7 +45,15 @@ Simulation outputs should eventually be exportable as:
 - tiled outputs for map display
 - summary metrics for scenario comparison
 
-The MVP currently prints CLI output only.
+The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs. The current export format writes one row per cell with:
+
+- `row`
+- `col`
+- `elevation_m`
+- `water_depth_m`
+- `surface_height_m`
+
+This keeps the output stable and easy to consume from scripts or a future viewer without introducing heavier raster or GIS dependencies yet.
 
 ### 4. Graphical visualization
 

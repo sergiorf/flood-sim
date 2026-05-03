@@ -42,65 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-003 - Expand Phase 1 simulation test coverage
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Current tests cover only basic rainfall, downhill transfer, and conservation.
-- Important Phase 1 cases such as multi-neighbor flow and flat terrain behavior are not yet pinned down.
-
-Proposed change:
-- Add focused tests for the core raster behaviors that define the toy-grid MVP.
-- Cover ambiguous cases where future refactors could accidentally change semantics.
-
-Constraints:
-- Keep tests small, deterministic, and easy to read.
-- Prefer direct unit-style coverage over heavy test harnesses.
-
-Acceptance criteria:
-- Test coverage includes multi-neighbor downhill cases.
-- Test coverage includes flat-terrain or no-lower-neighbor behavior.
-- Test coverage includes repeated-step behavior for representative small grids.
-
-Required tests:
-- Additional cases in `core/tests/test_simulation.cpp` or equivalent small test files.
-
-Required documentation updates:
-- None required if behavior is already documented elsewhere.
-
-## FS-004 - Add exportable Phase 1 outputs
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The MVP currently prints CLI output only.
-- Later visualization work should depend on stable exported outputs rather than ad hoc console inspection.
-
-Proposed change:
-- Add a simple export path for toy-grid results, such as CSV output for terrain and/or water depth.
-- Keep the output format minimal but stable enough for examples and future viewers.
-
-Constraints:
-- No heavy dependencies.
-- Output should match the current MVP focus on local raster/grid simulation rather than map formats.
-
-Acceptance criteria:
-- Example output can be written to a simple machine-readable file.
-- The exported data is documented well enough to be consumed by follow-on tooling.
-- The CLI example remains simple to build and run.
-
-Required tests:
-- Small output-format tests or golden-file style checks for representative grids.
-
-Required documentation updates:
-- `examples/simple_grid/README.md`
-- `docs/architecture.md`
-
 ## FS-005 - Clarify rainfall scenario and time-step assumptions
 
 Status: Todo
@@ -141,5 +82,3 @@ No tickets in progress.
 No blocked tickets.
 
 ## Done
-
-No completed tickets yet.

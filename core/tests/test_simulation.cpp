@@ -1,9 +1,11 @@
+#include "floodsim/export.hpp"
 #include "floodsim/grid.hpp"
 #include "floodsim/simulation.hpp"
 
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -129,6 +131,27 @@ void test_flow_uses_a_full_grid_snapshot() {
     expect_true(nearly_equal(grid.water_depth(0, 2), 0.0), "right cell should remain dry until a later step");
 }
 
+void test_repeated_steps_relay_prior_inflow_on_later_steps() {
+    Grid grid(1, 3);
+    grid.set_elevation(0, 0, 2.0);
+    grid.set_elevation(0, 1, 1.0);
+    grid.set_elevation(0, 2, 0.0);
+    grid.set_water_depth(0, 0, 1.0);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+    };
+
+    floodsim::step(grid, rainfall, config);
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.25), "left cell should continue losing water over repeated steps");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.5), "middle cell should relay part of the prior step inflow on the next step");
+    expect_true(nearly_equal(grid.water_depth(0, 2), 0.25), "right cell should only receive routed water on a later step");
+}
+
 void test_closed_boundary_keeps_corner_water_in_domain() {
     Grid grid(2, 2);
     grid.set_elevation(0, 0, 2.0);
@@ -194,6 +217,28 @@ void test_water_is_conserved_without_rainfall() {
     expect_true(nearly_equal(before, after, 1e-8), "water should remain conserved");
 }
 
+void test_csv_export_writes_header_and_per_cell_rows() {
+    Grid grid(2, 2);
+    grid.set_elevation(0, 0, 1.0);
+    grid.set_elevation(0, 1, 1.5);
+    grid.set_elevation(1, 0, 2.0);
+    grid.set_elevation(1, 1, 2.5);
+    grid.set_water_depth(0, 0, 0.25);
+    grid.set_water_depth(1, 1, 0.75);
+
+    std::ostringstream output;
+    floodsim::write_grid_csv(grid, output);
+
+    const std::string expected =
+        "row,col,elevation_m,water_depth_m,surface_height_m\n"
+        "0,0,1.000000,0.250000,1.250000\n"
+        "0,1,1.500000,0.000000,1.500000\n"
+        "1,0,2.000000,0.000000,2.000000\n"
+        "1,1,2.500000,0.750000,3.250000\n";
+
+    expect_true(output.str() == expected, "CSV export should write a stable header and row-major cell records");
+}
+
 }  // namespace
 
 int main() {
@@ -204,9 +249,11 @@ int main() {
         test_outflow_is_split_by_relative_drop();
         test_surface_height_includes_existing_water();
         test_flow_uses_a_full_grid_snapshot();
+        test_repeated_steps_relay_prior_inflow_on_later_steps();
         test_closed_boundary_keeps_corner_water_in_domain();
         test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
+        test_csv_export_writes_header_and_per_cell_rows();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << '\n';
         return 1;

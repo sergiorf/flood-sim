@@ -11,3 +11,17 @@ cmake -S . -B build
 cmake --build build
 ./build/floodsim_simple_grid
 ```
+
+To also export the final grid state as CSV:
+
+```bash
+./build/floodsim_simple_grid final_grid.csv
+```
+
+The CSV contains one row per cell with this schema:
+
+```text
+row,col,elevation_m,water_depth_m,surface_height_m
+```
+
+Rows are written in row-major order. This keeps the Phase 1 output format simple for scripts and future viewers while preserving both terrain and simulated water depth in a single file.
