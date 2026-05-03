@@ -57,6 +57,15 @@ cmake --build build
 
 The example runs a toy `10x10` terrain, applies rainfall for several steps, and prints water-depth totals plus the final grid.
 
+It can also export a self-describing CSV file:
+
+```bash
+./build/floodsim_simple_grid final_grid.csv
+python3 examples/simple_grid/inspect_export.py final_grid.csv
+```
+
+The companion consumer example reads the exported Phase 1 CSV contract and prints a compact summary of the grid metadata and simulated water results.
+
 ## Run tests
 
 ```bash
@@ -73,4 +82,3 @@ The intended evolution is:
 4. layer in richer rainfall and urban-surface behavior
 
 More detail is in [docs/architecture.md](/home/sergio/dev/flood-sim/docs/architecture.md), [docs/simulation_model.md](/home/sergio/dev/flood-sim/docs/simulation_model.md), and [docs/roadmap.md](/home/sergio/dev/flood-sim/docs/roadmap.md).
-

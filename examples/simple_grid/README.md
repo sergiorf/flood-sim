@@ -18,6 +18,12 @@ To also export the final grid state as CSV:
 ./build/floodsim_simple_grid final_grid.csv
 ```
 
+To read that export with the lightweight consumer example:
+
+```bash
+python3 examples/simple_grid/inspect_export.py final_grid.csv
+```
+
 The CSV starts with a small metadata preamble and then one row per cell:
 
 ```text
@@ -29,3 +35,13 @@ row,col,elevation_m,water_depth_m,surface_height_m
 ```
 
 The metadata lines make the export self-describing for downstream tools. Data rows are written in row-major order. Lines beginning with `# ` are metadata; the first non-metadata line is the CSV column header.
+
+The consumer example prints a compact summary of the export contract, including:
+
+- export version
+- grid dimensions
+- cell size
+- total number of cells
+- number of wet cells
+- total water depth
+- maximum water depth

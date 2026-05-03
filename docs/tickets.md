@@ -42,37 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-008 - Add a simple exported-output consumer example
-
-Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- Phase 1 can now export results, but the repository does not yet show how downstream tooling should consume those outputs.
-- A minimal consumer example would reduce ambiguity before Phase 3 visualization work begins.
-
-Proposed change:
-- Add a lightweight example or utility that reads the exported CSV and produces a simple summary or validation output.
-- Keep the example focused on demonstrating the export contract rather than building a viewer.
-
-Constraints:
-- No heavy dependencies.
-- Preserve the MVP focus on a simple simulation core and exported files.
-
-Acceptance criteria:
-- The repository contains one small example of reading the exported Phase 1 output.
-- The example is documented and easy to run locally.
-- The example reinforces the intended CSV contract rather than bypassing it.
-
-Required tests:
-- Small automated coverage for any parsing logic that is added.
-- Example smoke-test guidance if full automation is not appropriate.
-
-Required documentation updates:
-- `examples/simple_grid/README.md`
-- `README.md`
-
 ## FS-009 - Write a Phase 1 LaTeX simulator paper
 
 Status: Todo
