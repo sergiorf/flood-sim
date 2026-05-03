@@ -8,6 +8,8 @@
 
 namespace floodsim {
 
+class Grid;
+
 struct TerrainRaster {
     // Raster dimensions in cells.
     std::size_t rows {0};
@@ -31,9 +33,15 @@ struct TerrainRaster {
     std::optional<std::string> crs_id;
 
     [[nodiscard]] std::size_t cell_count() const noexcept;
+    [[nodiscard]] std::size_t valid_cell_count() const noexcept;
 };
 
 void validate_terrain_raster(const TerrainRaster& terrain);
+
+// Convert validated terrain-contract data into the simulation grid used by the
+// current core. This keeps ingestion/file-format concerns separate from
+// simulation setup.
+Grid make_grid_from_terrain(const TerrainRaster& terrain);
 
 // Load a terrain raster through the first GDAL-backed ingestion path.
 // Phase 2 intentionally supports a narrow scope first:

@@ -58,6 +58,10 @@ cmake -S . -B build -DFLOODSIM_ENABLE_GDAL=OFF
 
 The first GDAL-backed ingestion path is intentionally narrow: one-band terrain rasters, square pixels, and no reprojection or rotated rasters in the first pass.
 
+Once a file has been loaded into a validated `TerrainRaster`, the core also
+owns the contract-to-grid adaptation step so examples and future tools do not
+need to duplicate that mapping logic.
+
 ## Run the example
 
 ```bash
@@ -74,6 +78,22 @@ python3 examples/simple_grid/inspect_export.py final_grid.csv
 ```
 
 The companion consumer example reads the exported Phase 1 CSV contract and prints a compact summary of the grid metadata and simulated water results.
+
+## Run the first real-terrain workflow
+
+The repository now also includes a small Phase 2 example that loads a committed
+GeoTIFF terrain clip through GDAL, runs rainfall on it, and exports the final
+grid as CSV:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_output.csv
+python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
+```
+
+This example is intentionally small and deterministic. It proves the first
+real-format ingestion path without claiming city-scale realism yet.
 
 ## Run tests
 

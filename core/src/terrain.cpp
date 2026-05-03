@@ -1,5 +1,7 @@
 #include "floodsim/terrain.hpp"
 
+#include "floodsim/grid.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -14,6 +16,13 @@ namespace floodsim {
 
 std::size_t TerrainRaster::cell_count() const noexcept {
     return rows * cols;
+}
+
+std::size_t TerrainRaster::valid_cell_count() const noexcept {
+    return static_cast<std::size_t>(std::count_if(
+        valid_cell_mask.begin(),
+        valid_cell_mask.end(),
+        [](std::uint8_t value) { return value != 0; }));
 }
 
 void validate_terrain_raster(const TerrainRaster& terrain) {
@@ -45,6 +54,21 @@ void validate_terrain_raster(const TerrainRaster& terrain) {
     if (!has_any_valid_cell) {
         throw std::invalid_argument("Terrain raster must contain at least one valid simulation cell");
     }
+}
+
+Grid make_grid_from_terrain(const TerrainRaster& terrain) {
+    validate_terrain_raster(terrain);
+
+    Grid grid(terrain.rows, terrain.cols, terrain.cell_size_m);
+    for (std::size_t row = 0; row < terrain.rows; ++row) {
+        for (std::size_t col = 0; col < terrain.cols; ++col) {
+            const std::size_t index = (row * terrain.cols) + col;
+            grid.set_elevation(row, col, terrain.elevation_m.at(index));
+            grid.set_cell_valid(row, col, terrain.valid_cell_mask.at(index) != 0);
+        }
+    }
+
+    return grid;
 }
 
 TerrainRaster load_terrain_raster_from_file(const std::string& path) {

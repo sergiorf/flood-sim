@@ -296,9 +296,9 @@ void test_invalid_cells_do_not_receive_rainfall() {
 
 void test_flow_does_not_route_into_invalid_neighbor_cells() {
     Grid grid(1, 3);
-    grid.set_elevation(0, 0, 3.0);
-    grid.set_elevation(0, 1, 0.0);
-    grid.set_elevation(0, 2, 1.0);
+    grid.set_elevation(0, 0, 0.0);
+    grid.set_elevation(0, 1, 2.0);
+    grid.set_elevation(0, 2, 0.0);
     grid.set_water_depth(0, 1, 1.0);
     grid.set_cell_valid(0, 0, false);
 
@@ -428,6 +428,29 @@ void test_terrain_raster_requires_complete_origin_metadata() {
     expect_throws<std::invalid_argument>(
         [&terrain]() { floodsim::validate_terrain_raster(terrain); },
         "terrain raster should reject origin metadata that provides only one coordinate");
+}
+
+void test_make_grid_from_terrain_preserves_geometry_and_valid_mask() {
+    const TerrainRaster terrain = make_valid_terrain_raster();
+
+    const Grid grid = floodsim::make_grid_from_terrain(terrain);
+
+    expect_true(grid.rows() == terrain.rows, "grid should preserve terrain row count");
+    expect_true(grid.cols() == terrain.cols, "grid should preserve terrain column count");
+    expect_true(nearly_equal(grid.cell_size_m(), terrain.cell_size_m), "grid should preserve terrain cell size");
+    expect_true(nearly_equal(grid.elevation(0, 0), terrain.elevation_m[0]), "grid should preserve elevation values");
+    expect_true(grid.is_cell_valid(0, 0), "valid terrain cells should stay valid in the grid");
+    expect_true(!grid.is_cell_valid(1, 1), "invalid terrain cells should stay invalid in the grid");
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.0), "terrain-derived grids should start without water");
+}
+
+void test_make_grid_from_terrain_rejects_invalid_contract() {
+    TerrainRaster terrain = make_valid_terrain_raster();
+    terrain.valid_cell_mask.assign(terrain.cell_count(), 0);
+
+    expect_throws<std::invalid_argument>(
+        [&terrain]() { (void)floodsim::make_grid_from_terrain(terrain); },
+        "grid conversion should reject an invalid terrain contract");
 }
 
 #if FLOODSIM_HAS_GDAL
@@ -623,6 +646,8 @@ int main() {
         test_terrain_raster_requires_positive_cell_size();
         test_terrain_raster_requires_at_least_one_valid_cell();
         test_terrain_raster_requires_complete_origin_metadata();
+        test_make_grid_from_terrain_preserves_geometry_and_valid_mask();
+        test_make_grid_from_terrain_rejects_invalid_contract();
 #if FLOODSIM_HAS_GDAL
         test_gdal_loader_reads_single_band_terrain_raster();
         test_gdal_loader_rejects_multi_band_rasters();

@@ -31,9 +31,29 @@ target_link_libraries(floodsim_simple_grid
 
 target_compile_features(floodsim_simple_grid PRIVATE cxx_std_20)
 
+add_executable(floodsim_real_terrain_example
+    examples/real_terrain/main.cpp
+)
+
+target_link_libraries(floodsim_real_terrain_example
+    PRIVATE
+        floodsim_core
+)
+
+target_compile_features(floodsim_real_terrain_example PRIVATE cxx_std_20)
+
 if(FLOODSIM_BUILD_TESTS AND Python3_Interpreter_FOUND)
     add_test(
         NAME floodsim_export_consumer_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple_grid/test_inspect_export.py
+    )
+
+    add_test(
+        NAME floodsim_real_terrain_example_tests
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/test_real_terrain_example.py
+            $<TARGET_FILE:floodsim_real_terrain_example>
+            ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/data/sample_dem.tif
+            ${CMAKE_CURRENT_BINARY_DIR}/real_terrain_example/output.csv
     )
 endif()

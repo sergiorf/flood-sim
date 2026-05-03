@@ -8,6 +8,11 @@ from pathlib import Path
 
 
 def parse_export(path: str | Path) -> dict:
+    """Parse the documented FloodSim CSV export contract.
+
+    The parser is intentionally strict so downstream examples fail fast if the
+    export format changes unexpectedly.
+    """
     export_path = Path(path)
     metadata: dict[str, str] = {}
     cells: list[dict[str, float | int]] = []
@@ -56,6 +61,10 @@ def parse_export(path: str | Path) -> dict:
     if missing_metadata:
         raise ValueError(f"Missing metadata keys: {sorted(missing_metadata)}")
 
+    version = int(metadata["floodsim_csv_version"])
+    if version != 1:
+        raise ValueError(f"Unsupported floodsim_csv_version: {version}")
+
     rows = int(metadata["rows"])
     cols = int(metadata["cols"])
     expected_cells = rows * cols
@@ -66,7 +75,7 @@ def parse_export(path: str | Path) -> dict:
 
     return {
         "metadata": {
-            "floodsim_csv_version": int(metadata["floodsim_csv_version"]),
+            "floodsim_csv_version": version,
             "rows": rows,
             "cols": cols,
             "cell_size_m": float(metadata["cell_size_m"]),

@@ -20,6 +20,10 @@ The build now supports optional GDAL integration as the intended path for the fi
 
 For the first real-terrain workflow, ingestion should target the contract described in [docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md). That contract keeps the initial imported terrain object narrow: raster dimensions, square cell size, row-major elevations, a valid-cell mask for nodata handling, and optional origin / CRS metadata preserved for later map alignment.
 
+The contract-to-simulation handoff is explicit as well: validated
+`TerrainRaster` data is adapted into `Grid` through a dedicated core helper so
+examples and future ingestion tools do not each reimplement that mapping.
+
 ### 2. Simulation core
 
 The simulation core is implemented in C++20 for deterministic behavior and future performance headroom.
@@ -64,6 +68,12 @@ After the metadata preamble, the file writes one row per cell with:
 - `surface_height_m`
 
 This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet.
+
+The first real-terrain example workflow now lives in
+[examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).
+It exercises the narrow GDAL ingestion path, imported-domain handling, the
+existing simulation step, and CSV export together on a committed sample
+GeoTIFF.
 
 ### 4. Graphical visualization
 

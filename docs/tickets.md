@@ -42,38 +42,6 @@ Required documentation updates:
 
 ## Todo
 
-## FS-013 - Add the first real-terrain example workflow
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- Even after ingestion exists, the repository still needs one concrete end-to-end example showing a real terrain clip flowing through the system.
-- Without that example, Phase 2 remains technically incomplete and hard to demonstrate.
-
-Proposed change:
-- Add one small real-terrain example that loads terrain, runs rainfall, and exports results.
-- Keep the example focused on proving the first real-terrain milestone rather than visualization polish.
-
-Constraints:
-- Use a small input example suitable for local development.
-- Keep the workflow reproducible and easy to run.
-
-Acceptance criteria:
-- The repository contains one documented real-terrain example workflow.
-- The example exercises ingestion, simulation, and export together.
-- The example output is suitable for later visualization or inspection work.
-
-Required tests:
-- Example smoke-test guidance or automation where practical.
-- Any helper code introduced for the example should have narrow coverage if it is nontrivial.
-
-Required documentation updates:
-- `README.md`
-- example-specific docs
-- `docs/roadmap.md` if the milestone wording needs refinement
-
 ## FS-014 - Apply Phase 2 hot-path cleanup before larger terrain runs
 
 Status: Todo
@@ -115,3 +83,35 @@ No tickets in progress.
 No blocked tickets.
 
 ## Done
+
+## FS-013 - Add the first real-terrain example workflow
+
+Status: Done
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Even after ingestion exists, the repository still needs one concrete end-to-end example showing a real terrain clip flowing through the system.
+- Without that example, Phase 2 remains technically incomplete and hard to demonstrate.
+
+Proposed change:
+- Add one small real-terrain example that loads terrain, runs rainfall, and exports results.
+- Keep the example focused on proving the first real-terrain milestone rather than visualization polish.
+
+Constraints:
+- Use a small input example suitable for local development.
+- Keep the workflow reproducible and easy to run.
+
+Acceptance criteria:
+- The repository contains one documented real-terrain example workflow.
+- The example exercises ingestion, simulation, and export together.
+- The example output is suitable for later visualization or inspection work.
+
+Required tests:
+- Example smoke-test guidance or automation where practical.
+- Any helper code introduced for the example should have narrow coverage if it is nontrivial.
+
+Required documentation updates:
+- `README.md`
+- example-specific docs
+- `docs/roadmap.md` if the milestone wording needs refinement

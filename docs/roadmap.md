@@ -171,6 +171,10 @@ Before claiming practical usefulness on real areas, FloodSim should be able to:
 
 That milestone is the first point where the product path becomes concrete rather than aspirational.
 
+The repository now includes a first committed real-terrain example using a tiny
+GeoTIFF clip. The remaining Phase 2 work is about broadening and hardening that
+path rather than proving it from scratch.
+
 ## Working style
 
 Use this roadmap for phase-level direction, not as a task tracker. Convert the active phase into a short iteration plan and create tickets only for changes large enough to need discussion, acceptance criteria, or explicit follow-up.

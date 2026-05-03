@@ -44,6 +44,44 @@ class InspectExportTests(unittest.TestCase):
         self.assertAlmostEqual(summary["total_water_depth_m"], 1.1)
         self.assertAlmostEqual(summary["max_water_depth_m"], 0.75)
 
+    def test_parse_export_rejects_unsupported_version(self) -> None:
+        sample_export = textwrap.dedent(
+            """\
+            # floodsim_csv_version,2
+            # rows,1
+            # cols,1
+            # cell_size_m,1.000000
+            row,col,elevation_m,water_depth_m,surface_height_m
+            0,0,1.000000,0.250000,1.250000
+            """
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            export_path = Path(temp_dir) / "sample.csv"
+            export_path.write_text(sample_export, encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "Unsupported floodsim_csv_version"):
+                inspect_export.parse_export(export_path)
+
+    def test_parse_export_rejects_wrong_cell_count(self) -> None:
+        sample_export = textwrap.dedent(
+            """\
+            # floodsim_csv_version,1
+            # rows,2
+            # cols,2
+            # cell_size_m,1.000000
+            row,col,elevation_m,water_depth_m,surface_height_m
+            0,0,1.000000,0.250000,1.250000
+            """
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            export_path = Path(temp_dir) / "sample.csv"
+            export_path.write_text(sample_export, encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "Expected 4 cell rows"):
+                inspect_export.parse_export(export_path)
+
 
 if __name__ == "__main__":
     unittest.main()

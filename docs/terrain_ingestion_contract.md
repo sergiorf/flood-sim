@@ -9,6 +9,10 @@ The purpose of the contract is to separate:
 
 For the first real-terrain workflow, every ingestion path should produce a `TerrainRaster`-style object with the fields documented below.
 
+Once validated, that terrain contract is converted into the simulation `Grid`
+through a dedicated core helper. This keeps file-format concerns in ingestion
+code and keeps example binaries thin.
+
 ## Plain-language glossary
 
 These terms appear frequently in Phase 2 work. For the first implementation, a practical understanding is enough.
