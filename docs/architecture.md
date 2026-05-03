@@ -65,3 +65,15 @@ This keeps the output stable and self-describing for scripts or a future viewer 
 ### 4. Graphical visualization
 
 A future visualization layer can render flood depth over basemaps and city layers. This may begin as a lightweight local viewer and later evolve into a richer graphical application if the simulation outputs and workflows justify it. It is intentionally not included in the first version of this repository.
+
+## Technical paper artifact
+
+The repository also carries a LaTeX paper describing the implemented Phase 1 simulator in `docs/paper/phase1_simulator.tex`.
+
+That paper is intended to:
+
+- describe the current toy-grid model as implemented
+- capture rainfall, routing, boundary, and export assumptions in one place
+- provide a compact technical artifact for review, presentation, and later extension
+
+It should stay aligned with the actual code and tests rather than getting ahead of the implementation roadmap.

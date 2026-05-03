@@ -82,3 +82,7 @@ The intended evolution is:
 4. layer in richer rainfall and urban-surface behavior
 
 More detail is in [docs/architecture.md](/home/sergio/dev/flood-sim/docs/architecture.md), [docs/simulation_model.md](/home/sergio/dev/flood-sim/docs/simulation_model.md), and [docs/roadmap.md](/home/sergio/dev/flood-sim/docs/roadmap.md).
+
+## Phase 1 paper
+
+The repository also includes a LaTeX paper for the implemented Phase 1 simulator in [docs/paper/README.md](/home/sergio/dev/flood-sim/docs/paper/README.md:1). It documents the toy-grid model, rainfall and boundary contracts, routing pseudocode, representative figures, and the main limitations of the current phase.

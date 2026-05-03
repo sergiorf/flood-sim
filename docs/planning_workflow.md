@@ -68,20 +68,20 @@ The iteration plan can live in a short document or in issues/milestones if you l
 Suggested format:
 
 ```text
-Current phase: Phase 1. Toy grid simulation
+Current phase: Phase 2. DEM import
 
 Current milestone goal:
-- Lock down core simulation semantics and observability.
+- Reach the first real-terrain workflow.
 
 Next tasks:
-- Add tests for multi-neighbor flow and flat terrain.
-- Document the meaning of surface height and delta accumulation.
-- Add a simple CSV export for example outputs.
-- Decide and document boundary behavior.
+- define the raster ingestion contract for terrain input
+- add a minimal DEM or GeoTIFF loading path
+- make nodata and grid extent handling explicit
+- run one small real-terrain example through export
 
 Deferred:
-- DEM import
 - graphical viewer
+- richer rainfall scenarios
 ```
 
 ## Graphical app guidance

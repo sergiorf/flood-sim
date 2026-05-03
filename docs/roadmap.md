@@ -16,6 +16,12 @@ The long-term product goal is to support workflows such as:
 
 This repository is not at that product state yet. The early phases focus on building a simulation core that is explicit, testable, and extensible enough to grow into that product without unstable semantics or ad hoc formats.
 
+## Current planning focus
+
+Phase 1 is complete.
+
+Active planning should now target Phase 2: DEM import and the first real-terrain workflow.
+
 ## Phase 1. Toy grid simulation
 
 Build a clear, tested raster-grid prototype with rainfall accumulation and simple downhill flow.
