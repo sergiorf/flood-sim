@@ -11,6 +11,7 @@
 
 namespace {
 
+using floodsim::BoundaryMode;
 using floodsim::Grid;
 using floodsim::RainfallScenario;
 using floodsim::SimulationConfig;
@@ -183,6 +184,25 @@ void test_closed_boundary_keeps_corner_water_in_domain() {
     expect_true(nearly_equal(grid.total_water_depth(), 1.0), "closed boundary should not lose water off the grid");
 }
 
+void test_closed_boundary_can_be_selected_explicitly_in_config() {
+    Grid grid(1, 2);
+    grid.set_elevation(0, 0, 2.0);
+    grid.set_elevation(0, 1, 0.0);
+    grid.set_water_depth(0, 0, 1.0);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+        .boundary_mode = BoundaryMode::Closed,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    expect_true(nearly_equal(grid.water_depth(0, 0), 0.5), "explicit closed boundary should preserve current default routing");
+    expect_true(nearly_equal(grid.water_depth(0, 1), 0.5), "explicit closed boundary should route only to in-domain lower neighbors");
+}
+
 void test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists() {
     Grid grid(1, 2);
     grid.set_elevation(0, 0, 5.0);
@@ -276,6 +296,7 @@ int main() {
         test_flow_uses_a_full_grid_snapshot();
         test_repeated_steps_relay_prior_inflow_on_later_steps();
         test_closed_boundary_keeps_corner_water_in_domain();
+        test_closed_boundary_can_be_selected_explicitly_in_config();
         test_closed_boundary_blocks_outflow_from_edge_when_no_lower_in_domain_neighbor_exists();
         test_water_is_conserved_without_rainfall();
         test_repeated_steps_accumulate_rainfall_linearly_without_flow();

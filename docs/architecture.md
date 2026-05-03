@@ -28,12 +28,12 @@ Current responsibilities:
 - apply uniform rainfall before each flow step, with rainfall scenario intensity expressed in meters per hour and converted using `time_step_seconds`
 - route a fraction of water to lower orthogonal neighbors using surface height (`elevation + water depth`)
 - accumulate transfers across the full grid and apply them after the scan completes
-- treat the Phase 1 grid boundary as closed, so flow is limited to cells inside the simulated raster
+- expose boundary handling as an explicit simulation setting, with Phase 1 currently supporting closed boundaries only
 
 Later responsibilities may include:
 
 - import-ready raster adapters
-- configurable boundary conditions
+- additional boundary modes such as open edge outflow
 - drainage and impervious surface effects
 - better time stepping and calibration hooks
 

@@ -42,6 +42,102 @@ Required documentation updates:
 
 ## Todo
 
+## FS-007 - Stabilize Phase 1 CSV export metadata
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- The current CSV export records per-cell values, but it does not yet carry lightweight metadata such as grid dimensions or cell size.
+- Follow-on tooling will be more brittle if consumers must infer raster shape or rely only on row scans.
+
+Proposed change:
+- Extend the Phase 1 export format with minimal metadata that keeps the output easy to parse.
+- Record and document the stable CSV contract for downstream scripts and future viewers.
+
+Constraints:
+- Keep the format lightweight and text-based.
+- Do not introduce GIS-specific dependencies or complex file containers.
+
+Acceptance criteria:
+- Exported outputs include the agreed minimal metadata needed to reconstruct the grid consistently.
+- The output format remains simple to inspect by hand and consume from scripts.
+- The format contract is documented clearly enough for later visualization work.
+
+Required tests:
+- Output-format tests covering the metadata contract.
+- Golden-file style or exact-string checks for representative small grids.
+
+Required documentation updates:
+- `examples/simple_grid/README.md`
+- `docs/architecture.md`
+
+## FS-008 - Add a simple exported-output consumer example
+
+Status: Todo
+Owner: Unassigned
+Priority: P3
+
+Problem:
+- Phase 1 can now export results, but the repository does not yet show how downstream tooling should consume those outputs.
+- A minimal consumer example would reduce ambiguity before Phase 3 visualization work begins.
+
+Proposed change:
+- Add a lightweight example or utility that reads the exported CSV and produces a simple summary or validation output.
+- Keep the example focused on demonstrating the export contract rather than building a viewer.
+
+Constraints:
+- No heavy dependencies.
+- Preserve the MVP focus on a simple simulation core and exported files.
+
+Acceptance criteria:
+- The repository contains one small example of reading the exported Phase 1 output.
+- The example is documented and easy to run locally.
+- The example reinforces the intended CSV contract rather than bypassing it.
+
+Required tests:
+- Small automated coverage for any parsing logic that is added.
+- Example smoke-test guidance if full automation is not appropriate.
+
+Required documentation updates:
+- `examples/simple_grid/README.md`
+- `README.md`
+
+## FS-009 - Write a Phase 1 LaTeX simulator paper
+
+Status: Todo
+Owner: Unassigned
+Priority: P3
+
+Problem:
+- Phase 1 is gaining stable semantics, tests, and exported outputs, but there is no single technical paper that explains the simulator as a coherent artifact.
+- A compact paper would make the MVP easier to review, present, and extend during later phases.
+
+Proposed change:
+- Add a LaTeX paper that describes the Phase 1 simulator, its assumptions, and its intended scope.
+- Include theory and modeling assumptions, representative graphs or figures, and pseudocode for the step algorithm.
+
+Constraints:
+- Keep the paper aligned with the implemented Phase 1 behavior rather than aspirational future features.
+- Avoid turning the document into a claim of scientific validation or a certified hydrology model.
+- Prefer figures and graphs that can be reproduced from repository examples or tests.
+
+Acceptance criteria:
+- The repository contains a buildable LaTeX paper source for the Phase 1 simulator.
+- The paper explains the toy-grid model, rainfall contract, routing semantics, and boundary behavior.
+- The paper includes at least one algorithm-style pseudocode section and at least one representative graph or figure.
+- The paper clearly states limitations and non-goals of the Phase 1 simulator.
+
+Required tests:
+- Build or smoke-test instructions for generating the paper output.
+- Validation that any generated figures or referenced example outputs can be reproduced from repo artifacts.
+
+Required documentation updates:
+- `README.md`
+- `docs/architecture.md`
+- paper build/use notes in a new paper-specific README or docs section
+
 ## In Progress
 
 No tickets in progress.

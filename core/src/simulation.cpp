@@ -44,6 +44,9 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     if (config.max_outflow_fraction < 0.0 || config.max_outflow_fraction > 1.0) {
         throw std::invalid_argument("Max outflow fraction must be in [0, 1]");
     }
+    if (config.boundary_mode != BoundaryMode::Closed) {
+        throw std::invalid_argument("Unsupported boundary mode");
+    }
 
     // Each step first injects rainfall, then redistributes water already on the grid.
     add_uniform_rainfall(grid, rainfall, config.time_step_seconds);

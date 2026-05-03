@@ -52,14 +52,15 @@ The current Phase 1 model makes these explicit choices:
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone
 - only neighbors with strictly lower surface height receive flow
-- the grid uses a closed boundary: water can move only to in-domain neighbors and cannot leave the raster across an edge
+- boundary handling is an explicit simulation setting, but Phase 1 currently supports only `Closed`
 - outflow is capped as a fraction of the source cell's water depth for that step
 - transfers are accumulated and applied after the grid scan completes
 - cells with flat or higher neighboring surfaces do not shed water during that step
 
 ## Boundary behavior
 
-Phase 1 uses a closed boundary condition.
+Phase 1 exposes boundary behavior explicitly through the simulation configuration.
+At this stage, the only supported mode is `Closed`.
 
 In practice this means:
 
@@ -87,7 +88,7 @@ The current model does not yet include:
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events
-- configurable boundary conditions
+- additional boundary modes such as open edge outflow
 - validated edge behavior for real landscapes
 
 Any outputs from this version should be treated as prototype behavior only.
