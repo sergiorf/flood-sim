@@ -77,7 +77,7 @@ It can also export a self-describing CSV file:
 python3 examples/simple_grid/inspect_export.py final_grid.csv
 ```
 
-The companion consumer example reads the exported Phase 1 CSV contract and prints a compact summary of the grid metadata and simulated water results.
+The companion consumer example reads the exported CSV contract and prints a compact summary of the grid metadata and simulated water results. Terrain-derived exports also include origin and CRS metadata when available from ingestion.
 
 ## Run the first real-terrain workflow
 

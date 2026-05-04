@@ -28,13 +28,23 @@ ExampleArguments parse_arguments(int argc, char** argv) {
     };
 }
 
-void write_export(const floodsim::Grid& grid, const std::filesystem::path& output_path) {
+void write_export(
+    const floodsim::Grid& grid,
+    const floodsim::TerrainRaster& terrain,
+    const std::filesystem::path& output_path) {
     std::ofstream output(output_path);
     if (!output) {
         throw std::runtime_error("Failed to open CSV output path");
     }
 
-    floodsim::write_grid_csv(grid, output);
+    floodsim::write_grid_csv(
+        grid,
+        output,
+        floodsim::GridCsvMetadata {
+            .origin_x_m = terrain.origin_x_m,
+            .origin_y_m = terrain.origin_y_m,
+            .crs_id = terrain.crs_id,
+        });
 }
 
 }  // namespace
@@ -69,7 +79,7 @@ int main(int argc, char** argv) {
         floodsim::step(grid, rainfall, config);
     }
 
-    write_export(grid, arguments.output_csv_path);
+    write_export(grid, terrain, arguments.output_csv_path);
 
     std::cout << "steps=" << kStepCount
               << " total_water_depth_m=" << std::fixed << std::setprecision(6)

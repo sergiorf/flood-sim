@@ -77,6 +77,9 @@ def main() -> int:
         "rows": "5",
         "cols": "5",
         "cell_size_m": "2.000000",
+        "origin_x_m": "154320.000000",
+        "origin_y_m": "171205.000000",
+        "crs_id": "EPSG:31370",
     }
     assert len(rows) == 25
     assert any(float(row["water_depth_m"]) > 0.0 for row in rows)

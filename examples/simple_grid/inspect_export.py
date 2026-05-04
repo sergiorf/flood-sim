@@ -73,15 +73,24 @@ def parse_export(path: str | Path) -> dict:
             f"Expected {expected_cells} cell rows from metadata but found {len(cells)}"
         )
 
+    parsed_metadata: dict[str, float | int | str] = {
+        "floodsim_csv_version": version,
+        "rows": rows,
+        "cols": cols,
+        "cell_size_m": float(metadata["cell_size_m"]),
+    }
+    if "origin_x_m" in metadata:
+        parsed_metadata["origin_x_m"] = float(metadata["origin_x_m"])
+    if "origin_y_m" in metadata:
+        parsed_metadata["origin_y_m"] = float(metadata["origin_y_m"])
+    if "crs_id" in metadata:
+        parsed_metadata["crs_id"] = metadata["crs_id"]
+
     return {
-        "metadata": {
-            "floodsim_csv_version": version,
-            "rows": rows,
-            "cols": cols,
-            "cell_size_m": float(metadata["cell_size_m"]),
-        },
+        "metadata": parsed_metadata,
         "cells": cells,
     }
+    
 
 
 def summarize_export(parsed_export: dict) -> dict[str, float | int]:
@@ -91,7 +100,7 @@ def summarize_export(parsed_export: dict) -> dict[str, float | int]:
     max_water_depth_m = max((cell["water_depth_m"] for cell in cells), default=0.0)
     wet_cells = sum(1 for cell in cells if cell["water_depth_m"] > 0.0)
 
-    return {
+    summary: dict[str, float | int | str] = {
         "floodsim_csv_version": metadata["floodsim_csv_version"],
         "rows": metadata["rows"],
         "cols": metadata["cols"],
@@ -101,6 +110,10 @@ def summarize_export(parsed_export: dict) -> dict[str, float | int]:
         "total_water_depth_m": total_water_depth_m,
         "max_water_depth_m": max_water_depth_m,
     }
+    for optional_key in ("origin_x_m", "origin_y_m", "crs_id"):
+        if optional_key in metadata:
+            summary[optional_key] = metadata[optional_key]
+    return summary
 
 
 def main() -> int:
@@ -116,6 +129,12 @@ def main() -> int:
     print(f"rows={summary['rows']}")
     print(f"cols={summary['cols']}")
     print(f"cell_size_m={summary['cell_size_m']:.6f}")
+    if "origin_x_m" in summary:
+        print(f"origin_x_m={summary['origin_x_m']:.6f}")
+    if "origin_y_m" in summary:
+        print(f"origin_y_m={summary['origin_y_m']:.6f}")
+    if "crs_id" in summary:
+        print(f"crs_id={summary['crs_id']}")
     print(f"cells={summary['cells']}")
     print(f"wet_cells={summary['wet_cells']}")
     print(f"total_water_depth_m={summary['total_water_depth_m']:.6f}")

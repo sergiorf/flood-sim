@@ -364,6 +364,37 @@ void test_csv_export_writes_metadata_header_and_per_cell_rows() {
     expect_true(output.str() == expected, "CSV export should write stable metadata and row-major cell records");
 }
 
+void test_csv_export_writes_optional_georeferencing_metadata_when_present() {
+    Grid grid(1, 1, 2.0);
+    grid.set_elevation(0, 0, 100.0);
+    grid.set_water_depth(0, 0, 0.5);
+
+    std::ostringstream output;
+    floodsim::write_grid_csv(
+        grid,
+        output,
+        floodsim::GridCsvMetadata {
+            .origin_x_m = 154320.0,
+            .origin_y_m = 171205.0,
+            .crs_id = "EPSG:31370",
+        });
+
+    const std::string expected =
+        "# floodsim_csv_version,1\n"
+        "# rows,1\n"
+        "# cols,1\n"
+        "# cell_size_m,2.000000\n"
+        "# origin_x_m,154320.000000\n"
+        "# origin_y_m,171205.000000\n"
+        "# crs_id,EPSG:31370\n"
+        "row,col,elevation_m,water_depth_m,surface_height_m\n"
+        "0,0,100.000000,0.500000,100.500000\n";
+
+    expect_true(
+        output.str() == expected,
+        "CSV export should write optional georeferencing metadata before the tabular rows");
+}
+
 TerrainRaster make_valid_terrain_raster() {
     TerrainRaster terrain;
     terrain.rows = 2;
@@ -641,6 +672,7 @@ int main() {
         test_flow_does_not_route_into_invalid_neighbor_cells();
         test_invalid_cells_behave_like_out_of_domain_clipped_terrain();
         test_csv_export_writes_metadata_header_and_per_cell_rows();
+        test_csv_export_writes_optional_georeferencing_metadata_when_present();
         test_valid_terrain_raster_contract_passes_validation();
         test_terrain_raster_requires_matching_array_sizes();
         test_terrain_raster_requires_positive_cell_size();

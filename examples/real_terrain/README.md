@@ -31,13 +31,17 @@ The example uses a fixed configuration so the workflow is reproducible:
 - boundary mode: `Closed`
 
 The example prints a short load and simulation summary, then writes the same
-CSV contract used elsewhere in the repository:
+CSV contract used elsewhere in the repository with added georeferencing
+metadata from the source raster:
 
 ```text
 # floodsim_csv_version,1
 # rows,5
 # cols,5
 # cell_size_m,2.000000
+# origin_x_m,154320.000000
+# origin_y_m,171205.000000
+# crs_id,EPSG:31370
 row,col,elevation_m,water_depth_m,surface_height_m
 ...
 ```
@@ -53,7 +57,7 @@ What this example proves:
 - the GDAL loader can read a committed GeoTIFF from disk
 - imported nodata is preserved as out-of-domain cells
 - the simulation can run on the imported terrain
-- the final state can be exported for later inspection and visualization work
+- the final state can be exported with origin / CRS metadata for later inspection and visualization work
 
 What it does not prove yet:
 
