@@ -110,9 +110,19 @@ Required documentation updates:
 - `docs/architecture.md`
 - export-format documentation in example or model docs as appropriate
 
+## In Progress
+
+No tickets in progress.
+
+## Blocked
+
+No blocked tickets.
+
+## Done
+
 ## FS-017 - Make the real-terrain example configurable for repeatable scenario runs
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P2
 
@@ -145,16 +155,6 @@ Required documentation updates:
 - `README.md`
 - `examples/real_terrain/README.md`
 - any test or usage notes affected by the CLI contract
-
-## In Progress
-
-No tickets in progress.
-
-## Blocked
-
-No blocked tickets.
-
-## Done
 
 ## FS-015 - Add doctest and migrate the C++ test suite
 

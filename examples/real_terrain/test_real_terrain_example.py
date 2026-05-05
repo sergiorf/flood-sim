@@ -68,6 +68,9 @@ def main() -> int:
     )
 
     assert "loaded_dem=" in completed.stdout
+    assert "rainfall_intensity_m_per_hour=0.012000" in completed.stdout
+    assert "time_step_seconds=300.000" in completed.stdout
+    assert "steps=12 " in completed.stdout
     assert "wrote_csv=" in completed.stdout
     assert output_csv_path.exists()
 
@@ -84,6 +87,45 @@ def main() -> int:
     assert len(rows) == 25
     assert any(float(row["water_depth_m"]) > 0.0 for row in rows)
     assert any(float(row["elevation_m"]) < 0.0 for row in rows)
+
+    custom_output_csv_path = output_csv_path.with_name("output_custom.csv")
+    custom_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(custom_output_csv_path),
+            "--rainfall-intensity-m-per-hour",
+            "0.020",
+            "--time-step-seconds",
+            "600",
+            "--steps",
+            "4",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "rainfall_intensity_m_per_hour=0.020000" in custom_completed.stdout
+    assert "time_step_seconds=600.000" in custom_completed.stdout
+    assert "steps=4 " in custom_completed.stdout
+    assert custom_output_csv_path.exists()
+
+    invalid_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid.csv")),
+            "--steps",
+            "0",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_completed.returncode != 0
+    assert "Step count must be positive" in invalid_completed.stderr
 
     return 0
 

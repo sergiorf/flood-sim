@@ -23,12 +23,33 @@ cmake --build build
   real_terrain_output.csv
 ```
 
-The example uses a fixed configuration so the workflow is reproducible:
+That default invocation remains the canonical reproducible smoke-test path. It
+uses:
 
 - rainfall intensity: `0.012 m/hour`
 - step duration: `300 seconds`
 - number of steps: `12`
 - boundary mode: `Closed`
+
+You can also override the rainfall and time-step settings through a small CLI:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_output_heavier_rain.csv \
+  --rainfall-intensity-m-per-hour 0.020 \
+  --time-step-seconds 600 \
+  --steps 4
+```
+
+Supported options:
+
+- `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
+- `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
+- `--steps <count>`: number of simulation steps to run, default `12`
+
+Invalid values fail clearly. Rainfall intensity must be non-negative, and both
+the time step and step count must be positive.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing

@@ -99,6 +99,18 @@ grid as CSV:
 python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 ```
 
+The real-terrain example also accepts a small set of optional scenario flags
+for repeatable local runs:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_output_heavier_rain.csv \
+  --rainfall-intensity-m-per-hour 0.020 \
+  --time-step-seconds 600 \
+  --steps 4
+```
+
 This example is intentionally small and deterministic. It proves the first
 real-format ingestion path without claiming city-scale realism yet.
 
