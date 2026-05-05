@@ -33,6 +33,7 @@ if(FLOODSIM_BUILD_TESTS)
     target_link_libraries(floodsim_core_tests
         PRIVATE
             floodsim_core
+            doctest::doctest
     )
 
     target_compile_features(floodsim_core_tests PRIVATE cxx_std_20)

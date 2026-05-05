@@ -74,40 +74,6 @@ Required tests:
 Required documentation updates:
 - None required unless implementation tradeoffs need a brief note in `docs/architecture.md`
 
-## FS-015 - Add doctest and migrate the C++ test suite
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The current C++ test suite uses a custom handwritten harness that is still workable, but it now adds friction as coverage grows.
-- Failure output, assertion ergonomics, and test organization will become harder to maintain through later Phase 2 and Phase 3 work.
-
-Proposed change:
-- Add `doctest` as the project’s lightweight C++ test framework dependency.
-- Migrate the existing C++ tests from the custom harness to `doctest` while preserving current simulation and ingestion coverage.
-- Keep the existing Python smoke tests for example workflows unless there is a strong reason to replace them.
-
-Constraints:
-- Keep dependencies minimal and aligned with the repository’s current lightweight posture.
-- Do not change simulation semantics as part of the migration.
-- Keep CI and local build/test commands straightforward.
-
-Acceptance criteria:
-- The repository builds the C++ test target with `doctest`.
-- The current handwritten assertion helpers and manual test runner are removed from the core C++ tests.
-- Existing C++ simulation, export, terrain-contract, and GDAL-ingestion tests are migrated without losing coverage intent.
-- `ctest --test-dir build --output-on-failure` still runs cleanly with the migrated suite.
-
-Required tests:
-- The migrated C++ suite must cover the same current behaviors at minimum.
-- Any framework integration code or custom `doctest` configuration should receive narrow coverage only if it introduces nontrivial logic.
-
-Required documentation updates:
-- `README.md`
-- build or testing notes if commands or dependencies change
-
 ## FS-016 - Preserve georeferencing in exported real-terrain outputs
 
 Status: Done
@@ -189,6 +155,40 @@ No tickets in progress.
 No blocked tickets.
 
 ## Done
+
+## FS-015 - Add doctest and migrate the C++ test suite
+
+Status: Done
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- The current C++ test suite uses a custom handwritten harness that is still workable, but it now adds friction as coverage grows.
+- Failure output, assertion ergonomics, and test organization will become harder to maintain through later Phase 2 and Phase 3 work.
+
+Proposed change:
+- Add `doctest` as the project’s lightweight C++ test framework dependency.
+- Migrate the existing C++ tests from the custom harness to `doctest` while preserving current simulation and ingestion coverage.
+- Keep the existing Python smoke tests for example workflows unless there is a strong reason to replace them.
+
+Constraints:
+- Keep dependencies minimal and aligned with the repository’s current lightweight posture.
+- Do not change simulation semantics as part of the migration.
+- Keep CI and local build/test commands straightforward.
+
+Acceptance criteria:
+- The repository builds the C++ test target with `doctest`.
+- The current handwritten assertion helpers and manual test runner are removed from the core C++ tests.
+- Existing C++ simulation, export, terrain-contract, and GDAL-ingestion tests are migrated without losing coverage intent.
+- `ctest --test-dir build --output-on-failure` still runs cleanly with the migrated suite.
+
+Required tests:
+- The migrated C++ suite must cover the same current behaviors at minimum.
+- Any framework integration code or custom `doctest` configuration should receive narrow coverage only if it introduces nontrivial logic.
+
+Required documentation updates:
+- `README.md`
+- build or testing notes if commands or dependencies change
 
 ## FS-013 - Add the first real-terrain example workflow
 

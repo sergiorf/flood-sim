@@ -41,6 +41,7 @@ Requirements:
 
 - CMake 3.20+
 - a C++20 compiler such as GCC 11+, Clang 14+, or MSVC with C++20 support
+- `doctest` if you want to build the C++ test suite
 - GDAL if you want to build upcoming real-terrain ingestion support
 
 Build commands:
@@ -54,6 +55,12 @@ To disable GDAL-backed terrain-ingestion support explicitly:
 
 ```bash
 cmake -S . -B build -DFLOODSIM_ENABLE_GDAL=OFF
+```
+
+To configure without building tests, use:
+
+```bash
+cmake -S . -B build -DFLOODSIM_BUILD_TESTS=OFF
 ```
 
 The first GDAL-backed ingestion path is intentionally narrow: one-band terrain rasters, square pixels, and no reprojection or rotated rasters in the first pass.
