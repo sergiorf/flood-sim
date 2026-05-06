@@ -22,6 +22,7 @@ struct ExampleArguments {
     double rainfall_intensity_m_per_hour {kDefaultRainfallIntensityMPerHour};
     double time_step_seconds {kDefaultTimeStepSeconds};
     int step_count {kDefaultStepCount};
+    std::optional<floodsim::TerrainWindow> terrain_window;
 };
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
@@ -30,7 +31,11 @@ struct ExampleArguments {
         "\nUsage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--time-step-seconds <value>]"
-        " [--steps <count>]");
+        " [--steps <count>]"
+        " [--window-row-offset <value>]"
+        " [--window-col-offset <value>]"
+        " [--window-rows <value>]"
+        " [--window-cols <value>]");
 }
 
 double parse_double_argument(const std::string& option, const std::string& value) {
@@ -78,6 +83,42 @@ ExampleArguments parse_arguments(int argc, char** argv) {
             arguments.time_step_seconds = parse_double_argument(option, value);
         } else if (option == "--steps") {
             arguments.step_count = parse_int_argument(option, value);
+        } else if (option == "--window-row-offset") {
+            if (!arguments.terrain_window.has_value()) {
+                arguments.terrain_window = floodsim::TerrainWindow {};
+            }
+            const int parsed_value = parse_int_argument(option, value);
+            if (parsed_value < 0) {
+                throw_usage_error("Terrain window row offset must be non-negative");
+            }
+            arguments.terrain_window->row_offset = static_cast<std::size_t>(parsed_value);
+        } else if (option == "--window-col-offset") {
+            if (!arguments.terrain_window.has_value()) {
+                arguments.terrain_window = floodsim::TerrainWindow {};
+            }
+            const int parsed_value = parse_int_argument(option, value);
+            if (parsed_value < 0) {
+                throw_usage_error("Terrain window column offset must be non-negative");
+            }
+            arguments.terrain_window->col_offset = static_cast<std::size_t>(parsed_value);
+        } else if (option == "--window-rows") {
+            if (!arguments.terrain_window.has_value()) {
+                arguments.terrain_window = floodsim::TerrainWindow {};
+            }
+            const int parsed_value = parse_int_argument(option, value);
+            if (parsed_value <= 0) {
+                throw_usage_error("Terrain window rows must be positive");
+            }
+            arguments.terrain_window->rows = static_cast<std::size_t>(parsed_value);
+        } else if (option == "--window-cols") {
+            if (!arguments.terrain_window.has_value()) {
+                arguments.terrain_window = floodsim::TerrainWindow {};
+            }
+            const int parsed_value = parse_int_argument(option, value);
+            if (parsed_value <= 0) {
+                throw_usage_error("Terrain window columns must be positive");
+            }
+            arguments.terrain_window->cols = static_cast<std::size_t>(parsed_value);
         } else {
             throw_usage_error("Unknown option: " + option);
         }
@@ -91,6 +132,17 @@ ExampleArguments parse_arguments(int argc, char** argv) {
     }
     if (arguments.step_count <= 0) {
         throw_usage_error("Step count must be positive");
+    }
+    if (arguments.terrain_window.has_value()) {
+        const floodsim::TerrainWindow& window = *arguments.terrain_window;
+        const bool has_any_window_field =
+            window.row_offset != 0 || window.col_offset != 0 || window.rows != 0 || window.cols != 0;
+        const bool has_complete_window =
+            window.rows != 0 && window.cols != 0;
+        if (has_any_window_field && !has_complete_window) {
+            throw_usage_error(
+                "Terrain window requires both --window-rows and --window-cols when any window option is used");
+        }
     }
 
     return arguments;
@@ -120,8 +172,11 @@ void write_export(
 int main(int argc, char** argv) {
     try {
         const ExampleArguments arguments = parse_arguments(argc, argv);
-        const floodsim::TerrainRaster terrain =
-            floodsim::load_terrain_raster_from_file(arguments.input_dem_path.string());
+        const floodsim::TerrainRaster terrain = arguments.terrain_window.has_value()
+            ? floodsim::load_terrain_raster_from_file(
+                  arguments.input_dem_path.string(),
+                  *arguments.terrain_window)
+            : floodsim::load_terrain_raster_from_file(arguments.input_dem_path.string());
         floodsim::Grid grid = floodsim::make_grid_from_terrain(terrain);
 
         std::cout << "loaded_dem=" << arguments.input_dem_path << '\n';
@@ -132,6 +187,13 @@ int main(int argc, char** argv) {
                   << " valid_cells=" << terrain.valid_cell_count() << '\n';
         if (terrain.crs_id.has_value()) {
             std::cout << "crs=" << terrain.crs_id.value() << '\n';
+        }
+        if (arguments.terrain_window.has_value()) {
+            const floodsim::TerrainWindow& window = *arguments.terrain_window;
+            std::cout << "window_row_offset=" << window.row_offset
+                      << " window_col_offset=" << window.col_offset
+                      << " window_rows=" << window.rows
+                      << " window_cols=" << window.cols << '\n';
         }
 
         const floodsim::RainfallScenario rainfall {

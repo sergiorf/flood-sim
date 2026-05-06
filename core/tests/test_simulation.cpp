@@ -569,6 +569,90 @@ TEST_CASE("gdal loader reads single-band terrain raster") {
     std::filesystem::remove(path);
 }
 
+TEST_CASE("gdal loader clips a terrain window and preserves shifted origin") {
+    const std::filesystem::path path = make_temp_raster_path("clipped_window");
+    const double geotransform[6] = {
+        154320.0,
+        2.0,
+        0.0,
+        171205.0,
+        0.0,
+       -2.0,
+    };
+    const double nodata = -9999.0;
+
+    write_test_geotiff(
+        path,
+        3,
+        4,
+        1,
+        {
+            10.0, 11.0, 12.0, 13.0,
+            20.0, nodata, 22.0, 23.0,
+            30.0, 31.0, 32.0, 33.0,
+        },
+        geotransform,
+        nodata);
+
+    const TerrainRaster terrain = floodsim::load_terrain_raster_from_file(
+        path.string(),
+        floodsim::TerrainWindow {
+            .row_offset = 1,
+            .col_offset = 1,
+            .rows = 2,
+            .cols = 2,
+        });
+
+    CHECK(terrain.rows == 2);
+    CHECK(terrain.cols == 2);
+    CHECK(nearly_equal(terrain.cell_size_m, 2.0));
+    REQUIRE(terrain.origin_x_m.has_value());
+    REQUIRE(terrain.origin_y_m.has_value());
+    CHECK(nearly_equal(*terrain.origin_x_m, 154322.0));
+    CHECK(nearly_equal(*terrain.origin_y_m, 171203.0));
+    CHECK(terrain.elevation_m == std::vector<double> {nodata, 22.0, 31.0, 32.0});
+    CHECK(terrain.valid_cell_mask == std::vector<std::uint8_t> {0, 1, 1, 1});
+
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("gdal loader rejects terrain windows outside source bounds") {
+    const std::filesystem::path path = make_temp_raster_path("window_bounds");
+    const double geotransform[6] = {
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+       -1.0,
+    };
+
+    write_test_geotiff(
+        path,
+        2,
+        3,
+        1,
+        {
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+        },
+        geotransform,
+        std::nullopt);
+
+    CHECK_THROWS_AS(
+        (void)floodsim::load_terrain_raster_from_file(
+            path.string(),
+            floodsim::TerrainWindow {
+                .row_offset = 1,
+                .col_offset = 2,
+                .rows = 2,
+                .cols = 2,
+            }),
+        std::invalid_argument);
+
+    std::filesystem::remove(path);
+}
+
 TEST_CASE("gdal loader rejects multi-band rasters") {
     const std::filesystem::path path = make_temp_raster_path("multi_band");
     const double geotransform[6] = {

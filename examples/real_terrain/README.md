@@ -42,14 +42,33 @@ You can also override the rainfall and time-step settings through a small CLI:
   --steps 4
 ```
 
+You can clip a smaller pixel window from a larger source raster when you want a
+repeatable real-area scenario without preprocessing a separate file first:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_window.csv \
+  --window-row-offset 1 \
+  --window-col-offset 1 \
+  --window-rows 3 \
+  --window-cols 2
+```
+
 Supported options:
 
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
 - `--steps <count>`: number of simulation steps to run, default `12`
+- `--window-row-offset <value>`: top-row index of a clipped terrain window, default `0`
+- `--window-col-offset <value>`: left-column index of a clipped terrain window, default `0`
+- `--window-rows <value>`: number of rows in the clipped terrain window
+- `--window-cols <value>`: number of columns in the clipped terrain window
 
 Invalid values fail clearly. Rainfall intensity must be non-negative, and both
-the time step and step count must be positive.
+the time step and step count must be positive. If any terrain-window option is
+used, both `--window-rows` and `--window-cols` are required, and the requested
+window must stay within the source raster bounds.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing
@@ -76,6 +95,7 @@ python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 What this example proves:
 
 - the GDAL loader can read a committed GeoTIFF from disk
+- the same loader can clip a smaller pixel window while preserving shifted origin metadata
 - imported nodata is preserved as out-of-domain cells
 - the simulation can run on the imported terrain
 - the final state can be exported with origin / CRS metadata for later inspection and visualization work

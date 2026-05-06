@@ -118,6 +118,15 @@ Optional fields preserved for later map alignment and export:
 - `origin_y_m`
 - `crs_id`
 
+The Phase 2 GDAL path may populate that contract from either:
+
+- a full source raster
+- a clipped rectangular pixel window inside a source raster
+
+When a window is used, the contract still preserves the clipped raster shape
+exactly, keeps row-major indexing local to the clipped result, and shifts the
+optional origin metadata to the clipped top-left cell.
+
 ## Field definitions
 
 ### `rows`

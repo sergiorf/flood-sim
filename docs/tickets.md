@@ -1,6 +1,6 @@
 # Tickets
 
-This file is the local ticket database for the repository.
+This file is the active local ticket queue for the repository.
 
 Use it instead of GitHub issues when the coding environment is intentionally isolated from network and account access.
 
@@ -8,8 +8,9 @@ Use it instead of GitHub issues when the coding environment is intentionally iso
 
 - Keep ticket IDs stable: `FS-001`, `FS-002`, and so on.
 - Keep each ticket small enough to finish in one focused milestone.
-- Move completed tickets to the `Done` section instead of deleting them.
+- Remove completed tickets from this file once they no longer affect active planning.
 - Update acceptance criteria, tests, and docs notes when scope changes.
+- Keep the queue ordered so the next likely task appears near the top of `Todo`.
 
 ## Ticket Template
 
@@ -42,73 +43,385 @@ Required documentation updates:
 
 ## Todo
 
-## FS-014 - Apply Phase 2 hot-path cleanup before larger terrain runs
+## FS-018 - Add terrain-window clipping for repeatable real-area scenarios
 
 Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- The current simulation implementation is clear and correct, but it still carries obvious per-step overhead that will matter more once real terrain clips and longer runs become common.
-- Waiting too long to address the simplest hot-path waste will make early Phase 2 performance harder to interpret.
-
-Proposed change:
-- Apply only the low-risk performance cleanups that improve the current hot path without changing model semantics.
-- Focus on removing avoidable allocation and container overhead before considering deeper optimization work.
-
-Constraints:
-- Preserve the current simulation behavior exactly.
-- Keep the code readable and testable.
-- Do not introduce speculative large-scale optimization architecture yet.
-
-Acceptance criteria:
-- Per-step temporary neighbor storage no longer performs avoidable dynamic allocation.
-- The step update buffer is reused or otherwise avoids unnecessary per-step allocation churn.
-- Any fast-path access changes preserve the current documented semantics.
-- The change is accompanied by at least a small before/after rationale in code comments or docs if the implementation becomes less obvious.
-
-Required tests:
-- Existing simulation tests continue to pass unchanged.
-- Any new helper abstractions for the hot path receive narrow coverage if they introduce nontrivial logic.
-
-Required documentation updates:
-- None required unless implementation tradeoffs need a brief note in `docs/architecture.md`
-
-## FS-016 - Preserve georeferencing in exported real-terrain outputs
-
-Status: Done
 Owner: Unassigned
 Priority: P1
 
 Problem:
-- The current CSV export is self-describing at the grid level, but it still loses the real-world placement metadata preserved during terrain ingestion.
-- Without origin and CRS metadata in exported real-terrain outputs, downstream inspection and later map-aligned workflows remain weaker than the Phase 2 roadmap promises.
+- The repository can load one committed tiny terrain clip, but it still lacks a lightweight way to define multiple named real-area scenario windows from a larger source raster.
+- Without explicit clipping support, scenario work stays tied to one baked sample instead of a repeatable workflow over real locations.
 
 Proposed change:
-- Extend the exported real-terrain output contract so it preserves the minimum georeferencing metadata already available in `TerrainRaster`.
-- Keep the format lightweight and explicit rather than introducing a heavy GIS export dependency at this stage.
-- Make the export behavior for terrain-derived runs easy to validate and hard to misuse.
+- Add a narrow terrain-window selection path that clips a rectangular area from a source DEM or GeoTIFF into a validated `TerrainRaster`.
+- Keep the first interface simple: bounding rows and columns or an explicit pixel window before considering map-coordinate clipping.
 
 Constraints:
-- Preserve the existing simple export posture unless there is a strong reason to split toy-grid and real-terrain output modes.
-- Do not add raster reprojection or full GIS writer complexity in this ticket.
-- Keep the metadata contract stable and documented.
+- Preserve the current narrow ingestion contract.
+- Avoid introducing GIS reprojection or heavy preprocessing orchestration in this ticket.
+- Keep the output deterministic for tests and examples.
 
 Acceptance criteria:
-- Real-terrain exports preserve enough metadata to identify raster dimensions, cell size, origin, and CRS.
-- The export format documents when georeferencing metadata is present and what each field means.
-- The real-terrain example emits the documented metadata in a reproducible way.
-- Downstream parsing or inspection code can read the added metadata without ambiguity.
+- A caller can request a smaller terrain window from a larger raster source.
+- Invalid or out-of-range windows fail clearly.
+- The clipped result preserves valid-mask, cell size, and available georeferencing metadata correctly.
 
 Required tests:
-- Add or update tests that pin the real-terrain export metadata contract exactly.
-- Add failure or edge-case coverage if the implementation must handle missing optional georeferencing metadata.
-- Existing export consumer tests must continue to pass or be updated deliberately with the new contract.
+- Add coverage for successful clipping and invalid window bounds.
+- Existing terrain-ingestion tests continue to pass.
+
+Required documentation updates:
+- `README.md`
+- `docs/terrain_ingestion_contract.md`
+- example usage notes if a new workflow is exposed
+
+## FS-019 - Support explicit nodata policy reporting in terrain ingestion
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Real scenarios become hard to trust when nodata handling is implicit.
+- The current path masks invalid cells correctly, but it does not yet make nodata behavior visible enough for scenario review and debugging.
+
+Proposed change:
+- Expose a small ingestion report or metadata structure describing nodata presence, valid-cell count, and any clipping loss.
+- Keep the reporting path lightweight and machine-readable.
+
+Constraints:
+- Do not change simulation semantics for valid cells.
+- Do not introduce a large logging framework.
+
+Acceptance criteria:
+- Ingestion returns or emits a narrow summary of nodata and valid-domain handling.
+- Real-terrain example output or logs make the imported domain easier to inspect.
+- Missing or inconsistent nodata metadata is handled explicitly rather than silently.
+
+Required tests:
+- Add tests for rasters with nodata and rasters without nodata metadata.
+- Update example smoke coverage if the user-facing output changes.
+
+Required documentation updates:
+- `README.md`
+- `docs/terrain_ingestion_contract.md`
+
+## FS-020 - Add a scenario input struct for real-terrain runs
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Real-terrain runs currently rely on a small CLI surface, but the scenario information still lives as loose parameters rather than one explicit contract.
+- That makes it harder to extend toward named real scenarios, reproducible comparisons, and batch execution.
+
+Proposed change:
+- Introduce a narrow `ScenarioConfig` or equivalent value object for real-terrain runs.
+- Include only the fields already needed or immediately planned: rainfall intensity, duration or step count, time step, and output path or label.
+
+Constraints:
+- Keep the object minimal and focused on Phase 2 needs.
+- Do not introduce a full scenario-management subsystem yet.
+
+Acceptance criteria:
+- The real-terrain workflow uses an explicit scenario configuration object instead of ad hoc parameter passing.
+- The object can support both default example runs and explicit user-provided values.
+- Validation failures are clear and local to scenario parsing or construction.
+
+Required tests:
+- Add narrow tests for scenario validation or parsing if nontrivial logic is introduced.
+- Existing example workflow tests continue to pass.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- `docs/architecture.md` if responsibilities shift materially
+
+## FS-021 - Add named rainfall presets for repeatable real scenarios
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Real-scenario work needs a few reproducible rainfall cases that can be discussed and rerun consistently.
+- Requiring users to enter raw numeric values every time weakens repeatability and comparison.
+
+Proposed change:
+- Add a small set of named rainfall presets for the real-terrain example, such as `baseline`, `intense_short`, and `long_moderate`.
+- Keep presets as code or a tiny static table rather than creating a full external catalog format yet.
+
+Constraints:
+- Preserve explicit CLI overrides for direct experimentation.
+- Do not imply scientific calibration beyond clearly documented toy-scenario intent.
+
+Acceptance criteria:
+- Users can select at least two documented named rainfall presets.
+- The preset definitions are explicit and easy to inspect.
+- Preset selection and direct numeric overrides cannot silently conflict.
+
+Required tests:
+- Add coverage for preset lookup and invalid preset names.
+- Update smoke tests to use at least one named preset path.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+
+## FS-022 - Export run metadata with scenario identity and timing
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Exported depth grids now preserve georeferencing, but they still do not carry enough scenario identity to compare multiple real runs safely.
+- Once several real scenarios exist, unlabeled CSV outputs will become easy to confuse.
+
+Proposed change:
+- Extend the export metadata preamble with a narrow set of run fields such as scenario name, rainfall intensity, time step, and total simulated duration.
+- Keep the CSV contract simple and backward-compatible where practical.
+
+Constraints:
+- Avoid turning the export into a general provenance system.
+- Preserve the current row-wise table layout.
+
+Acceptance criteria:
+- Real-terrain exports include documented scenario and timing metadata.
+- Export consumers can parse the added metadata without ambiguity.
+- The default example produces deterministic metadata values in tests.
+
+Required tests:
+- Add or update tests that pin the new metadata contract.
+- Existing export consumer tests are updated deliberately if needed.
 
 Required documentation updates:
 - `README.md`
 - `docs/architecture.md`
-- export-format documentation in example or model docs as appropriate
+- example export-format notes
+
+## FS-023 - Add summary metrics for real-terrain scenario review
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Raw per-cell depth output is necessary, but it is still cumbersome for quick scenario review.
+- Users interested in real scenarios need a small set of summary numbers to compare runs before a full map viewer exists.
+
+Proposed change:
+- Compute and emit a minimal metrics summary for a run, such as total water volume proxy, maximum depth, wet-cell count, and deepest-cell location.
+- Keep the metrics derivable from the current raster model without claiming hydrologic realism beyond the MVP.
+
+Constraints:
+- Do not add heavyweight reporting dependencies.
+- Keep metrics semantics clearly documented as raster-model summaries.
+
+Acceptance criteria:
+- The example workflow emits a small deterministic summary alongside CSV output.
+- Metrics are documented and easy to compare across runs.
+- The implementation does not alter simulation behavior.
+
+Required tests:
+- Add coverage for metric computation on small deterministic grids.
+- Update example smoke tests if they validate summary output.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- `docs/architecture.md` if a new output artifact is added
+
+## FS-024 - Add batch scenario execution for one terrain clip
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Running one scenario at a time is enough for smoke tests, but it is weak for practical real-scenario exploration.
+- Early scenario comparison needs a tiny repeatable batch path before the project takes on a richer UI or orchestration layer.
+
+Proposed change:
+- Add a minimal batch mode that runs several named scenarios over the same terrain clip and writes outputs to separate deterministic paths.
+- Keep the interface narrow and local to the example or a small helper.
+
+Constraints:
+- Do not add job scheduling, concurrency, or a config-file hierarchy in this ticket.
+- Preserve a simple single-scenario mode.
+
+Acceptance criteria:
+- A user can run multiple documented named scenarios in one invocation.
+- Output files are deterministic and clearly associated with their scenario names.
+- Failures for one scenario are reported clearly.
+
+Required tests:
+- Add or update smoke coverage for a small batch run.
+- Add narrow tests for scenario list parsing if nontrivial logic is introduced.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+
+## FS-025 - Add scenario-comparison summaries across batch runs
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Batch execution alone still leaves users reading multiple outputs manually.
+- The first useful real-scenario workflow needs one compact comparison artifact before any map-based viewer exists.
+
+Proposed change:
+- Produce a small comparison table across batch runs with shared metrics such as maximum depth and wet-cell count.
+- Keep the artifact text-based or CSV-based for now.
+
+Constraints:
+- Reuse metrics already defined for single runs where possible.
+- Avoid introducing visualization or dashboard work in this ticket.
+
+Acceptance criteria:
+- Batch runs produce one deterministic comparison artifact.
+- The comparison clearly identifies each scenario and its summary values.
+- The output is documented well enough for manual inspection or future scripting.
+
+Required tests:
+- Add narrow tests for comparison-table generation.
+- Existing batch workflow tests continue to pass.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+
+## FS-026 - Add terrain-derived scenario fixtures for regression coverage
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Real-scenario work will drift unless the repository carries a few small deterministic scenario fixtures beyond the original sample path.
+- Depending on one example clip and one run shape is too narrow for Phase 2 hardening.
+
+Proposed change:
+- Add a tiny curated set of regression fixtures or fixture descriptors for real-terrain runs.
+- Cover at least one case with nodata influence and one case with a clear drainage pattern.
+
+Constraints:
+- Keep fixture size small enough for local development and repository storage.
+- Avoid creating a large sample-data archive.
+
+Acceptance criteria:
+- The repository includes at least two named deterministic real-terrain scenario fixtures.
+- Tests or smoke workflows exercise the fixtures reproducibly.
+- Fixture intent is documented so later contributors understand why each case exists.
+
+Required tests:
+- Add or update example and regression coverage to use the new fixtures.
+- Existing ingestion and export tests continue to pass.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+
+## FS-027 - Add a simple scenario-definition file format
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Named presets in code are a good bridge, but they will become limiting once users want to maintain a small set of shareable real scenarios.
+- Keeping all scenario definitions compiled into the example is friction for iteration and review.
+
+Proposed change:
+- Add a minimal human-editable scenario-definition format such as a narrow key-value or CSV contract.
+- Support only the fields already stabilized by the scenario config contract.
+
+Constraints:
+- Keep the format trivial to parse with the standard library.
+- Do not add YAML, JSON schema tooling, or external parsing dependencies unless explicitly justified later.
+
+Acceptance criteria:
+- A user can define at least one scenario outside the binary and run it reproducibly.
+- Invalid scenario files fail with clear messages.
+- The file contract is documented and intentionally small.
+
+Required tests:
+- Add parsing and validation coverage for valid and invalid files.
+- Existing CLI scenario paths continue to work.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- format notes in `docs/architecture.md` if needed
+
+## FS-028 - Add runoff result snapshots at selected times
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- Final-state output is not always enough for real scenarios because timing matters when comparing short intense storms against longer moderate ones.
+- Without intermediate snapshots, scenario review is biased toward end-state inspection only.
+
+Proposed change:
+- Allow the real-terrain workflow to export a small number of selected time snapshots during a run.
+- Keep selection simple, such as every N steps or a short explicit step list.
+
+Constraints:
+- Avoid building a full time-series storage system.
+- Keep default behavior small enough for local runs and tests.
+
+Acceptance criteria:
+- A user can request intermediate output snapshots in a documented way.
+- Snapshot filenames or metadata clearly identify simulation time.
+- The implementation preserves deterministic ordering and stable export semantics.
+
+Required tests:
+- Add coverage for snapshot selection and output naming.
+- Existing export and example tests continue to pass or are updated deliberately.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- export behavior notes where appropriate
+
+## FS-029 - Add one documented real-scenario comparison walkthrough
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- The repository can gain scenario mechanics without becoming easier for a human to use.
+- Before Phase 2 is considered hardened, the docs should show one end-to-end comparison workflow on a real clip that another developer can rerun exactly.
+
+Proposed change:
+- Document one canonical scenario-comparison walkthrough using the real-terrain example, named scenarios, and the current output artifacts.
+- Keep the walkthrough focused on reproducibility and interpretation rather than visual polish.
+
+Constraints:
+- Do not require external web tooling or notebook infrastructure.
+- Keep the walkthrough aligned with the actual committed example data.
+
+Acceptance criteria:
+- A new contributor can run the documented comparison workflow and understand the produced outputs.
+- The walkthrough names the exact commands and expected artifacts.
+- The docs clearly state the modeling limits of the comparison.
+
+Required tests:
+- Add or update a smoke test for the documented walkthrough if practical.
+- Call out any remaining manual-only verification explicitly if full automation is not practical yet.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- `docs/roadmap.md` if the Phase 2 wording should reflect the hardened scenario path
 
 ## In Progress
 
@@ -117,107 +430,3 @@ No tickets in progress.
 ## Blocked
 
 No blocked tickets.
-
-## Done
-
-## FS-017 - Make the real-terrain example configurable for repeatable scenario runs
-
-Status: Done
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The first real-terrain example currently proves the workflow, but the simulation inputs are hardcoded.
-- That makes it weaker as a practical hardening tool for local exploration, regression checks, and early user-facing scenario demonstrations.
-
-Proposed change:
-- Let the real-terrain example accept a small explicit set of scenario parameters through the CLI.
-- Keep the interface narrow: enough to vary rainfall and step settings without drifting into a full scenario-management system.
-- Document one or two canonical example invocations so the workflow stays reproducible.
-
-Constraints:
-- Keep the CLI small and easy to understand.
-- Do not introduce a new config-file system in this ticket.
-- Preserve a deterministic documented default path so the example remains usable in tests and docs.
-
-Acceptance criteria:
-- A user can run the real-terrain example with explicit rainfall and time-step settings from the command line.
-- The example still supports one documented default invocation for reproducible smoke testing.
-- Invalid CLI inputs fail clearly.
-- The workflow remains simple enough for local testing and future demo use.
-
-Required tests:
-- Add or update smoke tests to cover the documented default path.
-- Add narrow coverage for CLI parsing or validation if nontrivial logic is introduced.
-- Existing example workflow tests continue to pass with the new interface.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- any test or usage notes affected by the CLI contract
-
-## FS-015 - Add doctest and migrate the C++ test suite
-
-Status: Done
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The current C++ test suite uses a custom handwritten harness that is still workable, but it now adds friction as coverage grows.
-- Failure output, assertion ergonomics, and test organization will become harder to maintain through later Phase 2 and Phase 3 work.
-
-Proposed change:
-- Add `doctest` as the project’s lightweight C++ test framework dependency.
-- Migrate the existing C++ tests from the custom harness to `doctest` while preserving current simulation and ingestion coverage.
-- Keep the existing Python smoke tests for example workflows unless there is a strong reason to replace them.
-
-Constraints:
-- Keep dependencies minimal and aligned with the repository’s current lightweight posture.
-- Do not change simulation semantics as part of the migration.
-- Keep CI and local build/test commands straightforward.
-
-Acceptance criteria:
-- The repository builds the C++ test target with `doctest`.
-- The current handwritten assertion helpers and manual test runner are removed from the core C++ tests.
-- Existing C++ simulation, export, terrain-contract, and GDAL-ingestion tests are migrated without losing coverage intent.
-- `ctest --test-dir build --output-on-failure` still runs cleanly with the migrated suite.
-
-Required tests:
-- The migrated C++ suite must cover the same current behaviors at minimum.
-- Any framework integration code or custom `doctest` configuration should receive narrow coverage only if it introduces nontrivial logic.
-
-Required documentation updates:
-- `README.md`
-- build or testing notes if commands or dependencies change
-
-## FS-013 - Add the first real-terrain example workflow
-
-Status: Done
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- Even after ingestion exists, the repository still needs one concrete end-to-end example showing a real terrain clip flowing through the system.
-- Without that example, Phase 2 remains technically incomplete and hard to demonstrate.
-
-Proposed change:
-- Add one small real-terrain example that loads terrain, runs rainfall, and exports results.
-- Keep the example focused on proving the first real-terrain milestone rather than visualization polish.
-
-Constraints:
-- Use a small input example suitable for local development.
-- Keep the workflow reproducible and easy to run.
-
-Acceptance criteria:
-- The repository contains one documented real-terrain example workflow.
-- The example exercises ingestion, simulation, and export together.
-- The example output is suitable for later visualization or inspection work.
-
-Required tests:
-- Example smoke-test guidance or automation where practical.
-- Any helper code introduced for the example should have narrow coverage if it is nontrivial.
-
-Required documentation updates:
-- `README.md`
-- example-specific docs
-- `docs/roadmap.md` if the milestone wording needs refinement

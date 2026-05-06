@@ -36,7 +36,15 @@ struct TerrainRaster {
     [[nodiscard]] std::size_t valid_cell_count() const noexcept;
 };
 
+struct TerrainWindow {
+    std::size_t row_offset {0};
+    std::size_t col_offset {0};
+    std::size_t rows {0};
+    std::size_t cols {0};
+};
+
 void validate_terrain_raster(const TerrainRaster& terrain);
+void validate_terrain_window(const TerrainWindow& window);
 
 // Convert validated terrain-contract data into the simulation grid used by the
 // current core. This keeps ingestion/file-format concerns separate from
@@ -50,5 +58,6 @@ Grid make_grid_from_terrain(const TerrainRaster& terrain);
 // - no rotated/sheared geotransform
 // - nodata mapped into valid_cell_mask
 TerrainRaster load_terrain_raster_from_file(const std::string& path);
+TerrainRaster load_terrain_raster_from_file(const std::string& path, const TerrainWindow& window);
 
 }  // namespace floodsim

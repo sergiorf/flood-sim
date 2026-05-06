@@ -56,6 +56,12 @@ void validate_terrain_raster(const TerrainRaster& terrain) {
     }
 }
 
+void validate_terrain_window(const TerrainWindow& window) {
+    if (window.rows == 0 || window.cols == 0) {
+        throw std::invalid_argument("Terrain window dimensions must be positive");
+    }
+}
+
 Grid make_grid_from_terrain(const TerrainRaster& terrain) {
     validate_terrain_raster(terrain);
 
@@ -72,8 +78,13 @@ Grid make_grid_from_terrain(const TerrainRaster& terrain) {
 }
 
 TerrainRaster load_terrain_raster_from_file(const std::string& path) {
+    return load_terrain_raster_from_file(path, TerrainWindow {});
+}
+
+TerrainRaster load_terrain_raster_from_file(const std::string& path, const TerrainWindow& window) {
 #if !FLOODSIM_HAS_GDAL
     (void)path;
+    (void)window;
     throw std::runtime_error("GDAL support is disabled for this build");
 #else
     GDALAllRegister();
@@ -111,21 +122,42 @@ TerrainRaster load_terrain_raster_from_file(const std::string& path) {
         throw std::runtime_error("Failed to access the first raster band");
     }
 
+    const std::size_t dataset_rows = static_cast<std::size_t>(dataset->GetRasterYSize());
+    const std::size_t dataset_cols = static_cast<std::size_t>(dataset->GetRasterXSize());
+
+    TerrainWindow effective_window {
+        .row_offset = 0,
+        .col_offset = 0,
+        .rows = dataset_rows,
+        .cols = dataset_cols,
+    };
+    if (window.rows != 0 || window.cols != 0) {
+        validate_terrain_window(window);
+        if (window.row_offset >= dataset_rows || window.col_offset >= dataset_cols) {
+            throw std::invalid_argument("Terrain window origin must lie within the source raster");
+        }
+        if (window.rows > (dataset_rows - window.row_offset) ||
+            window.cols > (dataset_cols - window.col_offset)) {
+            throw std::invalid_argument("Terrain window extends beyond the source raster bounds");
+        }
+        effective_window = window;
+    }
+
     TerrainRaster terrain;
-    terrain.rows = static_cast<std::size_t>(dataset->GetRasterYSize());
-    terrain.cols = static_cast<std::size_t>(dataset->GetRasterXSize());
+    terrain.rows = effective_window.rows;
+    terrain.cols = effective_window.cols;
     terrain.cell_size_m = pixel_width_m;
-    terrain.origin_x_m = geotransform[0];
-    terrain.origin_y_m = geotransform[3];
+    terrain.origin_x_m = geotransform[0] + (static_cast<double>(effective_window.col_offset) * geotransform[1]);
+    terrain.origin_y_m = geotransform[3] + (static_cast<double>(effective_window.row_offset) * geotransform[5]);
     terrain.elevation_m.resize(terrain.cell_count());
     terrain.valid_cell_mask.assign(terrain.cell_count(), 1);
 
     const CPLErr read_error = band->RasterIO(
         GF_Read,
-        0,
-        0,
-        static_cast<int>(terrain.cols),
-        static_cast<int>(terrain.rows),
+        static_cast<int>(effective_window.col_offset),
+        static_cast<int>(effective_window.row_offset),
+        static_cast<int>(effective_window.cols),
+        static_cast<int>(effective_window.rows),
         terrain.elevation_m.data(),
         static_cast<int>(terrain.cols),
         static_cast<int>(terrain.rows),

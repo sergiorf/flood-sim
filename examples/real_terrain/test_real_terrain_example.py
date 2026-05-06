@@ -111,6 +111,34 @@ def main() -> int:
     assert "steps=4 " in custom_completed.stdout
     assert custom_output_csv_path.exists()
 
+    clipped_output_csv_path = output_csv_path.with_name("output_clipped.csv")
+    clipped_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(clipped_output_csv_path),
+            "--window-row-offset",
+            "1",
+            "--window-col-offset",
+            "1",
+            "--window-rows",
+            "3",
+            "--window-cols",
+            "2",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "window_row_offset=1 window_col_offset=1 window_rows=3 window_cols=2" in clipped_completed.stdout
+    clipped_metadata, clipped_rows = parse_export(clipped_output_csv_path)
+    assert clipped_metadata["rows"] == "3"
+    assert clipped_metadata["cols"] == "2"
+    assert clipped_metadata["origin_x_m"] == "154322.000000"
+    assert clipped_metadata["origin_y_m"] == "171203.000000"
+    assert len(clipped_rows) == 6
+
     invalid_completed = subprocess.run(
         [
             str(binary_path),
@@ -126,6 +154,24 @@ def main() -> int:
 
     assert invalid_completed.returncode != 0
     assert "Step count must be positive" in invalid_completed.stderr
+
+    invalid_window_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid_window.csv")),
+            "--window-row-offset",
+            "1",
+            "--window-cols",
+            "2",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_window_completed.returncode != 0
+    assert "Terrain window requires both --window-rows and --window-cols" in invalid_window_completed.stderr
 
     return 0
 
