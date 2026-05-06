@@ -16,6 +16,17 @@ struct Neighbor {
     double drop;
 };
 
+struct StepScratch {
+    // Reuse the same delta buffer across calls to avoid per-step allocation
+    // churn while keeping the step logic snapshot-based and easy to read.
+    std::vector<double> delta;
+};
+
+StepScratch& step_scratch() {
+    thread_local StepScratch scratch;
+    return scratch;
+}
+
 }  // namespace
 
 void add_uniform_rainfall(Grid& grid, const RainfallScenario& rainfall, double duration_seconds) {
@@ -55,16 +66,20 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     // Each step first injects rainfall, then redistributes water already on the grid.
     add_uniform_rainfall(grid, rainfall, config.time_step_seconds);
 
-    const std::size_t total_cells = grid.rows() * grid.cols();
+    const std::size_t rows = grid.rows();
+    const std::size_t cols = grid.cols();
+    const std::size_t total_cells = rows * cols;
     // Accumulate all per-cell water changes here so flow is based on the same snapshot.
-    std::vector<double> delta(total_cells, 0.0);
+    StepScratch& scratch = step_scratch();
+    scratch.delta.assign(total_cells, 0.0);
+    std::vector<double>& delta = scratch.delta;
 
     // Only the 4 orthogonal neighbors participate in the current MVP flow model.
     constexpr std::array<int, 4> d_row { -1, 1, 0, 0 };
     constexpr std::array<int, 4> d_col { 0, 0, -1, 1 };
 
-    for (std::size_t row = 0; row < grid.rows(); ++row) {
-        for (std::size_t col = 0; col < grid.cols(); ++col) {
+    for (std::size_t row = 0; row < rows; ++row) {
+        for (std::size_t col = 0; col < cols; ++col) {
             if (!grid.is_cell_valid(row, col)) {
                 continue;
             }
@@ -76,7 +91,8 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
 
             // Surface height is terrain elevation plus ponded water depth.
             const double current_surface = grid.surface_height(row, col);
-            std::vector<Neighbor> lower_neighbors;
+            std::array<Neighbor, 4> lower_neighbors {};
+            std::size_t lower_neighbor_count = 0;
             double total_drop = 0.0;
 
             for (std::size_t i = 0; i < d_row.size(); ++i) {
@@ -85,8 +101,8 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
                 if (neighbor_row < 0 || neighbor_col < 0) {
                     continue;
                 }
-                if (neighbor_row >= static_cast<int>(grid.rows()) ||
-                    neighbor_col >= static_cast<int>(grid.cols())) {
+                if (neighbor_row >= static_cast<int>(rows) ||
+                    neighbor_col >= static_cast<int>(cols)) {
                     continue;
                 }
                 if (!grid.is_cell_valid(
@@ -102,41 +118,42 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
                 // Only send water to neighbors with a lower surface.
                 const double drop = current_surface - neighbor_surface;
                 if (drop > 0.0) {
-                    lower_neighbors.push_back({
+                    lower_neighbors[lower_neighbor_count++] = {
                         static_cast<std::size_t>(neighbor_row),
                         static_cast<std::size_t>(neighbor_col),
                         drop,
-                    });
+                    };
                     total_drop += drop;
                 }
             }
 
-            if (lower_neighbors.empty() || total_drop <= 0.0) {
+            if (lower_neighbor_count == 0 || total_drop <= 0.0) {
                 continue;
             }
 
             // Limit how much water can leave this cell during one time step.
             const double outflow = available_water * config.max_outflow_fraction;
-            const std::size_t source_idx = row * grid.cols() + col;
+            const std::size_t source_idx = row * cols + col;
             delta[source_idx] -= outflow;
 
-            for (const Neighbor& neighbor : lower_neighbors) {
+            for (std::size_t i = 0; i < lower_neighbor_count; ++i) {
+                const Neighbor& neighbor = lower_neighbors[i];
                 // Split the outflow proportionally: steeper drops receive more water.
                 const double share = outflow * (neighbor.drop / total_drop);
-                const std::size_t neighbor_idx = neighbor.row * grid.cols() + neighbor.col;
+                const std::size_t neighbor_idx = neighbor.row * cols + neighbor.col;
                 delta[neighbor_idx] += share;
             }
         }
     }
 
     // Apply the accumulated changes after all cells have computed their outflow.
-    for (std::size_t row = 0; row < grid.rows(); ++row) {
-        for (std::size_t col = 0; col < grid.cols(); ++col) {
+    for (std::size_t row = 0; row < rows; ++row) {
+        for (std::size_t col = 0; col < cols; ++col) {
             if (!grid.is_cell_valid(row, col)) {
                 continue;
             }
 
-            const std::size_t idx = row * grid.cols() + col;
+            const std::size_t idx = row * cols + col;
             grid.add_water_depth(row, col, delta[idx]);
         }
     }
