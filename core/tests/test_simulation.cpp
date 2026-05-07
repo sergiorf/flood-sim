@@ -569,6 +569,53 @@ TEST_CASE("gdal loader reads single-band terrain raster") {
     std::filesystem::remove(path);
 }
 
+TEST_CASE("gdal loader full-raster path matches an explicit full-size terrain window") {
+    const std::filesystem::path path = make_temp_raster_path("full_window_parity");
+    const double geotransform[6] = {
+        154320.0,
+        2.0,
+        0.0,
+        171205.0,
+        0.0,
+       -2.0,
+    };
+    const double nodata = -9999.0;
+
+    write_test_geotiff(
+        path,
+        3,
+        4,
+        1,
+        {
+            10.0, 11.0, 12.0, 13.0,
+            20.0, nodata, 22.0, 23.0,
+            30.0, 31.0, 32.0, 33.0,
+        },
+        geotransform,
+        nodata);
+
+    const TerrainRaster full_terrain = floodsim::load_terrain_raster_from_file(path.string());
+    const TerrainRaster window_terrain = floodsim::load_terrain_raster_from_file(
+        path.string(),
+        floodsim::TerrainWindow {
+            .row_offset = 0,
+            .col_offset = 0,
+            .rows = 3,
+            .cols = 4,
+        });
+
+    CHECK(full_terrain.rows == window_terrain.rows);
+    CHECK(full_terrain.cols == window_terrain.cols);
+    CHECK(nearly_equal(full_terrain.cell_size_m, window_terrain.cell_size_m));
+    CHECK(full_terrain.elevation_m == window_terrain.elevation_m);
+    CHECK(full_terrain.valid_cell_mask == window_terrain.valid_cell_mask);
+    CHECK(full_terrain.origin_x_m == window_terrain.origin_x_m);
+    CHECK(full_terrain.origin_y_m == window_terrain.origin_y_m);
+    CHECK(full_terrain.crs_id == window_terrain.crs_id);
+
+    std::filesystem::remove(path);
+}
+
 TEST_CASE("gdal loader clips a terrain window and preserves shifted origin") {
     const std::filesystem::path path = make_temp_raster_path("clipped_window");
     const double geotransform[6] = {

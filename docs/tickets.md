@@ -41,11 +41,9 @@ Required documentation updates:
 - Docs that must change with the implementation.
 ```
 
-## Todo
-
 ## FS-018 - Add terrain-window clipping for repeatable real-area scenarios
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P1
 
@@ -75,6 +73,8 @@ Required documentation updates:
 - `README.md`
 - `docs/terrain_ingestion_contract.md`
 - example usage notes if a new workflow is exposed
+
+## Todo
 
 ## FS-019 - Support explicit nodata policy reporting in terrain ingestion
 

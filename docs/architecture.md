@@ -20,6 +20,11 @@ The build now supports optional GDAL integration as the intended path for the fi
 
 For the first real-terrain workflow, ingestion should target the contract described in [docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md). That contract keeps the initial imported terrain object narrow: raster dimensions, square cell size, row-major elevations, a valid-cell mask for nodata handling, and optional origin / CRS metadata preserved for later map alignment.
 
+Terrain clipping is now an explicit ingestion-layer capability rather than only
+an example-CLI convenience. Callers can request either the full source raster
+or a bounded pixel window and still receive the same validated `TerrainRaster`
+contract.
+
 The contract-to-simulation handoff is explicit as well: validated
 `TerrainRaster` data is adapted into `Grid` through a dedicated core helper so
 examples and future ingestion tools do not each reimplement that mapping.
