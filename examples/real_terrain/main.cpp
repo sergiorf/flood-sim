@@ -16,12 +16,16 @@ constexpr double kDefaultRainfallIntensityMPerHour = 0.012;
 constexpr double kDefaultTimeStepSeconds = 300.0;
 constexpr int kDefaultStepCount = 12;
 
-struct ExampleArguments {
-    std::filesystem::path input_dem_path;
+struct ScenarioConfig {
     std::filesystem::path output_csv_path;
     double rainfall_intensity_m_per_hour {kDefaultRainfallIntensityMPerHour};
     double time_step_seconds {kDefaultTimeStepSeconds};
     int step_count {kDefaultStepCount};
+};
+
+struct ExampleArguments {
+    std::filesystem::path input_dem_path;
+    ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
 };
 
@@ -73,6 +77,18 @@ int parse_int_argument(const std::string& option, const std::string& value) {
     return static_cast<int>(parsed_value);
 }
 
+void validate_scenario_config(const ScenarioConfig& scenario) {
+    if (scenario.rainfall_intensity_m_per_hour < 0.0) {
+        throw_usage_error("Rainfall intensity must be non-negative");
+    }
+    if (scenario.time_step_seconds <= 0.0) {
+        throw_usage_error("Time step must be positive");
+    }
+    if (scenario.step_count <= 0) {
+        throw_usage_error("Step count must be positive");
+    }
+}
+
 ExampleArguments parse_arguments(int argc, char** argv) {
     if (argc < 3) {
         throw_usage_error("Missing required arguments");
@@ -80,7 +96,10 @@ ExampleArguments parse_arguments(int argc, char** argv) {
 
     ExampleArguments arguments {
         .input_dem_path = argv[1],
-        .output_csv_path = argv[2],
+        .scenario =
+            ScenarioConfig {
+                .output_csv_path = argv[2],
+            },
     };
 
     for (int index = 3; index < argc; ++index) {
@@ -91,11 +110,11 @@ ExampleArguments parse_arguments(int argc, char** argv) {
 
         const std::string value = argv[++index];
         if (option == "--rainfall-intensity-m-per-hour") {
-            arguments.rainfall_intensity_m_per_hour = parse_double_argument(option, value);
+            arguments.scenario.rainfall_intensity_m_per_hour = parse_double_argument(option, value);
         } else if (option == "--time-step-seconds") {
-            arguments.time_step_seconds = parse_double_argument(option, value);
+            arguments.scenario.time_step_seconds = parse_double_argument(option, value);
         } else if (option == "--steps") {
-            arguments.step_count = parse_int_argument(option, value);
+            arguments.scenario.step_count = parse_int_argument(option, value);
         } else if (option == "--window-row-offset") {
             if (!arguments.terrain_window.has_value()) {
                 arguments.terrain_window = floodsim::TerrainWindow {};
@@ -137,15 +156,7 @@ ExampleArguments parse_arguments(int argc, char** argv) {
         }
     }
 
-    if (arguments.rainfall_intensity_m_per_hour < 0.0) {
-        throw_usage_error("Rainfall intensity must be non-negative");
-    }
-    if (arguments.time_step_seconds <= 0.0) {
-        throw_usage_error("Time step must be positive");
-    }
-    if (arguments.step_count <= 0) {
-        throw_usage_error("Step count must be positive");
-    }
+    validate_scenario_config(arguments.scenario);
     if (arguments.terrain_window.has_value()) {
         const floodsim::TerrainWindow& window = *arguments.terrain_window;
         const bool has_any_window_field =
@@ -185,6 +196,7 @@ void write_export(
 int main(int argc, char** argv) {
     try {
         const ExampleArguments arguments = parse_arguments(argc, argv);
+        const ScenarioConfig& scenario = arguments.scenario;
         const floodsim::LoadedTerrainRaster loaded_terrain = arguments.terrain_window.has_value()
             ? floodsim::load_terrain_raster_with_report(
                   arguments.input_dem_path.string(),
@@ -223,28 +235,28 @@ int main(int argc, char** argv) {
         }
 
         const floodsim::RainfallScenario rainfall {
-            .intensity_m_per_hour = arguments.rainfall_intensity_m_per_hour,
+            .intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
         };
         const floodsim::SimulationConfig config {
-            .time_step_seconds = arguments.time_step_seconds,
+            .time_step_seconds = scenario.time_step_seconds,
             .max_outflow_fraction = 0.20,
             .boundary_mode = floodsim::BoundaryMode::Closed,
         };
 
-        for (int step = 0; step < arguments.step_count; ++step) {
+        for (int step = 0; step < scenario.step_count; ++step) {
             floodsim::step(grid, rainfall, config);
         }
 
-        write_export(grid, terrain, arguments.output_csv_path);
+        write_export(grid, terrain, scenario.output_csv_path);
 
         std::cout << "rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
-                  << arguments.rainfall_intensity_m_per_hour << '\n';
+                  << scenario.rainfall_intensity_m_per_hour << '\n';
         std::cout << "time_step_seconds=" << std::fixed << std::setprecision(3)
-                  << arguments.time_step_seconds << '\n';
-        std::cout << "steps=" << arguments.step_count
+                  << scenario.time_step_seconds << '\n';
+        std::cout << "steps=" << scenario.step_count
                   << " total_water_depth_m=" << std::fixed << std::setprecision(6)
                   << grid.total_water_depth() << '\n';
-        std::cout << "wrote_csv=" << arguments.output_csv_path << '\n';
+        std::cout << "wrote_csv=" << scenario.output_csv_path << '\n';
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

@@ -100,7 +100,8 @@ python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 ```
 
 The real-terrain example also accepts a small set of optional scenario flags
-for repeatable local runs:
+for repeatable local runs. Those values are parsed into one explicit scenario
+configuration before the example constructs rainfall and simulation settings:
 
 ```bash
 ./build/floodsim_real_terrain_example \

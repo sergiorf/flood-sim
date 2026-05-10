@@ -33,6 +33,9 @@ terrain contract.
 The contract-to-simulation handoff is explicit as well: validated
 `TerrainRaster` data is adapted into `Grid` through a dedicated core helper so
 examples and future ingestion tools do not each reimplement that mapping.
+The real-terrain example now treats rainfall and timing inputs similarly by
+building one narrow scenario configuration object before constructing the
+simulation-facing rainfall and step settings.
 
 ### 2. Simulation core
 

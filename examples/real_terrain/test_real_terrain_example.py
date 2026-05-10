@@ -165,6 +165,22 @@ def main() -> int:
     assert invalid_completed.returncode != 0
     assert "Step count must be positive" in invalid_completed.stderr
 
+    invalid_time_step_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid_time_step.csv")),
+            "--time-step-seconds",
+            "0",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_time_step_completed.returncode != 0
+    assert "Time step must be positive" in invalid_time_step_completed.stderr
+
     invalid_window_completed = subprocess.run(
         [
             str(binary_path),

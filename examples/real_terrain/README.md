@@ -31,6 +31,10 @@ uses:
 - number of steps: `12`
 - boundary mode: `Closed`
 
+Those run fields now flow through one narrow `ScenarioConfig` inside the
+example so default runs, CLI overrides, and later named scenarios can share the
+same validation path.
+
 You can also override the rainfall and time-step settings through a small CLI:
 
 ```bash
@@ -68,7 +72,9 @@ Supported options:
 Invalid values fail clearly. Rainfall intensity must be non-negative, and both
 the time step and step count must be positive. If any terrain-window option is
 used, both `--window-rows` and `--window-cols` are required, and the requested
-window must stay within the source raster bounds.
+window must stay within the source raster bounds. Scenario validation is kept
+local to that `ScenarioConfig` construction instead of being spread across the
+simulation setup path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing

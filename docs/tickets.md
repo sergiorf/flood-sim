@@ -77,7 +77,7 @@ Required documentation updates:
 ## Todo
 
 Next recommended Phase 2 step:
-- `FS-020` is the next active Phase 2 task now that `FS-019` is done.
+- `FS-021` is the next active Phase 2 task now that `FS-020` is done.
 
 ## FS-019 - Support explicit nodata policy reporting in terrain ingestion
 
@@ -112,7 +112,7 @@ Required documentation updates:
 
 ## FS-020 - Add a scenario input struct for real-terrain runs
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P1
 
