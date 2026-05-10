@@ -35,16 +35,41 @@ Those run fields now flow through one narrow `ScenarioConfig` inside the
 example so default runs, CLI overrides, and later named scenarios can share the
 same validation path.
 
+You can run one of the documented named scenarios through `--scenario`:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_intense_short.csv \
+  --scenario intense_short
+```
+
+Current named scenarios:
+
+- `baseline`: `0.012 m/hour` for `12` steps of `300 seconds`, representing a moderate one-hour event at `12 mm/hour`
+- `intense_short`: `0.030 m/hour` for `6` steps of `300 seconds`, representing a short `30` minute burst at `30 mm/hour`
+- `long_moderate`: `0.008 m/hour` for `36` steps of `300 seconds`, representing a longer `3` hour event at `8 mm/hour`
+
+These presets are intended to be plausible screening events for repeatable
+comparison, not calibrated local storm models. They are useful because they
+keep the repository talking about the same runs consistently while the
+underlying hydrology is still intentionally simple.
+
 You can also override the rainfall and time-step settings through a small CLI:
 
 ```bash
 ./build/floodsim_real_terrain_example \
   examples/real_terrain/data/sample_dem.tif \
   real_terrain_output_heavier_rain.csv \
+  --scenario baseline \
   --rainfall-intensity-m-per-hour 0.020 \
   --time-step-seconds 600 \
   --steps 4
 ```
+
+If a named scenario and explicit numeric flags are both provided, the numeric
+flags win. The example prints the selected scenario name plus whether CLI
+overrides were applied so those combinations are never silent.
 
 You can clip a smaller pixel window from a larger source raster when you want a
 repeatable real-area scenario without preprocessing a separate file first:
@@ -61,6 +86,7 @@ repeatable real-area scenario without preprocessing a separate file first:
 
 Supported options:
 
+- `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
 - `--steps <count>`: number of simulation steps to run, default `12`
@@ -81,6 +107,7 @@ CSV contract used elsewhere in the repository with added georeferencing
 metadata from the source raster:
 
 ```text
+scenario_name=baseline scenario_source=direct_cli_or_default
 ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 nodata_status=band_metadata_applied
 # floodsim_csv_version,1
 # rows,5

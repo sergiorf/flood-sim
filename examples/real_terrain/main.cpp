@@ -7,26 +7,64 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace {
 
 constexpr double kDefaultRainfallIntensityMPerHour = 0.012;
 constexpr double kDefaultTimeStepSeconds = 300.0;
 constexpr int kDefaultStepCount = 12;
+constexpr const char* kDefaultScenarioName = "baseline";
 
 struct ScenarioConfig {
+    std::string name {kDefaultScenarioName};
     std::filesystem::path output_csv_path;
     double rainfall_intensity_m_per_hour {kDefaultRainfallIntensityMPerHour};
     double time_step_seconds {kDefaultTimeStepSeconds};
     int step_count {kDefaultStepCount};
+    bool preset_applied {false};
+    bool cli_overrides_applied {false};
 };
 
 struct ExampleArguments {
     std::filesystem::path input_dem_path;
     ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
+};
+
+struct ScenarioPreset {
+    std::string_view name;
+    double rainfall_intensity_m_per_hour;
+    double time_step_seconds;
+    int step_count;
+    std::string_view description;
+};
+
+constexpr ScenarioPreset kScenarioPresets[] = {
+    {
+        .name = "baseline",
+        .rainfall_intensity_m_per_hour = 0.012,
+        .time_step_seconds = 300.0,
+        .step_count = 12,
+        .description = "Moderate one-hour event at 12 mm/hour.",
+    },
+    {
+        .name = "intense_short",
+        .rainfall_intensity_m_per_hour = 0.030,
+        .time_step_seconds = 300.0,
+        .step_count = 6,
+        .description = "Short 30-minute burst at 30 mm/hour.",
+    },
+    {
+        .name = "long_moderate",
+        .rainfall_intensity_m_per_hour = 0.008,
+        .time_step_seconds = 300.0,
+        .step_count = 36,
+        .description = "Longer three-hour event at 8 mm/hour.",
+    },
 };
 
 std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
@@ -46,6 +84,7 @@ std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
     throw std::runtime_error(
         message +
         "\nUsage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
+        " [--scenario <name>]"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--time-step-seconds <value>]"
         " [--steps <count>]"
@@ -53,6 +92,36 @@ std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
         " [--window-col-offset <value>]"
         " [--window-rows <value>]"
         " [--window-cols <value>]");
+}
+
+const ScenarioPreset& find_scenario_preset(const std::string& name) {
+    for (const ScenarioPreset& preset : kScenarioPresets) {
+        if (preset.name == name) {
+            return preset;
+        }
+    }
+
+    throw_usage_error(
+        "Unknown scenario preset: " + name +
+        ". Expected one of: baseline, intense_short, long_moderate");
+}
+
+void apply_scenario_preset(ScenarioConfig& scenario, const ScenarioPreset& preset) {
+    scenario.name = std::string(preset.name);
+    scenario.rainfall_intensity_m_per_hour = preset.rainfall_intensity_m_per_hour;
+    scenario.time_step_seconds = preset.time_step_seconds;
+    scenario.step_count = preset.step_count;
+    scenario.preset_applied = true;
+}
+
+std::string scenario_source_to_string(const ScenarioConfig& scenario) {
+    if (scenario.preset_applied && scenario.cli_overrides_applied) {
+        return "preset_with_cli_overrides";
+    }
+    if (scenario.preset_applied) {
+        return "preset";
+    }
+    return "direct_cli_or_default";
 }
 
 double parse_double_argument(const std::string& option, const std::string& value) {
@@ -101,6 +170,10 @@ ExampleArguments parse_arguments(int argc, char** argv) {
                 .output_csv_path = argv[2],
             },
     };
+    std::optional<std::string> scenario_preset_name;
+    std::optional<double> rainfall_override;
+    std::optional<double> time_step_override;
+    std::optional<int> step_count_override;
 
     for (int index = 3; index < argc; ++index) {
         const std::string option = argv[index];
@@ -109,12 +182,14 @@ ExampleArguments parse_arguments(int argc, char** argv) {
         }
 
         const std::string value = argv[++index];
-        if (option == "--rainfall-intensity-m-per-hour") {
-            arguments.scenario.rainfall_intensity_m_per_hour = parse_double_argument(option, value);
+        if (option == "--scenario") {
+            scenario_preset_name = value;
+        } else if (option == "--rainfall-intensity-m-per-hour") {
+            rainfall_override = parse_double_argument(option, value);
         } else if (option == "--time-step-seconds") {
-            arguments.scenario.time_step_seconds = parse_double_argument(option, value);
+            time_step_override = parse_double_argument(option, value);
         } else if (option == "--steps") {
-            arguments.scenario.step_count = parse_int_argument(option, value);
+            step_count_override = parse_int_argument(option, value);
         } else if (option == "--window-row-offset") {
             if (!arguments.terrain_window.has_value()) {
                 arguments.terrain_window = floodsim::TerrainWindow {};
@@ -155,6 +230,22 @@ ExampleArguments parse_arguments(int argc, char** argv) {
             throw_usage_error("Unknown option: " + option);
         }
     }
+
+    if (scenario_preset_name.has_value()) {
+        apply_scenario_preset(arguments.scenario, find_scenario_preset(*scenario_preset_name));
+    }
+    if (rainfall_override.has_value()) {
+        arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;
+    }
+    if (time_step_override.has_value()) {
+        arguments.scenario.time_step_seconds = *time_step_override;
+    }
+    if (step_count_override.has_value()) {
+        arguments.scenario.step_count = *step_count_override;
+    }
+    arguments.scenario.cli_overrides_applied =
+        arguments.scenario.preset_applied &&
+        (rainfall_override.has_value() || time_step_override.has_value() || step_count_override.has_value());
 
     validate_scenario_config(arguments.scenario);
     if (arguments.terrain_window.has_value()) {
@@ -207,6 +298,8 @@ int main(int argc, char** argv) {
         floodsim::Grid grid = floodsim::make_grid_from_terrain(terrain);
 
         std::cout << "loaded_dem=" << arguments.input_dem_path << '\n';
+        std::cout << "scenario_name=" << scenario.name
+                  << " scenario_source=" << scenario_source_to_string(scenario) << '\n';
         std::cout << "rows=" << terrain.rows
                   << " cols=" << terrain.cols
                   << " cell_size_m=" << std::fixed << std::setprecision(3)

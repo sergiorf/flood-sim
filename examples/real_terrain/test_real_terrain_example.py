@@ -68,6 +68,7 @@ def main() -> int:
     )
 
     assert "loaded_dem=" in completed.stdout
+    assert "scenario_name=baseline scenario_source=direct_cli_or_default" in completed.stdout
     assert (
         "ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 "
         "clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 "
@@ -115,6 +116,53 @@ def main() -> int:
     assert "time_step_seconds=600.000" in custom_completed.stdout
     assert "steps=4 " in custom_completed.stdout
     assert custom_output_csv_path.exists()
+
+    preset_output_csv_path = output_csv_path.with_name("output_preset.csv")
+    preset_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(preset_output_csv_path),
+            "--scenario",
+            "intense_short",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "scenario_name=intense_short scenario_source=preset" in preset_completed.stdout
+    assert "rainfall_intensity_m_per_hour=0.030000" in preset_completed.stdout
+    assert "time_step_seconds=300.000" in preset_completed.stdout
+    assert "steps=6 " in preset_completed.stdout
+    assert preset_output_csv_path.exists()
+
+    override_output_csv_path = output_csv_path.with_name("output_preset_override.csv")
+    override_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(override_output_csv_path),
+            "--rainfall-intensity-m-per-hour",
+            "0.018",
+            "--scenario",
+            "long_moderate",
+            "--steps",
+            "10",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert (
+        "scenario_name=long_moderate scenario_source=preset_with_cli_overrides"
+        in override_completed.stdout
+    )
+    assert "rainfall_intensity_m_per_hour=0.018000" in override_completed.stdout
+    assert "time_step_seconds=300.000" in override_completed.stdout
+    assert "steps=10 " in override_completed.stdout
+    assert override_output_csv_path.exists()
 
     clipped_output_csv_path = output_csv_path.with_name("output_clipped.csv")
     clipped_completed = subprocess.run(
@@ -180,6 +228,22 @@ def main() -> int:
 
     assert invalid_time_step_completed.returncode != 0
     assert "Time step must be positive" in invalid_time_step_completed.stderr
+
+    invalid_scenario_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid_scenario.csv")),
+            "--scenario",
+            "not_a_real_preset",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_scenario_completed.returncode != 0
+    assert "Unknown scenario preset: not_a_real_preset" in invalid_scenario_completed.stderr
 
     invalid_window_completed = subprocess.run(
         [

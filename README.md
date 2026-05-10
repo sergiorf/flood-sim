@@ -101,12 +101,24 @@ python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 
 The real-terrain example also accepts a small set of optional scenario flags
 for repeatable local runs. Those values are parsed into one explicit scenario
-configuration before the example constructs rainfall and simulation settings:
+configuration before the example constructs rainfall and simulation settings.
+It also supports a few documented named rainfall presets for repeatable local
+comparison:
 
 ```bash
 ./build/floodsim_real_terrain_example \
   examples/real_terrain/data/sample_dem.tif \
   real_terrain_output_heavier_rain.csv \
+  --scenario intense_short
+```
+
+You can still override preset values directly when experimenting:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_output_heavier_rain.csv \
+  --scenario baseline \
   --rainfall-intensity-m-per-hour 0.020 \
   --time-step-seconds 600 \
   --steps 4
@@ -130,9 +142,9 @@ ctest --test-dir build --output-on-failure
 The intended evolution is:
 
 1. keep the toy grid stable and well tested
-2. add DEM import, likely through GDAL integration
-3. produce exportable raster outputs for visualization
-4. layer in richer rainfall and urban-surface behavior
+2. harden one repeatable real-terrain workflow with explicit scenario and export contracts
+3. add the first realism-bearing model improvements, such as better edge behavior or simple rainfall-loss controls
+4. then broaden visualization, scenario comparison, and urban-surface behavior
 
 More detail is in [docs/architecture.md](/home/sergio/dev/flood-sim/docs/architecture.md), [docs/simulation_model.md](/home/sergio/dev/flood-sim/docs/simulation_model.md), and [docs/roadmap.md](/home/sergio/dev/flood-sim/docs/roadmap.md).
 

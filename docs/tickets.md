@@ -77,7 +77,11 @@ Required documentation updates:
 ## Todo
 
 Next recommended Phase 2 step:
-- `FS-021` is the next active Phase 2 task now that `FS-020` is done.
+- `FS-022` is the next active Phase 2 task now that `FS-021` is done.
+
+Phase 2 stop rule:
+- after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
+- in practice, that means `FS-021`, `FS-022`, and `FS-023` are the likely end of the current scaffolding pass unless one of them proves unnecessary
 
 ## FS-019 - Support explicit nodata policy reporting in terrain ingestion
 
@@ -144,7 +148,7 @@ Required documentation updates:
 
 ## FS-021 - Add named rainfall presets for repeatable real scenarios
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P1
 
@@ -237,11 +241,79 @@ Required documentation updates:
 - `examples/real_terrain/README.md`
 - `docs/architecture.md` if a new output artifact is added
 
+## FS-030 - Add an open-boundary option for real-terrain edge behavior
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Real-terrain clips currently use closed boundaries only, which can trap water unrealistically at the edges of a clipped domain.
+- That weakens real-world interpretability even if the ingestion and scenario workflow are otherwise clean.
+
+Proposed change:
+- Add a narrow open-boundary or edge-outflow mode that can be selected explicitly for real-terrain runs.
+- Keep the first implementation simple and deterministic rather than introducing a drainage-network model.
+
+Constraints:
+- Preserve the current documented closed-boundary behavior as one supported mode.
+- Make the new behavior explicit in docs and outputs so runs cannot be confused.
+- Avoid mixing this ticket with broader urban-drainage work.
+
+Acceptance criteria:
+- A real-terrain run can choose between the current closed-boundary behavior and one documented edge-outflow mode.
+- Tests pin the behavioral difference on small deterministic grids.
+- Example output or metadata makes the chosen boundary mode visible.
+
+Required tests:
+- Add simulation coverage for the new boundary behavior.
+- Update real-terrain example coverage if the user-facing workflow changes.
+
+Required documentation updates:
+- `README.md`
+- `docs/architecture.md`
+- `docs/simulation_model.md`
+- `examples/real_terrain/README.md`
+
+## FS-031 - Add a simple rainfall-loss or infiltration control
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- The current model turns all rainfall into surface water, which limits real-world usefulness even for rough screening scenarios.
+- Without at least one simple loss term, scenario comparisons can become operationally tidy but physically thin.
+
+Proposed change:
+- Add one narrow rainfall-loss or infiltration control, such as a uniform per-step loss rate or runoff coefficient, for the current raster model.
+- Keep the first version intentionally simple and well documented.
+
+Constraints:
+- Do not present the feature as calibrated hydrology.
+- Preserve deterministic behavior and clear mass-accounting semantics.
+- Avoid coupling this ticket to land-use layers or drainage-network inputs.
+
+Acceptance criteria:
+- A run can apply a documented simple loss control that changes total retained surface water in a predictable way.
+- Tests cover zero-loss, nonzero-loss, and invalid parameter handling.
+- Docs state clearly what approximation is being made and what it does not model.
+
+Required tests:
+- Add deterministic simulation tests for the loss-control behavior.
+- Update example or smoke coverage if the feature is exposed through the real-terrain workflow.
+
+Required documentation updates:
+- `README.md`
+- `docs/architecture.md`
+- `docs/simulation_model.md`
+- `examples/real_terrain/README.md`
+
 ## FS-024 - Add batch scenario execution for one terrain clip
 
 Status: Todo
 Owner: Unassigned
-Priority: P2
+Priority: P3
 
 Problem:
 - Running one scenario at a time is enough for smoke tests, but it is weak for practical real-scenario exploration.
@@ -272,7 +344,7 @@ Required documentation updates:
 
 Status: Todo
 Owner: Unassigned
-Priority: P2
+Priority: P3
 
 Problem:
 - Batch execution alone still leaves users reading multiple outputs manually.
@@ -334,7 +406,7 @@ Required documentation updates:
 
 Status: Todo
 Owner: Unassigned
-Priority: P2
+Priority: P3
 
 Problem:
 - Named presets in code are a good bridge, but they will become limiting once users want to maintain a small set of shareable real scenarios.
@@ -366,7 +438,7 @@ Required documentation updates:
 
 Status: Todo
 Owner: Unassigned
-Priority: P2
+Priority: P3
 
 Problem:
 - Final-state output is not always enough for real scenarios because timing matters when comparing short intense storms against longer moderate ones.

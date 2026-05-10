@@ -22,6 +22,12 @@ Phase 1 is complete.
 
 Active planning should now target Phase 2: DEM import and the first real-terrain workflow.
 
+That work should stay disciplined. The purpose of Phase 2 is to harden one
+repeatable real-terrain run path, not to spend an open-ended period expanding
+toy scenario mechanics. Once the repository has enough scaffolding to run,
+label, and compare a small number of deterministic real-terrain cases, priority
+should shift to the first realism-bearing simulation improvements.
+
 ## Phase 1. Toy grid simulation
 
 Build a clear, tested raster-grid prototype with rainfall accumulation and simple downhill flow.
@@ -66,7 +72,64 @@ Expected outcome:
 - a user can load a small real terrain clip, run a rainfall case, and export map-aligned outputs for inspection
 - early Phase 2 work should start from a narrow validated terrain contract before adding broader DEM or GeoTIFF support
 
-## Phase 3. Map visualization
+Phase 2 should end once the repository can support one credible MVP workflow:
+
+- load a real terrain clip reproducibly
+- define one explicit scenario contract
+- run a small set of documented repeatable scenarios
+- export outputs with enough metadata to avoid confusion
+- compare runs with a small deterministic summary
+
+Phase 2 is not meant to grow into a large scenario-management layer. If new
+work mostly adds orchestration, presets, file formats, or batch mechanics
+without improving interpretation or model meaning, that is a sign the phase is
+drifting.
+
+## Phase 3. Real-scenario MVP hardening
+
+Keep only the minimum workflow features needed to make the first real-terrain
+MVP inspectable and repeatable.
+
+Capabilities gained:
+
+- stable named or documented scenario identities
+- exports that carry enough run metadata for safe comparison
+- compact run summaries that let a user compare outcomes before a viewer exists
+
+Why this phase matters:
+
+- it turns a raw example into a small but usable real-scenario workflow
+- it reduces the risk of discussing outputs that cannot be reproduced or even identified correctly
+
+Guardrails:
+
+- do not build a broad scenario-management subsystem yet
+- prefer a few explicit, documented workflows over flexible but weakly justified abstractions
+- stop once the repository can support one clear comparison workflow on a real clip
+
+## Phase 4. First realism-bearing hydrology
+
+After the minimum real-scenario scaffolding is in place, priority should move
+to model features that change practical usefulness rather than only workflow
+shape.
+
+Capabilities gained:
+
+- at least one edge-behavior model better suited to clipped real terrain than only closed boundaries
+- at least one simple runoff-loss or infiltration representation so rainfall does not map directly to surface water in every case
+- clearer tests and benchmarks for how those features change results
+
+Why this phase matters:
+
+- this is the point where FloodSim starts improving model meaning, not just run mechanics
+- it is the earliest plausible bridge from a deterministic demo to an MVP with real-world screening value
+
+Expected outcome:
+
+- the repository can run a real terrain clip with basic scenario identity plus a first-pass realism improvement
+- contributors can explain what physical approximation was added, what it still omits, and how tests constrain it
+
+## Phase 5. Map visualization
 
 Expose outputs in forms that can be rendered over real maps and tiles.
 
@@ -81,7 +144,7 @@ Why this phase matters:
 - flood outputs become much more interpretable once they can be compared to real geography
 - this is where technical outputs start becoming usable planning artifacts rather than internal model artifacts
 
-## Phase 4. Graphical viewer
+## Phase 6. Graphical viewer
 
 Add a lightweight graphical app for inspecting terrain, water depth, and scenario outputs without changing the MVP focus on a simple simulation core. Start with visualization of exported outputs before considering richer interactive tooling.
 
@@ -96,7 +159,7 @@ Why this phase matters:
 - a viewer improves iteration speed and user trust
 - it becomes easier to demonstrate the product to non-developer stakeholders
 
-## Phase 5. Rainfall scenarios
+## Phase 7. Rainfall scenarios
 
 Support configurable rainfall events, durations, intensities, and scenario comparison.
 
@@ -111,7 +174,7 @@ Why this phase matters:
 - planners and insurers care about scenario differences, not only single-run outputs
 - this is where the simulator starts answering decision questions rather than only producing physics-like fields
 
-## Phase 6. Urban drainage and buildings
+## Phase 8. Urban drainage and buildings
 
 Incorporate simplified urban drainage effects, impervious surfaces, and obstacle/building representations.
 
@@ -126,7 +189,7 @@ Why this phase matters:
 - real urban flood behavior depends heavily on drainage, imperviousness, and built obstacles
 - this is a major step toward a product that can support practical city and insurance use cases
 
-## Phase 7. Climate-risk scenarios
+## Phase 9. Climate-risk scenarios
 
 Model future rainfall and climate-change risk scenarios for city-scale planning workflows.
 
@@ -146,13 +209,15 @@ The critical bridge from prototype to credible product is:
 
 1. stable simulation semantics
 2. real-terrain ingestion
-3. map-aligned outputs
-4. scenario comparison
-5. urban surface realism
+3. repeatable real-scenario workflows
+4. first realism-bearing hydrology
+5. map-aligned outputs and interpretation
+6. urban surface realism
 
-Until Phase 2 and Phase 3 are in place, the repository is still mainly proving the simulation kernel.
+Until the repository has completed the real-terrain workflow plus at least one
+realism-bearing modeling step, it is still mainly proving the simulation kernel.
 
-Once Phase 2 through Phase 6 are substantially in place, FloodSim can begin to support real pilot workflows for:
+Once Phase 2 through Phase 8 are substantially in place, FloodSim can begin to support real pilot workflows for:
 
 - municipal screening and resilience planning
 - infrastructure exposure review
@@ -173,7 +238,21 @@ That milestone is the first point where the product path becomes concrete rather
 
 The repository now includes a first committed real-terrain example using a tiny
 GeoTIFF clip. The remaining Phase 2 work is about broadening and hardening that
-path rather than proving it from scratch.
+path rather than proving it from scratch. The next transition after that
+hardening should be toward realism-bearing model changes, not toward a large
+scenario-configuration surface built in isolation.
+
+## Anti-vacuum rule
+
+Do not add architecture simply because a fuller future product might need it.
+Add structure only when the current MVP workflow cannot stay clear or
+repeatable without it.
+
+Concretely:
+
+- a new workflow abstraction should justify what real-terrain task it unblocks now
+- scenario mechanics should stay narrow until they support an actual comparison workflow
+- once minimal scaffolding exists, new work should bias toward model meaning, validation, and interpretable outputs
 
 ## Working style
 
