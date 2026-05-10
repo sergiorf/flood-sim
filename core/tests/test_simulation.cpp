@@ -494,6 +494,25 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
     CHECK(output.str() == expected);
 }
 
+TEST_CASE("grid summary metrics report wet-cell count and deepest location") {
+    Grid grid(2, 3);
+    grid.set_cell_valid(0, 2, false);
+    grid.set_water_depth(0, 0, 0.10);
+    grid.set_water_depth(0, 1, 0.30);
+    grid.set_water_depth(0, 2, 0.90);
+    grid.set_water_depth(1, 0, 0.05);
+
+    const floodsim::GridSummaryMetrics metrics = floodsim::compute_grid_summary_metrics(grid);
+
+    CHECK(nearly_equal(metrics.total_water_depth_m, 0.45));
+    CHECK(nearly_equal(metrics.max_water_depth_m, 0.30));
+    CHECK(metrics.wet_cell_count == 3);
+    REQUIRE(metrics.deepest_row.has_value());
+    REQUIRE(metrics.deepest_col.has_value());
+    CHECK(*metrics.deepest_row == 0);
+    CHECK(*metrics.deepest_col == 1);
+}
+
 TEST_CASE("valid terrain raster contract passes validation") {
     TerrainRaster terrain = make_valid_terrain_raster();
 

@@ -345,6 +345,7 @@ int main(int argc, char** argv) {
             floodsim::step(grid, rainfall, config);
         }
 
+        const floodsim::GridSummaryMetrics summary_metrics = floodsim::compute_grid_summary_metrics(grid);
         write_export(grid, terrain, scenario, scenario.output_csv_path);
 
         std::cout << "rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
@@ -354,6 +355,23 @@ int main(int argc, char** argv) {
         std::cout << "steps=" << scenario.step_count
                   << " total_water_depth_m=" << std::fixed << std::setprecision(6)
                   << grid.total_water_depth() << '\n';
+        std::cout << "summary_metrics"
+                  << " wet_cells=" << summary_metrics.wet_cell_count
+                  << " max_water_depth_m=" << std::fixed << std::setprecision(6)
+                  << summary_metrics.max_water_depth_m
+                  << " deepest_row=";
+        if (summary_metrics.deepest_row.has_value()) {
+            std::cout << *summary_metrics.deepest_row;
+        } else {
+            std::cout << "none";
+        }
+        std::cout << " deepest_col=";
+        if (summary_metrics.deepest_col.has_value()) {
+            std::cout << *summary_metrics.deepest_col;
+        } else {
+            std::cout << "none";
+        }
+        std::cout << '\n';
         std::cout << "wrote_csv=" << scenario.output_csv_path << '\n';
         return 0;
     } catch (const std::exception& error) {

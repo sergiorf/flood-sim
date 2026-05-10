@@ -92,6 +92,11 @@ After the metadata preamble, the file writes one row per cell with:
 
 This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet. The optional scenario and timing fields let real-terrain runs carry enough run identity for safe comparison, while the optional origin / CRS fields preserve map placement metadata without changing the per-cell table layout.
 
+For quick terminal-side review, the real-terrain example also emits a small
+metrics summary derived from the current grid state, including wet-cell count,
+maximum depth, and the deepest-cell location. That summary is intentionally a
+lightweight comparison aid rather than a richer reporting artifact.
+
 The first real-terrain example workflow now lives in
 [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).
 It exercises the narrow GDAL ingestion path, imported-domain handling, the

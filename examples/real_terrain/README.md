@@ -125,6 +125,23 @@ row,col,elevation_m,water_depth_m,surface_height_m
 ...
 ```
 
+It also prints one compact run summary for quick comparison before a map viewer
+exists:
+
+```text
+summary_metrics wet_cells=24 max_water_depth_m=0.012000 deepest_row=0 deepest_col=0
+```
+
+Current summary fields:
+
+- `wet_cells`: number of valid cells with water depth above zero
+- `max_water_depth_m`: deepest water depth among valid wet cells
+- `deepest_row` and `deepest_col`: raster coordinates of that deepest wet cell
+
+These are raster-model summaries for screening and comparison. They are useful
+for fast repeatable review, but they are not a substitute for calibrated
+hydrology metrics.
+
 You can inspect the exported CSV with the existing consumer example:
 
 ```bash

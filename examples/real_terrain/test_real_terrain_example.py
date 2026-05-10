@@ -49,6 +49,28 @@ def parse_export(csv_path: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
     return metadata, rows
 
 
+def expected_summary_line(rows: list[dict[str, str]]) -> str:
+    wet_rows = [row for row in rows if float(row["water_depth_m"]) > 0.0]
+    wet_cells = len(wet_rows)
+    if wet_rows:
+        deepest = max(wet_rows, key=lambda row: float(row["water_depth_m"]))
+        deepest_row = deepest["row"]
+        deepest_col = deepest["col"]
+        max_water_depth_m = float(deepest["water_depth_m"])
+    else:
+        deepest_row = "none"
+        deepest_col = "none"
+        max_water_depth_m = 0.0
+
+    return (
+        "summary_metrics "
+        f"wet_cells={wet_cells} "
+        f"max_water_depth_m={max_water_depth_m:.6f} "
+        f"deepest_row={deepest_row} "
+        f"deepest_col={deepest_col}"
+    )
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         raise SystemExit(
@@ -97,6 +119,7 @@ def main() -> int:
     assert len(rows) == 25
     assert any(float(row["water_depth_m"]) > 0.0 for row in rows)
     assert any(float(row["elevation_m"]) < 0.0 for row in rows)
+    assert expected_summary_line(rows) in completed.stdout
 
     custom_output_csv_path = output_csv_path.with_name("output_custom.csv")
     custom_completed = subprocess.run(
@@ -120,6 +143,9 @@ def main() -> int:
     assert "time_step_seconds=600.000" in custom_completed.stdout
     assert "steps=4 " in custom_completed.stdout
     assert custom_output_csv_path.exists()
+    custom_metadata, custom_rows = parse_export(custom_output_csv_path)
+    assert custom_metadata["scenario_name"] == "baseline"
+    assert expected_summary_line(custom_rows) in custom_completed.stdout
 
     preset_output_csv_path = output_csv_path.with_name("output_preset.csv")
     preset_completed = subprocess.run(
@@ -145,6 +171,7 @@ def main() -> int:
     assert preset_metadata["rainfall_intensity_m_per_hour"] == "0.030000"
     assert preset_metadata["time_step_seconds"] == "300.000000"
     assert preset_metadata["total_duration_seconds"] == "1800.000000"
+    assert expected_summary_line(parse_export(preset_output_csv_path)[1]) in preset_completed.stdout
 
     override_output_csv_path = output_csv_path.with_name("output_preset_override.csv")
     override_completed = subprocess.run(
@@ -177,6 +204,7 @@ def main() -> int:
     assert override_metadata["rainfall_intensity_m_per_hour"] == "0.018000"
     assert override_metadata["time_step_seconds"] == "300.000000"
     assert override_metadata["total_duration_seconds"] == "3000.000000"
+    assert expected_summary_line(parse_export(override_output_csv_path)[1]) in override_completed.stdout
 
     clipped_output_csv_path = output_csv_path.with_name("output_clipped.csv")
     clipped_completed = subprocess.run(
@@ -211,6 +239,7 @@ def main() -> int:
     assert clipped_metadata["origin_x_m"] == "154322.000000"
     assert clipped_metadata["origin_y_m"] == "171203.000000"
     assert len(clipped_rows) == 6
+    assert expected_summary_line(clipped_rows) in clipped_completed.stdout
 
     invalid_completed = subprocess.run(
         [

@@ -44,43 +44,11 @@ Required documentation updates:
 ## Todo
 
 Next recommended Phase 2 step:
-- `FS-023` is the next active Phase 2 task now that `FS-022` is done.
+- `FS-030` is the next active task now that `FS-023` is done.
 
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
-- in practice, `FS-023` is the likely end of the current scaffolding pass unless it proves unnecessary
-
-## FS-023 - Add summary metrics for real-terrain scenario review
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Raw per-cell depth output is necessary, but it is still cumbersome for quick scenario review.
-- Users interested in real scenarios need a small set of summary numbers to compare runs before a full map viewer exists.
-
-Proposed change:
-- Compute and emit a minimal metrics summary for a run, such as total water volume proxy, maximum depth, wet-cell count, and deepest-cell location.
-- Keep the metrics derivable from the current raster model without claiming hydrologic realism beyond the MVP.
-
-Constraints:
-- Do not add heavyweight reporting dependencies.
-- Keep metrics semantics clearly documented as raster-model summaries.
-
-Acceptance criteria:
-- The example workflow emits a small deterministic summary alongside CSV output.
-- Metrics are documented and easy to compare across runs.
-- The implementation does not alter simulation behavior.
-
-Required tests:
-- Add coverage for metric computation on small deterministic grids.
-- Update example smoke tests if they validate summary output.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- `docs/architecture.md` if a new output artifact is added
+- `FS-023` completed that minimum comparison scaffolding pass, so the next priority is realism-bearing model work
 
 ## FS-030 - Add an open-boundary option for real-terrain edge behavior
 

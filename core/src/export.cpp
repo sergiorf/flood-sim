@@ -5,6 +5,33 @@
 
 namespace floodsim {
 
+GridSummaryMetrics compute_grid_summary_metrics(const Grid& grid) {
+    GridSummaryMetrics metrics;
+    metrics.total_water_depth_m = grid.total_water_depth();
+
+    for (std::size_t row = 0; row < grid.rows(); ++row) {
+        for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
+            const double water_depth_m = grid.water_depth(row, col);
+            if (water_depth_m <= 0.0) {
+                continue;
+            }
+
+            ++metrics.wet_cell_count;
+            if (!metrics.deepest_row.has_value() || water_depth_m > metrics.max_water_depth_m) {
+                metrics.max_water_depth_m = water_depth_m;
+                metrics.deepest_row = row;
+                metrics.deepest_col = col;
+            }
+        }
+    }
+
+    return metrics;
+}
+
 void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadata& metadata) {
     output << std::fixed << std::setprecision(6);
     output << "# floodsim_csv_version,1\n";
