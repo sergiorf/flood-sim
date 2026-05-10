@@ -86,6 +86,10 @@ def main() -> int:
         "rows": "5",
         "cols": "5",
         "cell_size_m": "2.000000",
+        "scenario_name": "baseline",
+        "rainfall_intensity_m_per_hour": "0.012000",
+        "time_step_seconds": "300.000000",
+        "total_duration_seconds": "3600.000000",
         "origin_x_m": "154320.000000",
         "origin_y_m": "171205.000000",
         "crs_id": "EPSG:31370",
@@ -136,6 +140,11 @@ def main() -> int:
     assert "time_step_seconds=300.000" in preset_completed.stdout
     assert "steps=6 " in preset_completed.stdout
     assert preset_output_csv_path.exists()
+    preset_metadata, _ = parse_export(preset_output_csv_path)
+    assert preset_metadata["scenario_name"] == "intense_short"
+    assert preset_metadata["rainfall_intensity_m_per_hour"] == "0.030000"
+    assert preset_metadata["time_step_seconds"] == "300.000000"
+    assert preset_metadata["total_duration_seconds"] == "1800.000000"
 
     override_output_csv_path = output_csv_path.with_name("output_preset_override.csv")
     override_completed = subprocess.run(
@@ -163,6 +172,11 @@ def main() -> int:
     assert "time_step_seconds=300.000" in override_completed.stdout
     assert "steps=10 " in override_completed.stdout
     assert override_output_csv_path.exists()
+    override_metadata, _ = parse_export(override_output_csv_path)
+    assert override_metadata["scenario_name"] == "long_moderate"
+    assert override_metadata["rainfall_intensity_m_per_hour"] == "0.018000"
+    assert override_metadata["time_step_seconds"] == "300.000000"
+    assert override_metadata["total_duration_seconds"] == "3000.000000"
 
     clipped_output_csv_path = output_csv_path.with_name("output_clipped.csv")
     clipped_completed = subprocess.run(
@@ -193,6 +207,7 @@ def main() -> int:
     clipped_metadata, clipped_rows = parse_export(clipped_output_csv_path)
     assert clipped_metadata["rows"] == "3"
     assert clipped_metadata["cols"] == "2"
+    assert clipped_metadata["scenario_name"] == "baseline"
     assert clipped_metadata["origin_x_m"] == "154322.000000"
     assert clipped_metadata["origin_y_m"] == "171203.000000"
     assert len(clipped_rows) == 6

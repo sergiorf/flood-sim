@@ -104,7 +104,8 @@ simulation setup path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing
-metadata from the source raster:
+metadata from the source raster plus enough scenario identity to compare runs
+without confusing them:
 
 ```text
 scenario_name=baseline scenario_source=direct_cli_or_default
@@ -113,6 +114,10 @@ ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped
 # rows,5
 # cols,5
 # cell_size_m,2.000000
+# scenario_name,baseline
+# rainfall_intensity_m_per_hour,0.012000
+# time_step_seconds,300.000000
+# total_duration_seconds,3600.000000
 # origin_x_m,154320.000000
 # origin_y_m,171205.000000
 # crs_id,EPSG:31370

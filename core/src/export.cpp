@@ -11,6 +11,18 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     output << "# rows," << grid.rows() << '\n';
     output << "# cols," << grid.cols() << '\n';
     output << "# cell_size_m," << grid.cell_size_m() << '\n';
+    if (metadata.scenario_name.has_value()) {
+        output << "# scenario_name," << *metadata.scenario_name << '\n';
+    }
+    if (metadata.rainfall_intensity_m_per_hour.has_value()) {
+        output << "# rainfall_intensity_m_per_hour," << *metadata.rainfall_intensity_m_per_hour << '\n';
+    }
+    if (metadata.time_step_seconds.has_value()) {
+        output << "# time_step_seconds," << *metadata.time_step_seconds << '\n';
+    }
+    if (metadata.total_duration_seconds.has_value()) {
+        output << "# total_duration_seconds," << *metadata.total_duration_seconds << '\n';
+    }
     if (metadata.origin_x_m.has_value() && metadata.origin_y_m.has_value()) {
         output << "# origin_x_m," << *metadata.origin_x_m << '\n';
         output << "# origin_y_m," << *metadata.origin_y_m << '\n';

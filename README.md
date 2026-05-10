@@ -131,6 +131,9 @@ The real-terrain loader also emits a compact ingestion summary so nodata
 handling, valid-cell counts, and clipping loss are visible during scenario
 review instead of being implicit.
 
+Real-terrain CSV exports now also carry scenario and timing metadata in the
+metadata preamble so repeated runs can be identified safely during comparison.
+
 ## Run tests
 
 ```bash

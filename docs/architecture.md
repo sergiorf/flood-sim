@@ -74,6 +74,10 @@ The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs, and th
 
 Terrain-derived exports may also include:
 
+- `scenario_name`
+- `rainfall_intensity_m_per_hour`
+- `time_step_seconds`
+- `total_duration_seconds`
 - `origin_x_m`
 - `origin_y_m`
 - `crs_id`
@@ -86,7 +90,7 @@ After the metadata preamble, the file writes one row per cell with:
 - `water_depth_m`
 - `surface_height_m`
 
-This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet. The optional origin / CRS fields let real-terrain runs preserve map placement metadata without changing the per-cell table layout.
+This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet. The optional scenario and timing fields let real-terrain runs carry enough run identity for safe comparison, while the optional origin / CRS fields preserve map placement metadata without changing the per-cell table layout.
 
 The first real-terrain example workflow now lives in
 [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).

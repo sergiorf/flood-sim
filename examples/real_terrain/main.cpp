@@ -266,6 +266,7 @@ ExampleArguments parse_arguments(int argc, char** argv) {
 void write_export(
     const floodsim::Grid& grid,
     const floodsim::TerrainRaster& terrain,
+    const ScenarioConfig& scenario,
     const std::filesystem::path& output_path) {
     std::ofstream output(output_path);
     if (!output) {
@@ -276,6 +277,10 @@ void write_export(
         grid,
         output,
         floodsim::GridCsvMetadata {
+            .scenario_name = scenario.name,
+            .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
+            .time_step_seconds = scenario.time_step_seconds,
+            .total_duration_seconds = scenario.time_step_seconds * static_cast<double>(scenario.step_count),
             .origin_x_m = terrain.origin_x_m,
             .origin_y_m = terrain.origin_y_m,
             .crs_id = terrain.crs_id,
@@ -340,7 +345,7 @@ int main(int argc, char** argv) {
             floodsim::step(grid, rainfall, config);
         }
 
-        write_export(grid, terrain, scenario.output_csv_path);
+        write_export(grid, terrain, scenario, scenario.output_csv_path);
 
         std::cout << "rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
                   << scenario.rainfall_intensity_m_per_hour << '\n';

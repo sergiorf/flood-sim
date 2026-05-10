@@ -463,6 +463,37 @@ TEST_CASE("csv export writes optional georeferencing metadata when present") {
     CHECK(output.str() == expected);
 }
 
+TEST_CASE("csv export writes optional scenario and timing metadata when present") {
+    Grid grid(1, 1, 2.0);
+    grid.set_elevation(0, 0, 100.0);
+    grid.set_water_depth(0, 0, 0.5);
+
+    std::ostringstream output;
+    floodsim::write_grid_csv(
+        grid,
+        output,
+        floodsim::GridCsvMetadata {
+            .scenario_name = "baseline",
+            .rainfall_intensity_m_per_hour = 0.012,
+            .time_step_seconds = 300.0,
+            .total_duration_seconds = 3600.0,
+        });
+
+    const std::string expected =
+        "# floodsim_csv_version,1\n"
+        "# rows,1\n"
+        "# cols,1\n"
+        "# cell_size_m,2.000000\n"
+        "# scenario_name,baseline\n"
+        "# rainfall_intensity_m_per_hour,0.012000\n"
+        "# time_step_seconds,300.000000\n"
+        "# total_duration_seconds,3600.000000\n"
+        "row,col,elevation_m,water_depth_m,surface_height_m\n"
+        "0,0,100.000000,0.500000,100.500000\n";
+
+    CHECK(output.str() == expected);
+}
+
 TEST_CASE("valid terrain raster contract passes validation") {
     TerrainRaster terrain = make_valid_terrain_raster();
 

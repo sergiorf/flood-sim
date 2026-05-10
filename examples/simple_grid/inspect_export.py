@@ -85,6 +85,18 @@ def parse_export(path: str | Path) -> dict:
         parsed_metadata["origin_y_m"] = float(metadata["origin_y_m"])
     if "crs_id" in metadata:
         parsed_metadata["crs_id"] = metadata["crs_id"]
+    if "scenario_name" in metadata:
+        parsed_metadata["scenario_name"] = metadata["scenario_name"]
+    if "rainfall_intensity_m_per_hour" in metadata:
+        parsed_metadata["rainfall_intensity_m_per_hour"] = float(
+            metadata["rainfall_intensity_m_per_hour"]
+        )
+    if "time_step_seconds" in metadata:
+        parsed_metadata["time_step_seconds"] = float(metadata["time_step_seconds"])
+    if "total_duration_seconds" in metadata:
+        parsed_metadata["total_duration_seconds"] = float(
+            metadata["total_duration_seconds"]
+        )
 
     return {
         "metadata": parsed_metadata,
@@ -110,7 +122,15 @@ def summarize_export(parsed_export: dict) -> dict[str, float | int]:
         "total_water_depth_m": total_water_depth_m,
         "max_water_depth_m": max_water_depth_m,
     }
-    for optional_key in ("origin_x_m", "origin_y_m", "crs_id"):
+    for optional_key in (
+        "origin_x_m",
+        "origin_y_m",
+        "crs_id",
+        "scenario_name",
+        "rainfall_intensity_m_per_hour",
+        "time_step_seconds",
+        "total_duration_seconds",
+    ):
         if optional_key in metadata:
             summary[optional_key] = metadata[optional_key]
     return summary
@@ -135,6 +155,17 @@ def main() -> int:
         print(f"origin_y_m={summary['origin_y_m']:.6f}")
     if "crs_id" in summary:
         print(f"crs_id={summary['crs_id']}")
+    if "scenario_name" in summary:
+        print(f"scenario_name={summary['scenario_name']}")
+    if "rainfall_intensity_m_per_hour" in summary:
+        print(
+            "rainfall_intensity_m_per_hour="
+            f"{summary['rainfall_intensity_m_per_hour']:.6f}"
+        )
+    if "time_step_seconds" in summary:
+        print(f"time_step_seconds={summary['time_step_seconds']:.6f}")
+    if "total_duration_seconds" in summary:
+        print(f"total_duration_seconds={summary['total_duration_seconds']:.6f}")
     print(f"cells={summary['cells']}")
     print(f"wet_cells={summary['wet_cells']}")
     print(f"total_water_depth_m={summary['total_water_depth_m']:.6f}")

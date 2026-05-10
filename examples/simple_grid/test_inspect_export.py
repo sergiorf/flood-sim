@@ -74,6 +74,38 @@ class InspectExportTests(unittest.TestCase):
         self.assertAlmostEqual(summary["origin_y_m"], 171205.0)
         self.assertEqual(summary["crs_id"], "EPSG:31370")
 
+    def test_parse_export_preserves_optional_scenario_metadata(self) -> None:
+        sample_export = textwrap.dedent(
+            """\
+            # floodsim_csv_version,1
+            # rows,1
+            # cols,1
+            # cell_size_m,2.000000
+            # scenario_name,baseline
+            # rainfall_intensity_m_per_hour,0.012000
+            # time_step_seconds,300.000000
+            # total_duration_seconds,3600.000000
+            row,col,elevation_m,water_depth_m,surface_height_m
+            0,0,1.000000,0.250000,1.250000
+            """
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            export_path = Path(temp_dir) / "sample.csv"
+            export_path.write_text(sample_export, encoding="utf-8")
+
+            parsed = inspect_export.parse_export(export_path)
+            summary = inspect_export.summarize_export(parsed)
+
+        self.assertEqual(parsed["metadata"]["scenario_name"], "baseline")
+        self.assertAlmostEqual(parsed["metadata"]["rainfall_intensity_m_per_hour"], 0.012)
+        self.assertAlmostEqual(parsed["metadata"]["time_step_seconds"], 300.0)
+        self.assertAlmostEqual(parsed["metadata"]["total_duration_seconds"], 3600.0)
+        self.assertEqual(summary["scenario_name"], "baseline")
+        self.assertAlmostEqual(summary["rainfall_intensity_m_per_hour"], 0.012)
+        self.assertAlmostEqual(summary["time_step_seconds"], 300.0)
+        self.assertAlmostEqual(summary["total_duration_seconds"], 3600.0)
+
     def test_parse_export_rejects_unsupported_version(self) -> None:
         sample_export = textwrap.dedent(
             """\
