@@ -31,6 +31,23 @@ uses:
 - number of steps: `12`
 - boundary mode: `Closed`
 
+For clipped real-terrain runs, you can also choose an open edge behavior when
+the raster boundary should approximate water leaving the modeled area instead
+of being trapped by an artificial wall:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_open_boundary.csv \
+  --boundary-mode open
+```
+
+This `open` mode is intentionally simple. It lets edge cells discharge part of
+their water out of the raster across missing orthogonal neighbors. That is
+often a more practical approximation for clipped real terrain than the default
+`closed` mode, but it is still not a drainage-network or calibrated outflow
+model.
+
 Those run fields now flow through one narrow `ScenarioConfig` inside the
 example so default runs, CLI overrides, and later named scenarios can share the
 same validation path.
@@ -87,6 +104,7 @@ repeatable real-area scenario without preprocessing a separate file first:
 Supported options:
 
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
+- `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `closed`
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
 - `--steps <count>`: number of simulation steps to run, default `12`
@@ -109,12 +127,14 @@ without confusing them:
 
 ```text
 scenario_name=baseline scenario_source=direct_cli_or_default
+boundary_mode=closed
 ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 nodata_status=band_metadata_applied
 # floodsim_csv_version,1
 # rows,5
 # cols,5
 # cell_size_m,2.000000
 # scenario_name,baseline
+# boundary_mode,closed
 # rainfall_intensity_m_per_hour,0.012000
 # time_step_seconds,300.000000
 # total_duration_seconds,3600.000000
@@ -154,6 +174,7 @@ What this example proves:
 - the same loader can clip a smaller pixel window while preserving shifted origin metadata
 - imported nodata is preserved as out-of-domain cells
 - the loader emits a machine-readable ingestion summary for nodata and clipping review
+- the workflow can make the raster edge behavior explicit for clipped real-terrain runs
 - the simulation can run on the imported terrain
 - the final state can be exported with origin / CRS metadata for later inspection and visualization work
 

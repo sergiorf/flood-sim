@@ -75,6 +75,7 @@ The Phase 1 MVP now supports a minimal CSV export path for toy-grid runs, and th
 Terrain-derived exports may also include:
 
 - `scenario_name`
+- `boundary_mode`
 - `rainfall_intensity_m_per_hour`
 - `time_step_seconds`
 - `total_duration_seconds`
@@ -90,7 +91,7 @@ After the metadata preamble, the file writes one row per cell with:
 - `water_depth_m`
 - `surface_height_m`
 
-This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet. The optional scenario and timing fields let real-terrain runs carry enough run identity for safe comparison, while the optional origin / CRS fields preserve map placement metadata without changing the per-cell table layout.
+This keeps the output stable and self-describing for scripts or a future viewer without introducing heavier raster or GIS dependencies yet. The optional scenario, boundary, and timing fields let real-terrain runs carry enough run identity for safe comparison, while the optional origin / CRS fields preserve map placement metadata without changing the per-cell table layout.
 
 For quick terminal-side review, the real-terrain example also emits a small
 metrics summary derived from the current grid state, including wet-cell count,

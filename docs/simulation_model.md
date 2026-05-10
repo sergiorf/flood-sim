@@ -52,7 +52,7 @@ The current Phase 1 model makes these explicit choices:
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone
 - only neighbors with strictly lower surface height receive flow
-- boundary handling is an explicit simulation setting, but Phase 1 currently supports only `Closed`
+- boundary handling is an explicit simulation setting, with `Closed` and a narrow `Open` edge-outflow mode
 - outflow is capped as a fraction of the source cell's water depth for that step
 - transfers are accumulated and applied after the grid scan completes
 - cells with flat or higher neighboring surfaces do not shed water during that step
@@ -60,16 +60,20 @@ The current Phase 1 model makes these explicit choices:
 ## Boundary behavior
 
 Phase 1 exposes boundary behavior explicitly through the simulation configuration.
-At this stage, the only supported mode is `Closed`.
+At this stage, the supported modes are `Closed` and `Open`.
 
 In practice this means:
 
 - cells on the edge of the grid only consider neighbors that exist inside the grid
 - cells in corners have at most two orthogonal neighbors
-- water does not flow off the raster, even if the terrain would appear to slope outward beyond the simulated domain
-- total water in the grid changes only through rainfall, not through edge outflow
+- in `Closed` mode, water does not flow off the raster, even if the terrain would appear to slope outward beyond the simulated domain
+- in `Open` mode, edge cells may discharge part of their water out of the raster across missing orthogonal neighbors
+- total water in the grid changes only through rainfall in `Closed` mode, but may also decrease through edge outflow in `Open` mode
 
-This is a deliberate simplification for the toy-grid MVP. It is less realistic than open outflow for many real landscapes, but it keeps the early model easier to reason about, easier to test, and easier to compare while core routing semantics are still being stabilized.
+`Open` mode is intentionally narrow. It is meant as a practical approximation
+for clipped real-terrain runs where the raster edge should not behave like a
+retaining wall. It is still much simpler than a drainage-network or calibrated
+boundary treatment.
 
 ## Imported terrain domain behavior
 
@@ -102,7 +106,6 @@ The current model does not yet include:
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events
-- additional boundary modes such as open edge outflow
 - validated edge behavior for real landscapes
 
 Any outputs from this version should be treated as prototype behavior only.

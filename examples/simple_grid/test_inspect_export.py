@@ -82,6 +82,7 @@ class InspectExportTests(unittest.TestCase):
             # cols,1
             # cell_size_m,2.000000
             # scenario_name,baseline
+            # boundary_mode,open
             # rainfall_intensity_m_per_hour,0.012000
             # time_step_seconds,300.000000
             # total_duration_seconds,3600.000000
@@ -98,10 +99,12 @@ class InspectExportTests(unittest.TestCase):
             summary = inspect_export.summarize_export(parsed)
 
         self.assertEqual(parsed["metadata"]["scenario_name"], "baseline")
+        self.assertEqual(parsed["metadata"]["boundary_mode"], "open")
         self.assertAlmostEqual(parsed["metadata"]["rainfall_intensity_m_per_hour"], 0.012)
         self.assertAlmostEqual(parsed["metadata"]["time_step_seconds"], 300.0)
         self.assertAlmostEqual(parsed["metadata"]["total_duration_seconds"], 3600.0)
         self.assertEqual(summary["scenario_name"], "baseline")
+        self.assertEqual(summary["boundary_mode"], "open")
         self.assertAlmostEqual(summary["rainfall_intensity_m_per_hour"], 0.012)
         self.assertAlmostEqual(summary["time_step_seconds"], 300.0)
         self.assertAlmostEqual(summary["total_duration_seconds"], 3600.0)

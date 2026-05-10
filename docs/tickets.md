@@ -44,45 +44,11 @@ Required documentation updates:
 ## Todo
 
 Next recommended Phase 2 step:
-- `FS-030` is the next active task now that `FS-023` is done.
+- `FS-031` is the next active task now that `FS-030` is done.
 
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
 - `FS-023` completed that minimum comparison scaffolding pass, so the next priority is realism-bearing model work
-
-## FS-030 - Add an open-boundary option for real-terrain edge behavior
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Real-terrain clips currently use closed boundaries only, which can trap water unrealistically at the edges of a clipped domain.
-- That weakens real-world interpretability even if the ingestion and scenario workflow are otherwise clean.
-
-Proposed change:
-- Add a narrow open-boundary or edge-outflow mode that can be selected explicitly for real-terrain runs.
-- Keep the first implementation simple and deterministic rather than introducing a drainage-network model.
-
-Constraints:
-- Preserve the current documented closed-boundary behavior as one supported mode.
-- Make the new behavior explicit in docs and outputs so runs cannot be confused.
-- Avoid mixing this ticket with broader urban-drainage work.
-
-Acceptance criteria:
-- A real-terrain run can choose between the current closed-boundary behavior and one documented edge-outflow mode.
-- Tests pin the behavioral difference on small deterministic grids.
-- Example output or metadata makes the chosen boundary mode visible.
-
-Required tests:
-- Add simulation coverage for the new boundary behavior.
-- Update real-terrain example coverage if the user-facing workflow changes.
-
-Required documentation updates:
-- `README.md`
-- `docs/architecture.md`
-- `docs/simulation_model.md`
-- `examples/real_terrain/README.md`
 
 ## FS-031 - Add a simple rainfall-loss or infiltration control
 

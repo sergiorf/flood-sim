@@ -41,6 +41,9 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.scenario_name.has_value()) {
         output << "# scenario_name," << *metadata.scenario_name << '\n';
     }
+    if (metadata.boundary_mode.has_value()) {
+        output << "# boundary_mode," << *metadata.boundary_mode << '\n';
+    }
     if (metadata.rainfall_intensity_m_per_hour.has_value()) {
         output << "# rainfall_intensity_m_per_hour," << *metadata.rainfall_intensity_m_per_hour << '\n';
     }

@@ -18,6 +18,7 @@ struct GridSummaryMetrics {
 
 struct GridCsvMetadata {
     std::optional<std::string> scenario_name;
+    std::optional<std::string> boundary_mode;
     std::optional<double> rainfall_intensity_m_per_hour;
     std::optional<double> time_step_seconds;
     std::optional<double> total_duration_seconds;

@@ -6,6 +6,7 @@ namespace floodsim {
 
 enum class BoundaryMode {
     Closed,
+    Open,
 };
 
 struct RainfallScenario {
@@ -22,8 +23,9 @@ struct SimulationConfig {
     double time_step_seconds {1.0};
     // Maximum fraction of a cell's current water depth that may leave in one step.
     double max_outflow_fraction {0.25};
-    // Phase 1 currently supports only closed boundaries: water may move only
-    // to in-domain neighbors and cannot leave the raster across an edge.
+    // Boundary handling is explicit. Closed boundaries keep all water inside
+    // the grid. Open boundaries allow edge cells to discharge water out of the
+    // raster across missing orthogonal neighbors.
     BoundaryMode boundary_mode {BoundaryMode::Closed};
 };
 

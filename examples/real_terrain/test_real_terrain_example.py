@@ -91,6 +91,7 @@ def main() -> int:
 
     assert "loaded_dem=" in completed.stdout
     assert "scenario_name=baseline scenario_source=direct_cli_or_default" in completed.stdout
+    assert "boundary_mode=closed" in completed.stdout
     assert (
         "ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 "
         "clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 "
@@ -109,6 +110,7 @@ def main() -> int:
         "cols": "5",
         "cell_size_m": "2.000000",
         "scenario_name": "baseline",
+        "boundary_mode": "closed",
         "rainfall_intensity_m_per_hour": "0.012000",
         "time_step_seconds": "300.000000",
         "total_duration_seconds": "3600.000000",
@@ -145,6 +147,7 @@ def main() -> int:
     assert custom_output_csv_path.exists()
     custom_metadata, custom_rows = parse_export(custom_output_csv_path)
     assert custom_metadata["scenario_name"] == "baseline"
+    assert custom_metadata["boundary_mode"] == "closed"
     assert expected_summary_line(custom_rows) in custom_completed.stdout
 
     preset_output_csv_path = output_csv_path.with_name("output_preset.csv")
@@ -162,12 +165,14 @@ def main() -> int:
     )
 
     assert "scenario_name=intense_short scenario_source=preset" in preset_completed.stdout
+    assert "boundary_mode=closed" in preset_completed.stdout
     assert "rainfall_intensity_m_per_hour=0.030000" in preset_completed.stdout
     assert "time_step_seconds=300.000" in preset_completed.stdout
     assert "steps=6 " in preset_completed.stdout
     assert preset_output_csv_path.exists()
     preset_metadata, _ = parse_export(preset_output_csv_path)
     assert preset_metadata["scenario_name"] == "intense_short"
+    assert preset_metadata["boundary_mode"] == "closed"
     assert preset_metadata["rainfall_intensity_m_per_hour"] == "0.030000"
     assert preset_metadata["time_step_seconds"] == "300.000000"
     assert preset_metadata["total_duration_seconds"] == "1800.000000"
@@ -195,12 +200,14 @@ def main() -> int:
         "scenario_name=long_moderate scenario_source=preset_with_cli_overrides"
         in override_completed.stdout
     )
+    assert "boundary_mode=closed" in override_completed.stdout
     assert "rainfall_intensity_m_per_hour=0.018000" in override_completed.stdout
     assert "time_step_seconds=300.000" in override_completed.stdout
     assert "steps=10 " in override_completed.stdout
     assert override_output_csv_path.exists()
     override_metadata, _ = parse_export(override_output_csv_path)
     assert override_metadata["scenario_name"] == "long_moderate"
+    assert override_metadata["boundary_mode"] == "closed"
     assert override_metadata["rainfall_intensity_m_per_hour"] == "0.018000"
     assert override_metadata["time_step_seconds"] == "300.000000"
     assert override_metadata["total_duration_seconds"] == "3000.000000"
@@ -227,6 +234,7 @@ def main() -> int:
     )
 
     assert "window_row_offset=1 window_col_offset=1 window_rows=3 window_cols=2" in clipped_completed.stdout
+    assert "boundary_mode=closed" in clipped_completed.stdout
     assert (
         "ingestion_report source_rows=5 source_cols=5 loaded_rows=3 loaded_cols=2 "
         "clipped_cells=19 invalid_cells=0 nodata_metadata_present=true nan_cells=0 "
@@ -236,10 +244,33 @@ def main() -> int:
     assert clipped_metadata["rows"] == "3"
     assert clipped_metadata["cols"] == "2"
     assert clipped_metadata["scenario_name"] == "baseline"
+    assert clipped_metadata["boundary_mode"] == "closed"
     assert clipped_metadata["origin_x_m"] == "154322.000000"
     assert clipped_metadata["origin_y_m"] == "171203.000000"
     assert len(clipped_rows) == 6
     assert expected_summary_line(clipped_rows) in clipped_completed.stdout
+
+    open_output_csv_path = output_csv_path.with_name("output_open_boundary.csv")
+    open_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(open_output_csv_path),
+            "--boundary-mode",
+            "open",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "boundary_mode=open" in open_completed.stdout
+    open_metadata, open_rows = parse_export(open_output_csv_path)
+    assert open_metadata["boundary_mode"] == "open"
+    assert expected_summary_line(open_rows) in open_completed.stdout
+    assert sum(float(row["water_depth_m"]) for row in open_rows) < sum(
+        float(row["water_depth_m"]) for row in rows
+    )
 
     invalid_completed = subprocess.run(
         [
@@ -288,6 +319,22 @@ def main() -> int:
 
     assert invalid_scenario_completed.returncode != 0
     assert "Unknown scenario preset: not_a_real_preset" in invalid_scenario_completed.stderr
+
+    invalid_boundary_mode_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid_boundary.csv")),
+            "--boundary-mode",
+            "sideways",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_boundary_mode_completed.returncode != 0
+    assert "Invalid value for --boundary-mode: 'sideways'" in invalid_boundary_mode_completed.stderr
 
     invalid_window_completed = subprocess.run(
         [

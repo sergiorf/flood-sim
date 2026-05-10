@@ -2,7 +2,10 @@
 
 This example runs a toy `10x10` bowl-shaped terrain with uniform rainfall and a simple downhill redistribution rule.
 
-The current Phase 1 model exposes boundary handling through the simulation configuration and currently supports the `Closed` mode only. Water can move only between cells inside the grid and cannot flow out across the outer edge of the raster.
+The current model exposes boundary handling through the simulation
+configuration. The simple-grid example continues to use `Closed` boundaries by
+default, where water can move only between cells inside the grid and cannot
+flow out across the outer edge of the raster.
 
 Build and run from the repository root:
 

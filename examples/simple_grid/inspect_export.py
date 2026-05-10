@@ -87,6 +87,8 @@ def parse_export(path: str | Path) -> dict:
         parsed_metadata["crs_id"] = metadata["crs_id"]
     if "scenario_name" in metadata:
         parsed_metadata["scenario_name"] = metadata["scenario_name"]
+    if "boundary_mode" in metadata:
+        parsed_metadata["boundary_mode"] = metadata["boundary_mode"]
     if "rainfall_intensity_m_per_hour" in metadata:
         parsed_metadata["rainfall_intensity_m_per_hour"] = float(
             metadata["rainfall_intensity_m_per_hour"]
@@ -127,6 +129,7 @@ def summarize_export(parsed_export: dict) -> dict[str, float | int]:
         "origin_y_m",
         "crs_id",
         "scenario_name",
+        "boundary_mode",
         "rainfall_intensity_m_per_hour",
         "time_step_seconds",
         "total_duration_seconds",
@@ -157,6 +160,8 @@ def main() -> int:
         print(f"crs_id={summary['crs_id']}")
     if "scenario_name" in summary:
         print(f"scenario_name={summary['scenario_name']}")
+    if "boundary_mode" in summary:
+        print(f"boundary_mode={summary['boundary_mode']}")
     if "rainfall_intensity_m_per_hour" in summary:
         print(
             "rainfall_intensity_m_per_hour="

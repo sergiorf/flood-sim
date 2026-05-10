@@ -135,6 +135,8 @@ Real-terrain CSV exports now also carry scenario and timing metadata in the
 metadata preamble so repeated runs can be identified safely during comparison.
 The example also prints a compact deterministic summary line so quick run
 comparison does not require reading the full per-cell CSV first.
+Real-terrain runs can now also choose `--boundary-mode open` when a clipped
+terrain edge should behave more like an outflow boundary than a retaining wall.
 
 ## Run tests
 

@@ -295,6 +295,23 @@ TEST_CASE("closed boundary can be selected explicitly in config") {
     CHECK(nearly_equal(grid.water_depth(0, 1), 0.5));
 }
 
+TEST_CASE("open boundary can be selected explicitly in config") {
+    Grid grid(1, 1);
+    grid.set_water_depth(0, 0, 1.0);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.5,
+        .boundary_mode = BoundaryMode::Open,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.5));
+    CHECK(nearly_equal(grid.total_water_depth(), 0.5));
+}
+
 TEST_CASE("closed boundary blocks outflow from edge when no lower in-domain neighbor exists") {
     Grid grid(1, 2);
     grid.set_elevation(0, 0, 5.0);
@@ -312,6 +329,26 @@ TEST_CASE("closed boundary blocks outflow from edge when no lower in-domain neig
     CHECK(nearly_equal(grid.water_depth(0, 0), 0.8));
     CHECK(nearly_equal(grid.water_depth(0, 1), 0.0));
     CHECK(nearly_equal(grid.total_water_depth(), 0.8));
+}
+
+TEST_CASE("open boundary allows edge outflow when no lower in-domain neighbor exists") {
+    Grid grid(1, 2);
+    grid.set_elevation(0, 0, 5.0);
+    grid.set_elevation(0, 1, 6.0);
+    grid.set_water_depth(0, 0, 0.8);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.75,
+        .boundary_mode = BoundaryMode::Open,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.2));
+    CHECK(nearly_equal(grid.water_depth(0, 1), 0.0));
+    CHECK(nearly_equal(grid.total_water_depth(), 0.2));
 }
 
 TEST_CASE("water is conserved without rainfall") {
@@ -474,6 +511,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
         output,
         floodsim::GridCsvMetadata {
             .scenario_name = "baseline",
+            .boundary_mode = "open",
             .rainfall_intensity_m_per_hour = 0.012,
             .time_step_seconds = 300.0,
             .total_duration_seconds = 3600.0,
@@ -485,6 +523,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
         "# cols,1\n"
         "# cell_size_m,2.000000\n"
         "# scenario_name,baseline\n"
+        "# boundary_mode,open\n"
         "# rainfall_intensity_m_per_hour,0.012000\n"
         "# time_step_seconds,300.000000\n"
         "# total_duration_seconds,3600.000000\n"

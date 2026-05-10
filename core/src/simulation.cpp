@@ -16,6 +16,10 @@ struct Neighbor {
     double drop;
 };
 
+struct OpenBoundaryReceiver {
+    double drop;
+};
+
 struct StepScratch {
     // Reuse the same delta buffer across calls to avoid per-step allocation
     // churn while keeping the step logic snapshot-based and easy to read.
@@ -59,7 +63,8 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     if (config.max_outflow_fraction < 0.0 || config.max_outflow_fraction > 1.0) {
         throw std::invalid_argument("Max outflow fraction must be in [0, 1]");
     }
-    if (config.boundary_mode != BoundaryMode::Closed) {
+    if (config.boundary_mode != BoundaryMode::Closed &&
+        config.boundary_mode != BoundaryMode::Open) {
         throw std::invalid_argument("Unsupported boundary mode");
     }
 
@@ -93,16 +98,26 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
             const double current_surface = grid.surface_height(row, col);
             std::array<Neighbor, 4> lower_neighbors {};
             std::size_t lower_neighbor_count = 0;
+            std::array<OpenBoundaryReceiver, 4> open_receivers {};
+            std::size_t open_receiver_count = 0;
             double total_drop = 0.0;
 
             for (std::size_t i = 0; i < d_row.size(); ++i) {
                 const int neighbor_row = static_cast<int>(row) + d_row[i];
                 const int neighbor_col = static_cast<int>(col) + d_col[i];
                 if (neighbor_row < 0 || neighbor_col < 0) {
+                    if (config.boundary_mode == BoundaryMode::Open) {
+                        open_receivers[open_receiver_count++] = { available_water };
+                        total_drop += available_water;
+                    }
                     continue;
                 }
                 if (neighbor_row >= static_cast<int>(rows) ||
                     neighbor_col >= static_cast<int>(cols)) {
+                    if (config.boundary_mode == BoundaryMode::Open) {
+                        open_receivers[open_receiver_count++] = { available_water };
+                        total_drop += available_water;
+                    }
                     continue;
                 }
                 if (!grid.is_cell_valid(
@@ -127,7 +142,7 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
                 }
             }
 
-            if (lower_neighbor_count == 0 || total_drop <= 0.0) {
+            if ((lower_neighbor_count == 0 && open_receiver_count == 0) || total_drop <= 0.0) {
                 continue;
             }
 
@@ -143,6 +158,9 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
                 const std::size_t neighbor_idx = neighbor.row * cols + neighbor.col;
                 delta[neighbor_idx] += share;
             }
+
+            // Shares assigned to open receivers leave the grid and therefore do
+            // not add to any in-domain delta entry.
         }
     }
 

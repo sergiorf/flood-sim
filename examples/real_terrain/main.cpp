@@ -25,6 +25,7 @@ struct ScenarioConfig {
     double rainfall_intensity_m_per_hour {kDefaultRainfallIntensityMPerHour};
     double time_step_seconds {kDefaultTimeStepSeconds};
     int step_count {kDefaultStepCount};
+    floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Closed};
     bool preset_applied {false};
     bool cli_overrides_applied {false};
 };
@@ -80,11 +81,23 @@ std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
     throw std::runtime_error("Unhandled terrain nodata status");
 }
 
+std::string boundary_mode_to_string(floodsim::BoundaryMode mode) {
+    switch (mode) {
+        case floodsim::BoundaryMode::Closed:
+            return "closed";
+        case floodsim::BoundaryMode::Open:
+            return "open";
+    }
+
+    throw std::runtime_error("Unhandled boundary mode");
+}
+
 [[noreturn]] void throw_usage_error(const std::string& message) {
     throw std::runtime_error(
         message +
         "\nUsage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
         " [--scenario <name>]"
+        " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--time-step-seconds <value>]"
         " [--steps <count>]"
@@ -92,6 +105,17 @@ std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
         " [--window-col-offset <value>]"
         " [--window-rows <value>]"
         " [--window-cols <value>]");
+}
+
+floodsim::BoundaryMode parse_boundary_mode_argument(const std::string& value) {
+    if (value == "closed") {
+        return floodsim::BoundaryMode::Closed;
+    }
+    if (value == "open") {
+        return floodsim::BoundaryMode::Open;
+    }
+
+    throw_usage_error("Invalid value for --boundary-mode: '" + value + "'");
 }
 
 const ScenarioPreset& find_scenario_preset(const std::string& name) {
@@ -184,6 +208,8 @@ ExampleArguments parse_arguments(int argc, char** argv) {
         const std::string value = argv[++index];
         if (option == "--scenario") {
             scenario_preset_name = value;
+        } else if (option == "--boundary-mode") {
+            arguments.scenario.boundary_mode = parse_boundary_mode_argument(value);
         } else if (option == "--rainfall-intensity-m-per-hour") {
             rainfall_override = parse_double_argument(option, value);
         } else if (option == "--time-step-seconds") {
@@ -278,6 +304,7 @@ void write_export(
         output,
         floodsim::GridCsvMetadata {
             .scenario_name = scenario.name,
+            .boundary_mode = boundary_mode_to_string(scenario.boundary_mode),
             .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
             .time_step_seconds = scenario.time_step_seconds,
             .total_duration_seconds = scenario.time_step_seconds * static_cast<double>(scenario.step_count),
@@ -305,6 +332,7 @@ int main(int argc, char** argv) {
         std::cout << "loaded_dem=" << arguments.input_dem_path << '\n';
         std::cout << "scenario_name=" << scenario.name
                   << " scenario_source=" << scenario_source_to_string(scenario) << '\n';
+        std::cout << "boundary_mode=" << boundary_mode_to_string(scenario.boundary_mode) << '\n';
         std::cout << "rows=" << terrain.rows
                   << " cols=" << terrain.cols
                   << " cell_size_m=" << std::fixed << std::setprecision(3)
@@ -338,7 +366,7 @@ int main(int argc, char** argv) {
         const floodsim::SimulationConfig config {
             .time_step_seconds = scenario.time_step_seconds,
             .max_outflow_fraction = 0.20,
-            .boundary_mode = floodsim::BoundaryMode::Closed,
+            .boundary_mode = scenario.boundary_mode,
         };
 
         for (int step = 0; step < scenario.step_count; ++step) {
