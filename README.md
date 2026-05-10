@@ -137,6 +137,8 @@ The example also prints a compact deterministic summary line so quick run
 comparison does not require reading the full per-cell CSV first.
 Real-terrain runs can now also choose `--boundary-mode open` when a clipped
 terrain edge should behave more like an outflow boundary than a retaining wall.
+They can also choose a simple `--runoff-coefficient` to approximate that not
+all rainfall becomes retained surface water immediately.
 
 ## Run tests
 

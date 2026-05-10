@@ -84,6 +84,7 @@ class InspectExportTests(unittest.TestCase):
             # scenario_name,baseline
             # boundary_mode,open
             # rainfall_intensity_m_per_hour,0.012000
+            # runoff_coefficient,0.700000
             # time_step_seconds,300.000000
             # total_duration_seconds,3600.000000
             row,col,elevation_m,water_depth_m,surface_height_m
@@ -101,11 +102,13 @@ class InspectExportTests(unittest.TestCase):
         self.assertEqual(parsed["metadata"]["scenario_name"], "baseline")
         self.assertEqual(parsed["metadata"]["boundary_mode"], "open")
         self.assertAlmostEqual(parsed["metadata"]["rainfall_intensity_m_per_hour"], 0.012)
+        self.assertAlmostEqual(parsed["metadata"]["runoff_coefficient"], 0.7)
         self.assertAlmostEqual(parsed["metadata"]["time_step_seconds"], 300.0)
         self.assertAlmostEqual(parsed["metadata"]["total_duration_seconds"], 3600.0)
         self.assertEqual(summary["scenario_name"], "baseline")
         self.assertEqual(summary["boundary_mode"], "open")
         self.assertAlmostEqual(summary["rainfall_intensity_m_per_hour"], 0.012)
+        self.assertAlmostEqual(summary["runoff_coefficient"], 0.7)
         self.assertAlmostEqual(summary["time_step_seconds"], 300.0)
         self.assertAlmostEqual(summary["total_duration_seconds"], 3600.0)
 

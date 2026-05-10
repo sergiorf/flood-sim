@@ -47,6 +47,9 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.rainfall_intensity_m_per_hour.has_value()) {
         output << "# rainfall_intensity_m_per_hour," << *metadata.rainfall_intensity_m_per_hour << '\n';
     }
+    if (metadata.runoff_coefficient.has_value()) {
+        output << "# runoff_coefficient," << *metadata.runoff_coefficient << '\n';
+    }
     if (metadata.time_step_seconds.has_value()) {
         output << "# time_step_seconds," << *metadata.time_step_seconds << '\n';
     }

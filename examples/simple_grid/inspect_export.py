@@ -93,6 +93,8 @@ def parse_export(path: str | Path) -> dict:
         parsed_metadata["rainfall_intensity_m_per_hour"] = float(
             metadata["rainfall_intensity_m_per_hour"]
         )
+    if "runoff_coefficient" in metadata:
+        parsed_metadata["runoff_coefficient"] = float(metadata["runoff_coefficient"])
     if "time_step_seconds" in metadata:
         parsed_metadata["time_step_seconds"] = float(metadata["time_step_seconds"])
     if "total_duration_seconds" in metadata:
@@ -131,6 +133,7 @@ def summarize_export(parsed_export: dict) -> dict[str, float | int]:
         "scenario_name",
         "boundary_mode",
         "rainfall_intensity_m_per_hour",
+        "runoff_coefficient",
         "time_step_seconds",
         "total_duration_seconds",
     ):
@@ -167,6 +170,8 @@ def main() -> int:
             "rainfall_intensity_m_per_hour="
             f"{summary['rainfall_intensity_m_per_hour']:.6f}"
         )
+    if "runoff_coefficient" in summary:
+        print(f"runoff_coefficient={summary['runoff_coefficient']:.6f}")
     if "time_step_seconds" in summary:
         print(f"time_step_seconds={summary['time_step_seconds']:.6f}")
     if "total_duration_seconds" in summary:

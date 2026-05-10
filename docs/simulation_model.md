@@ -42,12 +42,24 @@ The current algorithm is deliberately simple and should be read as an exact beha
 
 This means the step uses a shared snapshot of the grid state after rainfall has been added but before any per-cell flow transfers are applied.
 
+The current model can also scale that rainfall input through a simple
+`runoff_coefficient` in the simulation configuration:
+
+`retained_rainfall_depth = intensity_m_per_hour * (time_step_seconds / 3600.0) * runoff_coefficient`
+
+Implications:
+
+- `runoff_coefficient = 1.0` means all rainfall becomes immediate surface water
+- lower values approximate simple losses before water appears in the surface raster
+- this is a practical screening control, not a calibrated infiltration model
+
 ## Phase 1 semantic choices
 
 The current Phase 1 model makes these explicit choices:
 
 - rainfall is spatially uniform across all cells
 - rainfall input is expressed as intensity in meters per hour, then converted to per-step depth using `time_step_seconds`
+- a simple `runoff_coefficient` can reduce how much rainfall becomes immediate surface water
 - rainfall is applied before flow during each step
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone
@@ -102,7 +114,7 @@ This first model is useful because it:
 The current model does not yet include:
 
 - physically rigorous shallow-water equations
-- infiltration or evaporation
+- calibrated infiltration or evaporation
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events

@@ -137,6 +137,24 @@ TEST_CASE("rainfall scales with step duration") {
     CHECK(nearly_equal(grid.water_depth(0, 0), 0.006));
 }
 
+TEST_CASE("runoff coefficient scales retained rainfall") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    floodsim::add_uniform_rainfall(grid, rainfall, 3600.0, 0.25);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.003));
+}
+
+TEST_CASE("runoff coefficient must stay within bounds") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    CHECK_THROWS_WITH(
+        floodsim::add_uniform_rainfall(grid, rainfall, 3600.0, 1.5),
+        "Runoff coefficient must be in [0, 1]");
+}
+
 TEST_CASE("water flows downhill") {
     Grid grid(1, 2);
     grid.set_elevation(0, 0, 2.0);
@@ -374,6 +392,20 @@ TEST_CASE("water is conserved without rainfall") {
     CHECK(nearly_equal(before, grid.total_water_depth(), 1e-8));
 }
 
+TEST_CASE("step applies runoff coefficient before routing") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {1.0};
+    SimulationConfig config {
+        .time_step_seconds = 3600.0,
+        .runoff_coefficient = 0.4,
+        .max_outflow_fraction = 0.25,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.4));
+}
+
 TEST_CASE("repeated steps accumulate rainfall linearly without flow") {
     Grid grid(1, 1);
     RainfallScenario rainfall {0.008};
@@ -513,6 +545,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
             .scenario_name = "baseline",
             .boundary_mode = "open",
             .rainfall_intensity_m_per_hour = 0.012,
+            .runoff_coefficient = 0.700000,
             .time_step_seconds = 300.0,
             .total_duration_seconds = 3600.0,
         });
@@ -525,6 +558,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
         "# scenario_name,baseline\n"
         "# boundary_mode,open\n"
         "# rainfall_intensity_m_per_hour,0.012000\n"
+        "# runoff_coefficient,0.700000\n"
         "# time_step_seconds,300.000000\n"
         "# total_duration_seconds,3600.000000\n"
         "row,col,elevation_m,water_depth_m,surface_height_m\n"

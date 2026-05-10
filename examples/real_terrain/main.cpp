@@ -23,6 +23,7 @@ struct ScenarioConfig {
     std::string name {kDefaultScenarioName};
     std::filesystem::path output_csv_path;
     double rainfall_intensity_m_per_hour {kDefaultRainfallIntensityMPerHour};
+    double runoff_coefficient {1.0};
     double time_step_seconds {kDefaultTimeStepSeconds};
     int step_count {kDefaultStepCount};
     floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Closed};
@@ -99,6 +100,7 @@ std::string boundary_mode_to_string(floodsim::BoundaryMode mode) {
         " [--scenario <name>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
+        " [--runoff-coefficient <value>]"
         " [--time-step-seconds <value>]"
         " [--steps <count>]"
         " [--window-row-offset <value>]"
@@ -174,6 +176,9 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.rainfall_intensity_m_per_hour < 0.0) {
         throw_usage_error("Rainfall intensity must be non-negative");
     }
+    if (scenario.runoff_coefficient < 0.0 || scenario.runoff_coefficient > 1.0) {
+        throw_usage_error("Runoff coefficient must be in [0, 1]");
+    }
     if (scenario.time_step_seconds <= 0.0) {
         throw_usage_error("Time step must be positive");
     }
@@ -196,6 +201,7 @@ ExampleArguments parse_arguments(int argc, char** argv) {
     };
     std::optional<std::string> scenario_preset_name;
     std::optional<double> rainfall_override;
+    std::optional<double> runoff_coefficient_override;
     std::optional<double> time_step_override;
     std::optional<int> step_count_override;
 
@@ -212,6 +218,8 @@ ExampleArguments parse_arguments(int argc, char** argv) {
             arguments.scenario.boundary_mode = parse_boundary_mode_argument(value);
         } else if (option == "--rainfall-intensity-m-per-hour") {
             rainfall_override = parse_double_argument(option, value);
+        } else if (option == "--runoff-coefficient") {
+            runoff_coefficient_override = parse_double_argument(option, value);
         } else if (option == "--time-step-seconds") {
             time_step_override = parse_double_argument(option, value);
         } else if (option == "--steps") {
@@ -263,6 +271,9 @@ ExampleArguments parse_arguments(int argc, char** argv) {
     if (rainfall_override.has_value()) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;
     }
+    if (runoff_coefficient_override.has_value()) {
+        arguments.scenario.runoff_coefficient = *runoff_coefficient_override;
+    }
     if (time_step_override.has_value()) {
         arguments.scenario.time_step_seconds = *time_step_override;
     }
@@ -306,6 +317,7 @@ void write_export(
             .scenario_name = scenario.name,
             .boundary_mode = boundary_mode_to_string(scenario.boundary_mode),
             .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
+            .runoff_coefficient = scenario.runoff_coefficient,
             .time_step_seconds = scenario.time_step_seconds,
             .total_duration_seconds = scenario.time_step_seconds * static_cast<double>(scenario.step_count),
             .origin_x_m = terrain.origin_x_m,
@@ -333,6 +345,8 @@ int main(int argc, char** argv) {
         std::cout << "scenario_name=" << scenario.name
                   << " scenario_source=" << scenario_source_to_string(scenario) << '\n';
         std::cout << "boundary_mode=" << boundary_mode_to_string(scenario.boundary_mode) << '\n';
+        std::cout << "runoff_coefficient=" << std::fixed << std::setprecision(6)
+                  << scenario.runoff_coefficient << '\n';
         std::cout << "rows=" << terrain.rows
                   << " cols=" << terrain.cols
                   << " cell_size_m=" << std::fixed << std::setprecision(3)
@@ -365,6 +379,7 @@ int main(int argc, char** argv) {
         };
         const floodsim::SimulationConfig config {
             .time_step_seconds = scenario.time_step_seconds,
+            .runoff_coefficient = scenario.runoff_coefficient,
             .max_outflow_fraction = 0.20,
             .boundary_mode = scenario.boundary_mode,
         };

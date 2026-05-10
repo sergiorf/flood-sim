@@ -33,14 +33,22 @@ StepScratch& step_scratch() {
 
 }  // namespace
 
-void add_uniform_rainfall(Grid& grid, const RainfallScenario& rainfall, double duration_seconds) {
+void add_uniform_rainfall(
+    Grid& grid,
+    const RainfallScenario& rainfall,
+    double duration_seconds,
+    double runoff_coefficient) {
     if (duration_seconds < 0.0) {
         throw std::invalid_argument("Rainfall duration cannot be negative");
+    }
+    if (runoff_coefficient < 0.0 || runoff_coefficient > 1.0) {
+        throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
     }
 
     // RainfallScenario stores an intensity, not a per-step depth. Convert it
     // into a depth increment for this specific step duration.
-    const double added_depth = rainfall.intensity_m_per_hour * (duration_seconds / 3600.0);
+    const double added_depth =
+        rainfall.intensity_m_per_hour * (duration_seconds / 3600.0) * runoff_coefficient;
     if (added_depth <= 0.0) {
         return;
     }
@@ -60,6 +68,9 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     if (config.time_step_seconds <= 0.0) {
         throw std::invalid_argument("Simulation time step must be positive");
     }
+    if (config.runoff_coefficient < 0.0 || config.runoff_coefficient > 1.0) {
+        throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
+    }
     if (config.max_outflow_fraction < 0.0 || config.max_outflow_fraction > 1.0) {
         throw std::invalid_argument("Max outflow fraction must be in [0, 1]");
     }
@@ -69,7 +80,7 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     }
 
     // Each step first injects rainfall, then redistributes water already on the grid.
-    add_uniform_rainfall(grid, rainfall, config.time_step_seconds);
+    add_uniform_rainfall(grid, rainfall, config.time_step_seconds, config.runoff_coefficient);
 
     const std::size_t rows = grid.rows();
     const std::size_t cols = grid.cols();

@@ -44,45 +44,11 @@ Required documentation updates:
 ## Todo
 
 Next recommended Phase 2 step:
-- `FS-031` is the next active task now that `FS-030` is done.
+- `FS-026` is the next active task now that `FS-031` is done.
 
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
 - `FS-023` completed that minimum comparison scaffolding pass, so the next priority is realism-bearing model work
-
-## FS-031 - Add a simple rainfall-loss or infiltration control
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- The current model turns all rainfall into surface water, which limits real-world usefulness even for rough screening scenarios.
-- Without at least one simple loss term, scenario comparisons can become operationally tidy but physically thin.
-
-Proposed change:
-- Add one narrow rainfall-loss or infiltration control, such as a uniform per-step loss rate or runoff coefficient, for the current raster model.
-- Keep the first version intentionally simple and well documented.
-
-Constraints:
-- Do not present the feature as calibrated hydrology.
-- Preserve deterministic behavior and clear mass-accounting semantics.
-- Avoid coupling this ticket to land-use layers or drainage-network inputs.
-
-Acceptance criteria:
-- A run can apply a documented simple loss control that changes total retained surface water in a predictable way.
-- Tests cover zero-loss, nonzero-loss, and invalid parameter handling.
-- Docs state clearly what approximation is being made and what it does not model.
-
-Required tests:
-- Add deterministic simulation tests for the loss-control behavior.
-- Update example or smoke coverage if the feature is exposed through the real-terrain workflow.
-
-Required documentation updates:
-- `README.md`
-- `docs/architecture.md`
-- `docs/simulation_model.md`
-- `examples/real_terrain/README.md`
 
 ## FS-024 - Add batch scenario execution for one terrain clip
 

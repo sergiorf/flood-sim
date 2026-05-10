@@ -92,6 +92,7 @@ def main() -> int:
     assert "loaded_dem=" in completed.stdout
     assert "scenario_name=baseline scenario_source=direct_cli_or_default" in completed.stdout
     assert "boundary_mode=closed" in completed.stdout
+    assert "runoff_coefficient=1.000000" in completed.stdout
     assert (
         "ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 "
         "clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 "
@@ -112,6 +113,7 @@ def main() -> int:
         "scenario_name": "baseline",
         "boundary_mode": "closed",
         "rainfall_intensity_m_per_hour": "0.012000",
+        "runoff_coefficient": "1.000000",
         "time_step_seconds": "300.000000",
         "total_duration_seconds": "3600.000000",
         "origin_x_m": "154320.000000",
@@ -131,6 +133,8 @@ def main() -> int:
             str(custom_output_csv_path),
             "--rainfall-intensity-m-per-hour",
             "0.020",
+            "--runoff-coefficient",
+            "0.5",
             "--time-step-seconds",
             "600",
             "--steps",
@@ -142,12 +146,14 @@ def main() -> int:
     )
 
     assert "rainfall_intensity_m_per_hour=0.020000" in custom_completed.stdout
+    assert "runoff_coefficient=0.500000" in custom_completed.stdout
     assert "time_step_seconds=600.000" in custom_completed.stdout
     assert "steps=4 " in custom_completed.stdout
     assert custom_output_csv_path.exists()
     custom_metadata, custom_rows = parse_export(custom_output_csv_path)
     assert custom_metadata["scenario_name"] == "baseline"
     assert custom_metadata["boundary_mode"] == "closed"
+    assert custom_metadata["runoff_coefficient"] == "0.500000"
     assert expected_summary_line(custom_rows) in custom_completed.stdout
 
     preset_output_csv_path = output_csv_path.with_name("output_preset.csv")
@@ -174,6 +180,7 @@ def main() -> int:
     assert preset_metadata["scenario_name"] == "intense_short"
     assert preset_metadata["boundary_mode"] == "closed"
     assert preset_metadata["rainfall_intensity_m_per_hour"] == "0.030000"
+    assert preset_metadata["runoff_coefficient"] == "1.000000"
     assert preset_metadata["time_step_seconds"] == "300.000000"
     assert preset_metadata["total_duration_seconds"] == "1800.000000"
     assert expected_summary_line(parse_export(preset_output_csv_path)[1]) in preset_completed.stdout
@@ -209,6 +216,7 @@ def main() -> int:
     assert override_metadata["scenario_name"] == "long_moderate"
     assert override_metadata["boundary_mode"] == "closed"
     assert override_metadata["rainfall_intensity_m_per_hour"] == "0.018000"
+    assert override_metadata["runoff_coefficient"] == "1.000000"
     assert override_metadata["time_step_seconds"] == "300.000000"
     assert override_metadata["total_duration_seconds"] == "3000.000000"
     assert expected_summary_line(parse_export(override_output_csv_path)[1]) in override_completed.stdout
@@ -245,6 +253,7 @@ def main() -> int:
     assert clipped_metadata["cols"] == "2"
     assert clipped_metadata["scenario_name"] == "baseline"
     assert clipped_metadata["boundary_mode"] == "closed"
+    assert clipped_metadata["runoff_coefficient"] == "1.000000"
     assert clipped_metadata["origin_x_m"] == "154322.000000"
     assert clipped_metadata["origin_y_m"] == "171203.000000"
     assert len(clipped_rows) == 6
@@ -267,8 +276,31 @@ def main() -> int:
     assert "boundary_mode=open" in open_completed.stdout
     open_metadata, open_rows = parse_export(open_output_csv_path)
     assert open_metadata["boundary_mode"] == "open"
+    assert open_metadata["runoff_coefficient"] == "1.000000"
     assert expected_summary_line(open_rows) in open_completed.stdout
     assert sum(float(row["water_depth_m"]) for row in open_rows) < sum(
+        float(row["water_depth_m"]) for row in rows
+    )
+
+    reduced_runoff_output_csv_path = output_csv_path.with_name("output_reduced_runoff.csv")
+    reduced_runoff_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(reduced_runoff_output_csv_path),
+            "--runoff-coefficient",
+            "0.25",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "runoff_coefficient=0.250000" in reduced_runoff_completed.stdout
+    reduced_runoff_metadata, reduced_runoff_rows = parse_export(reduced_runoff_output_csv_path)
+    assert reduced_runoff_metadata["runoff_coefficient"] == "0.250000"
+    assert expected_summary_line(reduced_runoff_rows) in reduced_runoff_completed.stdout
+    assert sum(float(row["water_depth_m"]) for row in reduced_runoff_rows) < sum(
         float(row["water_depth_m"]) for row in rows
     )
 
@@ -303,6 +335,22 @@ def main() -> int:
 
     assert invalid_time_step_completed.returncode != 0
     assert "Time step must be positive" in invalid_time_step_completed.stderr
+
+    invalid_runoff_coefficient_completed = subprocess.run(
+        [
+            str(binary_path),
+            str(input_dem_path),
+            str(output_csv_path.with_name("output_invalid_runoff.csv")),
+            "--runoff-coefficient",
+            "1.5",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert invalid_runoff_coefficient_completed.returncode != 0
+    assert "Runoff coefficient must be in [0, 1]" in invalid_runoff_coefficient_completed.stderr
 
     invalid_scenario_completed = subprocess.run(
         [

@@ -77,6 +77,7 @@ Terrain-derived exports may also include:
 - `scenario_name`
 - `boundary_mode`
 - `rainfall_intensity_m_per_hour`
+- `runoff_coefficient`
 - `time_step_seconds`
 - `total_duration_seconds`
 - `origin_x_m`
@@ -97,6 +98,12 @@ For quick terminal-side review, the real-terrain example also emits a small
 metrics summary derived from the current grid state, including wet-cell count,
 maximum depth, and the deepest-cell location. That summary is intentionally a
 lightweight comparison aid rather than a richer reporting artifact.
+
+The simulation-facing configuration now also includes a simple runoff
+coefficient. In the current MVP this acts as a narrow rainfall-retention
+control: it scales how much rainfall becomes immediate surface water before
+routing. That is useful for practical screening, but it should not be confused
+with a calibrated infiltration or subsurface model.
 
 The first real-terrain example workflow now lives in
 [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).
