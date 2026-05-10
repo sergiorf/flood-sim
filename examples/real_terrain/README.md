@@ -75,6 +75,7 @@ CSV contract used elsewhere in the repository with added georeferencing
 metadata from the source raster:
 
 ```text
+ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 nodata_status=band_metadata_applied
 # floodsim_csv_version,1
 # rows,5
 # cols,5
@@ -97,6 +98,7 @@ What this example proves:
 - the GDAL loader can read a committed GeoTIFF from disk
 - the same loader can clip a smaller pixel window while preserving shifted origin metadata
 - imported nodata is preserved as out-of-domain cells
+- the loader emits a machine-readable ingestion summary for nodata and clipping review
 - the simulation can run on the imported terrain
 - the final state can be exported with origin / CRS metadata for later inspection and visualization work
 

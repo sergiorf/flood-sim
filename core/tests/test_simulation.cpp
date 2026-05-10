@@ -549,7 +549,9 @@ TEST_CASE("gdal loader reads single-band terrain raster") {
         geotransform,
         nodata);
 
-    const TerrainRaster terrain = floodsim::load_terrain_raster_from_file(path.string());
+    const floodsim::LoadedTerrainRaster loaded = floodsim::load_terrain_raster_with_report(path.string());
+    const TerrainRaster& terrain = loaded.terrain;
+    const floodsim::TerrainIngestionReport& report = loaded.report;
 
     CHECK(terrain.rows == 2);
     CHECK(terrain.cols == 3);
@@ -565,6 +567,87 @@ TEST_CASE("gdal loader reads single-band terrain raster") {
     CHECK(terrain.valid_cell_mask[4] == 0);
     CHECK(terrain.valid_cell_mask[0] == 1);
     CHECK(terrain.valid_cell_mask[5] == 1);
+    CHECK(report.source_rows == 2);
+    CHECK(report.source_cols == 3);
+    CHECK(report.loaded_rows == 2);
+    CHECK(report.loaded_cols == 3);
+    CHECK(report.valid_cell_count == 5);
+    CHECK(report.invalid_cell_count == 1);
+    CHECK(report.clipped_cell_count == 0);
+    CHECK(report.window_applied == false);
+    CHECK(report.nodata_metadata_present == true);
+    CHECK(report.nan_cell_count == 0);
+    CHECK(report.nodata_status == floodsim::TerrainNodataStatus::BandMetadataApplied);
+
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("gdal loader reports explicit status when nodata metadata is missing") {
+    const std::filesystem::path path = make_temp_raster_path("missing_nodata_metadata");
+    const double geotransform[6] = {
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+       -1.0,
+    };
+
+    write_test_geotiff(
+        path,
+        2,
+        2,
+        1,
+        {
+            10.0, 11.0,
+            12.0, 13.0,
+        },
+        geotransform,
+        std::nullopt);
+
+    const floodsim::LoadedTerrainRaster loaded = floodsim::load_terrain_raster_with_report(path.string());
+
+    CHECK(loaded.terrain.valid_cell_mask == std::vector<std::uint8_t> {1, 1, 1, 1});
+    CHECK(loaded.report.nodata_metadata_present == false);
+    CHECK(loaded.report.nan_cell_count == 0);
+    CHECK(loaded.report.valid_cell_count == 4);
+    CHECK(loaded.report.invalid_cell_count == 0);
+    CHECK(loaded.report.nodata_status == floodsim::TerrainNodataStatus::BandMetadataMissingAllCellsValid);
+
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("gdal loader reports explicit status when nodata metadata is missing but nan cells are present") {
+    const std::filesystem::path path = make_temp_raster_path("missing_nodata_metadata_nan");
+    const double geotransform[6] = {
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+       -1.0,
+    };
+
+    write_test_geotiff(
+        path,
+        2,
+        2,
+        1,
+        {
+            10.0, std::numeric_limits<double>::quiet_NaN(),
+            12.0, 13.0,
+        },
+        geotransform,
+        std::nullopt);
+
+    const floodsim::LoadedTerrainRaster loaded = floodsim::load_terrain_raster_with_report(path.string());
+
+    CHECK(loaded.terrain.valid_cell_mask == std::vector<std::uint8_t> {1, 1, 1, 1});
+    CHECK(loaded.report.nodata_metadata_present == false);
+    CHECK(loaded.report.nan_cell_count == 1);
+    CHECK(loaded.report.valid_cell_count == 4);
+    CHECK(loaded.report.invalid_cell_count == 0);
+    CHECK(loaded.report.nodata_status == floodsim::TerrainNodataStatus::BandMetadataMissingNaNCellsPresent);
 
     std::filesystem::remove(path);
 }
@@ -594,8 +677,8 @@ TEST_CASE("gdal loader full-raster path matches an explicit full-size terrain wi
         geotransform,
         nodata);
 
-    const TerrainRaster full_terrain = floodsim::load_terrain_raster_from_file(path.string());
-    const TerrainRaster window_terrain = floodsim::load_terrain_raster_from_file(
+    const floodsim::LoadedTerrainRaster full_loaded = floodsim::load_terrain_raster_with_report(path.string());
+    const floodsim::LoadedTerrainRaster window_loaded = floodsim::load_terrain_raster_with_report(
         path.string(),
         floodsim::TerrainWindow {
             .row_offset = 0,
@@ -603,6 +686,8 @@ TEST_CASE("gdal loader full-raster path matches an explicit full-size terrain wi
             .rows = 3,
             .cols = 4,
         });
+    const TerrainRaster& full_terrain = full_loaded.terrain;
+    const TerrainRaster& window_terrain = window_loaded.terrain;
 
     CHECK(full_terrain.rows == window_terrain.rows);
     CHECK(full_terrain.cols == window_terrain.cols);
@@ -612,6 +697,10 @@ TEST_CASE("gdal loader full-raster path matches an explicit full-size terrain wi
     CHECK(full_terrain.origin_x_m == window_terrain.origin_x_m);
     CHECK(full_terrain.origin_y_m == window_terrain.origin_y_m);
     CHECK(full_terrain.crs_id == window_terrain.crs_id);
+    CHECK(full_loaded.report.clipped_cell_count == 0);
+    CHECK(window_loaded.report.clipped_cell_count == 0);
+    CHECK(full_loaded.report.window_applied == false);
+    CHECK(window_loaded.report.window_applied == false);
 
     std::filesystem::remove(path);
 }
@@ -641,7 +730,7 @@ TEST_CASE("gdal loader clips a terrain window and preserves shifted origin") {
         geotransform,
         nodata);
 
-    const TerrainRaster terrain = floodsim::load_terrain_raster_from_file(
+    const floodsim::LoadedTerrainRaster loaded = floodsim::load_terrain_raster_with_report(
         path.string(),
         floodsim::TerrainWindow {
             .row_offset = 1,
@@ -649,6 +738,7 @@ TEST_CASE("gdal loader clips a terrain window and preserves shifted origin") {
             .rows = 2,
             .cols = 2,
         });
+    const TerrainRaster& terrain = loaded.terrain;
 
     CHECK(terrain.rows == 2);
     CHECK(terrain.cols == 2);
@@ -659,6 +749,15 @@ TEST_CASE("gdal loader clips a terrain window and preserves shifted origin") {
     CHECK(nearly_equal(*terrain.origin_y_m, 171203.0));
     CHECK(terrain.elevation_m == std::vector<double> {nodata, 22.0, 31.0, 32.0});
     CHECK(terrain.valid_cell_mask == std::vector<std::uint8_t> {0, 1, 1, 1});
+    CHECK(loaded.report.source_rows == 3);
+    CHECK(loaded.report.source_cols == 4);
+    CHECK(loaded.report.loaded_rows == 2);
+    CHECK(loaded.report.loaded_cols == 2);
+    CHECK(loaded.report.clipped_cell_count == 8);
+    CHECK(loaded.report.window_applied == true);
+    CHECK(loaded.report.valid_cell_count == 3);
+    CHECK(loaded.report.invalid_cell_count == 1);
+    CHECK(loaded.report.nodata_status == floodsim::TerrainNodataStatus::BandMetadataApplied);
 
     std::filesystem::remove(path);
 }

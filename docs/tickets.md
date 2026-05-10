@@ -76,9 +76,12 @@ Required documentation updates:
 
 ## Todo
 
+Next recommended Phase 2 step:
+- `FS-020` is the next active Phase 2 task now that `FS-019` is done.
+
 ## FS-019 - Support explicit nodata policy reporting in terrain ingestion
 
-Status: Todo
+Status: Done
 Owner: Unassigned
 Priority: P1
 

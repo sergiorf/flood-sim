@@ -14,6 +14,12 @@
 
 namespace floodsim {
 
+namespace {
+
+LoadedTerrainRaster load_terrain_raster_impl(const std::string& path, const TerrainWindow& window);
+
+}  // namespace
+
 std::size_t TerrainRaster::cell_count() const noexcept {
     return rows * cols;
 }
@@ -78,10 +84,24 @@ Grid make_grid_from_terrain(const TerrainRaster& terrain) {
 }
 
 TerrainRaster load_terrain_raster_from_file(const std::string& path) {
-    return load_terrain_raster_from_file(path, TerrainWindow {});
+    return load_terrain_raster_with_report(path).terrain;
 }
 
 TerrainRaster load_terrain_raster_from_file(const std::string& path, const TerrainWindow& window) {
+    return load_terrain_raster_with_report(path, window).terrain;
+}
+
+LoadedTerrainRaster load_terrain_raster_with_report(const std::string& path) {
+    return load_terrain_raster_with_report(path, TerrainWindow {});
+}
+
+LoadedTerrainRaster load_terrain_raster_with_report(const std::string& path, const TerrainWindow& window) {
+    return load_terrain_raster_impl(path, window);
+}
+
+namespace {
+
+LoadedTerrainRaster load_terrain_raster_impl(const std::string& path, const TerrainWindow& window) {
 #if !FLOODSIM_HAS_GDAL
     (void)path;
     (void)window;
@@ -143,7 +163,21 @@ TerrainRaster load_terrain_raster_from_file(const std::string& path, const Terra
         effective_window = window;
     }
 
-    TerrainRaster terrain;
+    LoadedTerrainRaster loaded;
+    TerrainRaster& terrain = loaded.terrain;
+    TerrainIngestionReport& report = loaded.report;
+
+    report.source_rows = dataset_rows;
+    report.source_cols = dataset_cols;
+    report.loaded_rows = effective_window.rows;
+    report.loaded_cols = effective_window.cols;
+    report.window_applied =
+        effective_window.row_offset != 0 ||
+        effective_window.col_offset != 0 ||
+        effective_window.rows != dataset_rows ||
+        effective_window.cols != dataset_cols;
+    report.clipped_cell_count = (dataset_rows * dataset_cols) - (effective_window.rows * effective_window.cols);
+
     terrain.rows = effective_window.rows;
     terrain.cols = effective_window.cols;
     terrain.cell_size_m = pixel_width_m;
@@ -170,14 +204,28 @@ TerrainRaster load_terrain_raster_from_file(const std::string& path, const Terra
 
     int nodata_is_set = 0;
     const double nodata_value = band->GetNoDataValue(&nodata_is_set);
+    report.nodata_metadata_present = nodata_is_set != 0;
     if (nodata_is_set != 0) {
+        report.nodata_status = TerrainNodataStatus::BandMetadataApplied;
         for (std::size_t idx = 0; idx < terrain.elevation_m.size(); ++idx) {
             const double elevation = terrain.elevation_m[idx];
+            if (std::isnan(elevation)) {
+                ++report.nan_cell_count;
+            }
             const bool is_nodata =
                 (std::isnan(nodata_value) && std::isnan(elevation)) ||
                 (!std::isnan(nodata_value) && elevation == nodata_value);
             terrain.valid_cell_mask[idx] = is_nodata ? 0 : 1;
         }
+    } else {
+        report.nan_cell_count = static_cast<std::size_t>(std::count_if(
+            terrain.elevation_m.begin(),
+            terrain.elevation_m.end(),
+            [](double elevation) { return std::isnan(elevation); }));
+        report.nodata_status =
+            report.nan_cell_count == 0
+            ? TerrainNodataStatus::BandMetadataMissingAllCellsValid
+            : TerrainNodataStatus::BandMetadataMissingNaNCellsPresent;
     }
 
     const char* projection_ref = dataset->GetProjectionRef();
@@ -194,8 +242,12 @@ TerrainRaster load_terrain_raster_from_file(const std::string& path, const Terra
     }
 
     validate_terrain_raster(terrain);
-    return terrain;
+    report.valid_cell_count = terrain.valid_cell_count();
+    report.invalid_cell_count = terrain.cell_count() - report.valid_cell_count;
+    return loaded;
 #endif
 }
+
+}  // namespace
 
 }  // namespace floodsim

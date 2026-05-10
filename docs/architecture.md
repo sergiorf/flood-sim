@@ -25,6 +25,11 @@ an example-CLI convenience. Callers can request either the full source raster
 or a bounded pixel window and still receive the same validated `TerrainRaster`
 contract.
 
+When inspection or debugging matters, the same ingestion path can also return a
+separate `TerrainIngestionReport` describing nodata metadata presence,
+valid-domain counts, and clipping loss without changing the simulation-facing
+terrain contract.
+
 The contract-to-simulation handoff is explicit as well: validated
 `TerrainRaster` data is adapted into `Grid` through a dedicated core helper so
 examples and future ingestion tools do not each reimplement that mapping.

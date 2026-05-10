@@ -68,6 +68,11 @@ def main() -> int:
     )
 
     assert "loaded_dem=" in completed.stdout
+    assert (
+        "ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 "
+        "clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 "
+        "nodata_status=band_metadata_applied"
+    ) in completed.stdout
     assert "rainfall_intensity_m_per_hour=0.012000" in completed.stdout
     assert "time_step_seconds=300.000" in completed.stdout
     assert "steps=12 " in completed.stdout
@@ -132,6 +137,11 @@ def main() -> int:
     )
 
     assert "window_row_offset=1 window_col_offset=1 window_rows=3 window_cols=2" in clipped_completed.stdout
+    assert (
+        "ingestion_report source_rows=5 source_cols=5 loaded_rows=3 loaded_cols=2 "
+        "clipped_cells=19 invalid_cells=0 nodata_metadata_present=true nan_cells=0 "
+        "nodata_status=band_metadata_applied"
+    ) in clipped_completed.stdout
     clipped_metadata, clipped_rows = parse_export(clipped_output_csv_path)
     assert clipped_metadata["rows"] == "3"
     assert clipped_metadata["cols"] == "2"

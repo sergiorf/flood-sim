@@ -25,6 +25,19 @@ struct ExampleArguments {
     std::optional<floodsim::TerrainWindow> terrain_window;
 };
 
+std::string nodata_status_to_string(floodsim::TerrainNodataStatus status) {
+    switch (status) {
+        case floodsim::TerrainNodataStatus::BandMetadataApplied:
+            return "band_metadata_applied";
+        case floodsim::TerrainNodataStatus::BandMetadataMissingAllCellsValid:
+            return "band_metadata_missing_all_cells_valid";
+        case floodsim::TerrainNodataStatus::BandMetadataMissingNaNCellsPresent:
+            return "band_metadata_missing_nan_cells_present";
+    }
+
+    throw std::runtime_error("Unhandled terrain nodata status");
+}
+
 [[noreturn]] void throw_usage_error(const std::string& message) {
     throw std::runtime_error(
         message +
@@ -172,11 +185,13 @@ void write_export(
 int main(int argc, char** argv) {
     try {
         const ExampleArguments arguments = parse_arguments(argc, argv);
-        const floodsim::TerrainRaster terrain = arguments.terrain_window.has_value()
-            ? floodsim::load_terrain_raster_from_file(
+        const floodsim::LoadedTerrainRaster loaded_terrain = arguments.terrain_window.has_value()
+            ? floodsim::load_terrain_raster_with_report(
                   arguments.input_dem_path.string(),
                   *arguments.terrain_window)
-            : floodsim::load_terrain_raster_from_file(arguments.input_dem_path.string());
+            : floodsim::load_terrain_raster_with_report(arguments.input_dem_path.string());
+        const floodsim::TerrainRaster& terrain = loaded_terrain.terrain;
+        const floodsim::TerrainIngestionReport& ingestion_report = loaded_terrain.report;
         floodsim::Grid grid = floodsim::make_grid_from_terrain(terrain);
 
         std::cout << "loaded_dem=" << arguments.input_dem_path << '\n';
@@ -185,6 +200,17 @@ int main(int argc, char** argv) {
                   << " cell_size_m=" << std::fixed << std::setprecision(3)
                   << terrain.cell_size_m
                   << " valid_cells=" << terrain.valid_cell_count() << '\n';
+        std::cout << "ingestion_report"
+                  << " source_rows=" << ingestion_report.source_rows
+                  << " source_cols=" << ingestion_report.source_cols
+                  << " loaded_rows=" << ingestion_report.loaded_rows
+                  << " loaded_cols=" << ingestion_report.loaded_cols
+                  << " clipped_cells=" << ingestion_report.clipped_cell_count
+                  << " invalid_cells=" << ingestion_report.invalid_cell_count
+                  << " nodata_metadata_present=" << (ingestion_report.nodata_metadata_present ? "true" : "false")
+                  << " nan_cells=" << ingestion_report.nan_cell_count
+                  << " nodata_status=" << nodata_status_to_string(ingestion_report.nodata_status)
+                  << '\n';
         if (terrain.crs_id.has_value()) {
             std::cout << "crs=" << terrain.crs_id.value() << '\n';
         }

@@ -118,6 +118,15 @@ Optional fields preserved for later map alignment and export:
 - `origin_y_m`
 - `crs_id`
 
+Related ingestion-only reporting for inspection and debugging:
+
+- `TerrainIngestionReport`
+- source raster dimensions
+- loaded window dimensions
+- valid and invalid cell counts
+- number of cells excluded by clipping
+- explicit nodata status, including whether band metadata was present
+
 The Phase 2 GDAL path may populate that contract from either:
 
 - a full source raster
@@ -372,6 +381,34 @@ Runtime behavior coupled to that loader:
 - rainfall is applied only to valid cells
 - routing ignores invalid neighbors entirely
 - clipped or nodata-adjacent edges behave like absent neighbors in the current closed-boundary model
+
+The loader now also exposes a narrow `TerrainIngestionReport` alongside the
+validated `TerrainRaster` when callers need inspectable ingestion metadata.
+
+That report is intentionally separate from the simulation-facing terrain
+contract. Its purpose is to explain what the loader saw and how it interpreted
+nodata and clipping, not to change the data the simulation consumes.
+
+Current report fields:
+
+- source raster `rows` and `cols`
+- loaded raster `rows` and `cols`
+- `valid_cell_count`
+- `invalid_cell_count`
+- `clipped_cell_count`
+- `window_applied`
+- `nodata_metadata_present`
+- `nan_cell_count`
+- `nodata_status`
+
+Current `nodata_status` values:
+
+- `BandMetadataApplied`: the raster band exposed nodata metadata and the loader mapped matching cells into `valid_cell_mask`
+- `BandMetadataMissingAllCellsValid`: no nodata metadata was present and no `NaN` cells were seen in the loaded raster
+- `BandMetadataMissingNaNCellsPresent`: no nodata metadata was present, but at least one loaded cell contained `NaN`, so the loader reports that condition explicitly for review
+
+This reporting keeps missing or suspicious nodata metadata visible in example
+logs and tests instead of relying on implicit assumptions.
 
 Rejected in the first pass:
 

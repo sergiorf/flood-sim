@@ -114,6 +114,10 @@ for repeatable local runs:
 This example is intentionally small and deterministic. It proves the first
 real-format ingestion path without claiming city-scale realism yet.
 
+The real-terrain loader also emits a compact ingestion summary so nodata
+handling, valid-cell counts, and clipping loss are visible during scenario
+review instead of being implicit.
+
 ## Run tests
 
 ```bash

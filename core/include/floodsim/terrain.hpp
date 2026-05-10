@@ -43,6 +43,31 @@ struct TerrainWindow {
     std::size_t cols {0};
 };
 
+enum class TerrainNodataStatus {
+    BandMetadataApplied,
+    BandMetadataMissingAllCellsValid,
+    BandMetadataMissingNaNCellsPresent,
+};
+
+struct TerrainIngestionReport {
+    std::size_t source_rows {0};
+    std::size_t source_cols {0};
+    std::size_t loaded_rows {0};
+    std::size_t loaded_cols {0};
+    std::size_t valid_cell_count {0};
+    std::size_t invalid_cell_count {0};
+    std::size_t clipped_cell_count {0};
+    bool window_applied {false};
+    bool nodata_metadata_present {false};
+    std::size_t nan_cell_count {0};
+    TerrainNodataStatus nodata_status {TerrainNodataStatus::BandMetadataMissingAllCellsValid};
+};
+
+struct LoadedTerrainRaster {
+    TerrainRaster terrain;
+    TerrainIngestionReport report;
+};
+
 void validate_terrain_raster(const TerrainRaster& terrain);
 void validate_terrain_window(const TerrainWindow& window);
 
@@ -59,5 +84,7 @@ Grid make_grid_from_terrain(const TerrainRaster& terrain);
 // - nodata mapped into valid_cell_mask
 TerrainRaster load_terrain_raster_from_file(const std::string& path);
 TerrainRaster load_terrain_raster_from_file(const std::string& path, const TerrainWindow& window);
+LoadedTerrainRaster load_terrain_raster_with_report(const std::string& path);
+LoadedTerrainRaster load_terrain_raster_with_report(const std::string& path, const TerrainWindow& window);
 
 }  // namespace floodsim
