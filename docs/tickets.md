@@ -43,12 +43,13 @@ Required documentation updates:
 
 ## Todo
 
-Next recommended Phase 2 step:
-- `FS-026` is the next active task now that `FS-031` is done.
-
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
 - `FS-023` completed that minimum comparison scaffolding pass, so the next priority is realism-bearing model work
+
+Planning note:
+- deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
+- if additional workflow hardening is still wanted before model work, `FS-029` is the remaining higher-priority documentation task
 
 ## FS-024 - Add batch scenario execution for one terrain clip
 
@@ -107,37 +108,6 @@ Acceptance criteria:
 Required tests:
 - Add narrow tests for comparison-table generation.
 - Existing batch workflow tests continue to pass.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-
-## FS-026 - Add terrain-derived scenario fixtures for regression coverage
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- Real-scenario work will drift unless the repository carries a few small deterministic scenario fixtures beyond the original sample path.
-- Depending on one example clip and one run shape is too narrow for Phase 2 hardening.
-
-Proposed change:
-- Add a tiny curated set of regression fixtures or fixture descriptors for real-terrain runs.
-- Cover at least one case with nodata influence and one case with a clear drainage pattern.
-
-Constraints:
-- Keep fixture size small enough for local development and repository storage.
-- Avoid creating a large sample-data archive.
-
-Acceptance criteria:
-- The repository includes at least two named deterministic real-terrain scenario fixtures.
-- Tests or smoke workflows exercise the fixtures reproducibly.
-- Fixture intent is documented so later contributors understand why each case exists.
-
-Required tests:
-- Add or update example and regression coverage to use the new fixtures.
-- Existing ingestion and export tests continue to pass.
 
 Required documentation updates:
 - `README.md`

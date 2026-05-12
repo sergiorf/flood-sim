@@ -32,13 +32,29 @@ target_link_libraries(floodsim_simple_grid
 
 target_compile_features(floodsim_simple_grid PRIVATE cxx_std_20)
 
+add_library(floodsim_real_terrain_support
+    examples/real_terrain/example_runner.cpp
+)
+
+target_link_libraries(floodsim_real_terrain_support
+    PUBLIC
+        floodsim_core
+)
+
+target_include_directories(floodsim_real_terrain_support
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain
+)
+
+target_compile_features(floodsim_real_terrain_support PUBLIC cxx_std_20)
+
 add_executable(floodsim_real_terrain_example
     examples/real_terrain/main.cpp
 )
 
 target_link_libraries(floodsim_real_terrain_example
     PRIVATE
-        floodsim_core
+        floodsim_real_terrain_support
 )
 
 target_compile_features(floodsim_real_terrain_example PRIVATE cxx_std_20)
@@ -54,7 +70,27 @@ if(FLOODSIM_BUILD_TESTS AND Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/test_real_terrain_example.py
             $<TARGET_FILE:floodsim_real_terrain_example>
-            ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/data/sample_dem.tif
-            ${CMAKE_CURRENT_BINARY_DIR}/real_terrain_example/output.csv
+            ${CMAKE_CURRENT_BINARY_DIR}/real_terrain_example
     )
+endif()
+
+if(FLOODSIM_BUILD_TESTS)
+    add_executable(floodsim_real_terrain_workflow_tests
+        examples/real_terrain/test_real_terrain_workflow.cpp
+    )
+
+    target_link_libraries(floodsim_real_terrain_workflow_tests
+        PRIVATE
+            floodsim_real_terrain_support
+            doctest::doctest
+    )
+
+    target_compile_features(floodsim_real_terrain_workflow_tests PRIVATE cxx_std_20)
+    target_compile_definitions(
+        floodsim_real_terrain_workflow_tests
+        PRIVATE
+            FLOODSIM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+    add_test(NAME floodsim_real_terrain_workflow_tests COMMAND floodsim_real_terrain_workflow_tests)
 endif()

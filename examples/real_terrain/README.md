@@ -13,6 +13,18 @@ The committed input raster is intentionally tiny:
 - CRS: `EPSG:31370`
 - one nodata cell to exercise the imported-domain rules
 
+The repository also carries a small regression-fixture set for this example:
+
+- `sample_dem.tif`: canonical nodata-aware basin fixture with CRS metadata preserved in exports
+- `drainage_slope.asc`: monotonic fully valid slope fixture for deterministic drainage-direction regression coverage
+
+Those fixtures are example and test assets, not engine-level scenario
+definitions. The simulation core still receives only validated terrain data
+plus the explicit rainfall and step settings built by the example.
+The example implementation itself is split the same way: a small reusable C++
+workflow helper owns scenario parsing, validation, execution, reporting, and
+CSV orchestration, while `main.cpp` stays a thin CLI wrapper.
+
 Build and run from the repository root:
 
 ```bash
@@ -159,7 +171,7 @@ It also prints one compact run summary for quick comparison before a map viewer
 exists:
 
 ```text
-summary_metrics wet_cells=24 max_water_depth_m=0.012000 deepest_row=0 deepest_col=0
+summary_metrics wet_cells=24 max_water_depth_m=0.097056 deepest_row=2 deepest_col=2
 ```
 
 Current summary fields:
@@ -184,12 +196,21 @@ python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 What this example proves:
 
 - the GDAL loader can read a committed GeoTIFF from disk
+- the same ingestion path can also read a tiny text-based raster fixture for regression coverage
 - the same loader can clip a smaller pixel window while preserving shifted origin metadata
 - imported nodata is preserved as out-of-domain cells
 - the loader emits a machine-readable ingestion summary for nodata and clipping review
 - the workflow can make the raster edge behavior explicit for clipped real-terrain runs
 - the simulation can run on the imported terrain
 - the final state can be exported with origin / CRS metadata for later inspection and visualization work
+
+Why the fixtures exist:
+
+- `sample_dem.tif` keeps regression coverage on nodata-domain handling and CRS-carrying exports
+- `drainage_slope.asc` keeps regression coverage on a simple clear drainage pattern without nodata or clipping noise
+
+That split keeps fixture intent readable in tests and docs without pushing
+test-specific case naming into the simulation engine or the example CLI.
 
 What it does not prove yet:
 

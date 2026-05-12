@@ -35,7 +35,14 @@ The contract-to-simulation handoff is explicit as well: validated
 examples and future ingestion tools do not each reimplement that mapping.
 The real-terrain example now treats rainfall and timing inputs similarly by
 building one narrow scenario configuration object before constructing the
-simulation-facing rainfall and step settings.
+simulation-facing rainfall and step settings. That workflow logic now lives in
+a small example-support C++ layer rather than in `main()`, so parsing,
+validation, execution, reporting, and export orchestration can be tested
+without pushing those concerns into the simulation kernel.
+Regression fixtures for that example live alongside the example assets and test
+harness, not in the simulation-core interfaces. That keeps fixture identity,
+test expectations, and smoke-case intent out of the engine configuration
+surface while still making deterministic terrain cases reusable.
 
 ### 2. Simulation core
 
