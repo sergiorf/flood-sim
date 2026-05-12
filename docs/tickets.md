@@ -51,6 +51,78 @@ Planning note:
 - deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
 - if additional workflow hardening is still wanted before model work, `FS-029` is the remaining higher-priority documentation task
 
+## FS-030 - Add clipped-terrain edge outflow behavior
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- The current model still leans on closed-edge behavior as the default mental model, which can trap water unrealistically on clipped real-terrain rasters.
+- Real-terrain runs need one explicit edge treatment that better approximates water leaving the simulated domain so scenario comparisons are not dominated by artificial perimeter ponding.
+
+Proposed change:
+- Add one narrow outflow behavior for clipped terrain that allows water to leave eligible boundary cells in a deterministic, documented way.
+- Keep the change small by expressing it through the existing simulation and example configuration path rather than introducing a broad boundary-policy framework.
+
+Constraints:
+- Preserve the current simple raster kernel and avoid introducing channel routing, full hydraulic boundary conditions, or external dependencies.
+- Keep existing closed-boundary behavior available and unchanged for tests and toy examples.
+- Define the new behavior in physically modest terms and document clearly what it approximates and what it does not.
+
+Acceptance criteria:
+- A user can run the real-terrain example with the new edge behavior through the existing scenario or CLI configuration path.
+- On a small deterministic drainage fixture, the new mode reduces retained water relative to closed boundaries in a way that is stable across repeated runs.
+- Water loss occurs only through documented boundary conditions; interior valid cells and nodata masking semantics remain unchanged.
+- Exported metadata and run summaries identify which boundary behavior was used so comparisons remain unambiguous.
+
+Required tests:
+- Add core simulation coverage for a small raster where boundary outflow changes the final retained-water result relative to closed boundaries.
+- Add or update a real-terrain regression test using the committed drainage fixture to show stable, deterministic behavior for the new mode.
+- Existing closed-boundary tests continue to pass unchanged.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- `docs/simulation_model.md`
+- `docs/architecture.md` if configuration or export contracts change
+
+## FS-031 - Add a simple infiltration or rainfall-loss control
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- Rainfall currently maps too directly to surface water accumulation, which limits the practical meaning of real-terrain screening runs.
+- The project needs one minimal loss mechanism so scenario comparisons can represent at least a first-pass difference between gross rainfall and surface runoff.
+
+Proposed change:
+- Add one deliberately simple loss representation, such as a constant infiltration rate or other bounded rainfall-loss term, applied through the existing simulation configuration.
+- Keep the model uniform and local for the first pass so the behavior is easy to test, explain, and compare before considering spatially varying soils or land cover.
+
+Constraints:
+- Do not introduce calibration-heavy hydrology, soil databases, evapotranspiration modeling, or spatial preprocessing in this ticket.
+- Preserve current behavior as a documented zero-loss or disabled-loss case so existing examples and tests can remain valid.
+- Keep parameter semantics explicit in physical units and guard against configurations that can remove more water than is available from rainfall or surface storage.
+
+Acceptance criteria:
+- A user can enable the loss model in the real-terrain workflow using a documented parameter with clear units and valid bounds.
+- With loss disabled, results remain backward-compatible with the current behavior.
+- With a positive loss value, a deterministic test case shows reduced accumulated surface water relative to the zero-loss case.
+- The implementation documents whether the loss applies to incoming rainfall only, ponded surface water, or both, and exports enough metadata to make that choice visible in outputs.
+
+Required tests:
+- Add unit coverage for parameter validation and for the zero-loss compatibility case.
+- Add a deterministic simulation test showing that a positive configured loss reduces retained water without producing negative depths.
+- Add or update a real-terrain example or regression test that exercises the documented loss parameter path.
+
+Required documentation updates:
+- `README.md`
+- `examples/real_terrain/README.md`
+- `docs/simulation_model.md`
+- `docs/architecture.md` if scenario or export contracts change
+
 ## FS-024 - Add batch scenario execution for one terrain clip
 
 Status: Todo

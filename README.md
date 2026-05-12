@@ -145,10 +145,11 @@ Real-terrain CSV exports now also carry scenario and timing metadata in the
 metadata preamble so repeated runs can be identified safely during comparison.
 The example also prints a compact deterministic summary line so quick run
 comparison does not require reading the full per-cell CSV first.
-Real-terrain runs can now also choose `--boundary-mode open` when a clipped
-terrain edge should behave more like an outflow boundary than a retaining wall.
-They can also choose a simple `--runoff-coefficient` to approximate that not
-all rainfall becomes retained surface water immediately.
+Real-terrain runs now default to `--boundary-mode open` so clipped terrain
+edges behave more like narrow outflow boundaries than retaining walls. You can
+still force `--boundary-mode closed` for conservative comparisons or toy-style
+retention tests. They can also choose a simple `--runoff-coefficient` to
+approximate that not all rainfall becomes retained surface water immediately.
 
 ## Run tests
 

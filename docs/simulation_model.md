@@ -99,7 +99,10 @@ For the first real-terrain workflow:
 - flow cannot route into invalid or nodata cells
 - invalid neighbors are ignored during routing, which means clipped or nodata-adjacent edges behave like absent neighbors in the current closed-boundary model
 
-This keeps imported terrain behavior aligned with the existing conservative boundary philosophy: water remains inside the valid simulated domain unless a later phase introduces a different explicit boundary or nodata rule.
+This keeps imported terrain behavior aligned with the explicit boundary
+setting. In the current real-terrain workflow, `Open` is the practical default
+because clipped DEM edges usually should not behave like retaining walls, but
+`Closed` remains available for conservative comparisons and regression tests.
 
 ## Why start here
 

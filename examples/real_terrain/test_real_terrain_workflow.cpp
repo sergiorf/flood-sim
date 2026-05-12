@@ -77,6 +77,18 @@ TEST_CASE("real terrain helper parses preset overrides and clipped window") {
     CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
 }
 
+TEST_CASE("real terrain helper defaults to open boundary for clipped-terrain runs") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "output.csv",
+        });
+
+    CHECK(arguments.scenario.name == "baseline");
+    CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
+}
+
 TEST_CASE("real terrain helper rejects invalid scenario configuration") {
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(
@@ -117,7 +129,7 @@ TEST_CASE("real terrain helper runs nodata basin fixture and reports determinist
     CHECK(result.loaded_terrain.terrain.cols == 5);
     CHECK(result.loaded_terrain.report.invalid_cell_count == 1);
     CHECK(result.summary_metrics.wet_cell_count == 24);
-    CHECK(result.summary_metrics.max_water_depth_m == doctest::Approx(0.097056).epsilon(1e-6));
+    CHECK(result.summary_metrics.max_water_depth_m == doctest::Approx(0.096997).epsilon(1e-6));
     REQUIRE(result.summary_metrics.deepest_row.has_value());
     REQUIRE(result.summary_metrics.deepest_col.has_value());
     CHECK(*result.summary_metrics.deepest_row == 2);
@@ -125,8 +137,9 @@ TEST_CASE("real terrain helper runs nodata basin fixture and reports determinist
 
     std::ostringstream report;
     print_run_report(report, arguments, result);
+    CHECK(report.str().find("boundary_mode=open") != std::string::npos);
     CHECK(report.str().find("nodata_status=band_metadata_applied") != std::string::npos);
-    CHECK(report.str().find("summary_metrics wet_cells=24 max_water_depth_m=0.097056 deepest_row=2 deepest_col=2") != std::string::npos);
+    CHECK(report.str().find("summary_metrics wet_cells=24 max_water_depth_m=0.096997 deepest_row=2 deepest_col=2") != std::string::npos);
 }
 
 TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata") {
@@ -155,5 +168,31 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(export_text.find("# origin_x_m,5000.000000") != std::string::npos);
     CHECK(export_text.find("# origin_y_m,1020.000000") != std::string::npos);
     CHECK(export_text.find("# scenario_name,baseline") != std::string::npos);
+    CHECK(export_text.find("# boundary_mode,open") != std::string::npos);
     std::filesystem::remove(export_path);
+}
+
+TEST_CASE("open boundary retains less water than closed boundary on drainage slope fixture") {
+    ExampleArguments open_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "open.csv",
+        });
+    const auto open_result = run_example(open_arguments);
+
+    ExampleArguments closed_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "closed.csv",
+            "--boundary-mode",
+            "closed",
+        });
+    const auto closed_result = run_example(closed_arguments);
+
+    CHECK(open_arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
+    CHECK(closed_arguments.scenario.boundary_mode == floodsim::BoundaryMode::Closed);
+    CHECK(open_result.grid.total_water_depth() < closed_result.grid.total_water_depth());
+    CHECK(open_result.summary_metrics.max_water_depth_m < closed_result.summary_metrics.max_water_depth_m);
 }

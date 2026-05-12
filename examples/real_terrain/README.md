@@ -123,7 +123,7 @@ repeatable real-area scenario without preprocessing a separate file first:
 Supported options:
 
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
-- `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `closed`
+- `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
@@ -147,7 +147,7 @@ without confusing them:
 
 ```text
 scenario_name=baseline scenario_source=direct_cli_or_default
-boundary_mode=closed
+boundary_mode=open
 runoff_coefficient=1.000000
 ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 nodata_status=band_metadata_applied
 # floodsim_csv_version,1
@@ -155,7 +155,7 @@ ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped
 # cols,5
 # cell_size_m,2.000000
 # scenario_name,baseline
-# boundary_mode,closed
+# boundary_mode,open
 # rainfall_intensity_m_per_hour,0.012000
 # runoff_coefficient,1.000000
 # time_step_seconds,300.000000
@@ -186,6 +186,12 @@ hydrology metrics.
 
 The runoff coefficient belongs to that same category: it is a simple practical
 approximation for MVP scenario screening, not a calibrated infiltration model.
+
+The default open boundary is also a practical screening choice. For clipped
+real-terrain rasters it avoids treating the raster edge like a retaining wall
+by default. It is still a narrow approximation: water may leave only across
+missing orthogonal neighbors at the raster edge, and it is not a calibrated
+downstream boundary condition.
 
 You can inspect the exported CSV with the existing consumer example:
 

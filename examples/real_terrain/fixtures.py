@@ -31,7 +31,7 @@ REAL_TERRAIN_FIXTURES: tuple[RealTerrainFixture, ...] = (
         ),
         expected_stdout_fragments=(
             "scenario_name=baseline scenario_source=direct_cli_or_default",
-            "boundary_mode=closed",
+            "boundary_mode=open",
             "runoff_coefficient=1.000000",
             (
                 "ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 "
@@ -45,7 +45,7 @@ REAL_TERRAIN_FIXTURES: tuple[RealTerrainFixture, ...] = (
             "cols": "5",
             "cell_size_m": "2.000000",
             "scenario_name": "baseline",
-            "boundary_mode": "closed",
+            "boundary_mode": "open",
             "rainfall_intensity_m_per_hour": "0.012000",
             "runoff_coefficient": "1.000000",
             "time_step_seconds": "300.000000",
@@ -68,7 +68,7 @@ REAL_TERRAIN_FIXTURES: tuple[RealTerrainFixture, ...] = (
         ),
         expected_stdout_fragments=(
             "scenario_name=baseline scenario_source=direct_cli_or_default",
-            "boundary_mode=closed",
+            "boundary_mode=open",
             "runoff_coefficient=1.000000",
             (
                 "ingestion_report source_rows=4 source_cols=4 loaded_rows=4 loaded_cols=4 "
@@ -82,7 +82,7 @@ REAL_TERRAIN_FIXTURES: tuple[RealTerrainFixture, ...] = (
             "cols": "4",
             "cell_size_m": "5.000000",
             "scenario_name": "baseline",
-            "boundary_mode": "closed",
+            "boundary_mode": "open",
             "rainfall_intensity_m_per_hour": "0.012000",
             "runoff_coefficient": "1.000000",
             "time_step_seconds": "300.000000",

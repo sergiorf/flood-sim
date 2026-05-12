@@ -20,7 +20,7 @@ struct ScenarioConfig {
     double runoff_coefficient {1.0};
     double time_step_seconds {300.0};
     int step_count {12};
-    floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Closed};
+    floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Open};
     bool preset_applied {false};
     bool cli_overrides_applied {false};
 };
