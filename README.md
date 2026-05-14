@@ -155,12 +155,13 @@ You can still override preset values directly when experimenting:
 This example is intentionally small and deterministic. It proves the first
 real-format ingestion path without claiming city-scale realism yet.
 
-For regression coverage, the repository now also carries two tiny named
-real-terrain fixtures under `examples/real_terrain/data`: one nodata-aware
-basin with CRS metadata and one monotonic drainage slope. Those fixtures are
-kept as example/test assets so engine configuration stays limited to terrain,
-rainfall, timing, runoff, and boundary settings rather than absorbing
-test-specific fixture semantics.
+For regression coverage, the repository now also carries a small curated set of
+named real-terrain fixtures under `examples/real_terrain/data`: a nodata-aware
+basin with CRS metadata, a monotonic drainage slope, a flat ponding case, an
+edge-notch nodata/outflow case, and a slightly larger barrier-style urban-ish
+case. Those fixtures are kept as example/test assets so engine configuration
+stays limited to terrain, rainfall, timing, runoff, and boundary settings
+rather than absorbing test-specific fixture semantics.
 The real-terrain example itself is now split into a thin CLI plus a reusable
 C++ helper layer so most workflow behavior can be tested without relying on a
 process-level script.

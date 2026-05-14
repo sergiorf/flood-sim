@@ -17,6 +17,9 @@ The repository also carries a small regression-fixture set for this example:
 
 - `sample_dem.tif`: canonical nodata-aware basin fixture with CRS metadata preserved in exports
 - `drainage_slope.asc`: monotonic fully valid slope fixture for deterministic drainage-direction regression coverage
+- `flat_pond.asc`: flat ponding-prone basin fixture for retained-water behavior
+- `edge_notch.asc`: clipped-edge nodata notch fixture for domain and outflow interaction
+- `urban_block.asc`: slightly larger barrier-style fixture for split routing and future viewer/debug work
 
 Those fixtures are example and test assets, not engine-level scenario
 definitions. The simulation core still receives only validated terrain data
@@ -442,6 +445,9 @@ Why the fixtures exist:
 
 - `sample_dem.tif` keeps regression coverage on nodata-domain handling and CRS-carrying exports
 - `drainage_slope.asc` keeps regression coverage on a simple clear drainage pattern without nodata or clipping noise
+- `flat_pond.asc` keeps regression coverage on center-ponding behavior in a mostly flat basin
+- `edge_notch.asc` keeps regression coverage on downslope nodata-edge handling where clipped outflow is the main question
+- `urban_block.asc` keeps regression coverage on a slightly larger blocked-routing pattern that is useful for future visualization and debugging
 
 That split keeps fixture intent readable in tests and docs without pushing
 test-specific case naming into the simulation engine or the example CLI.

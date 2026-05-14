@@ -473,6 +473,47 @@ TEST_CASE("named real-terrain scenarios produce deterministic comparison metrics
     CHECK(long_moderate_result.summary_metrics.max_water_depth_m == doctest::Approx(0.402130).epsilon(1e-6));
 }
 
+TEST_CASE("additional real-terrain fixtures cover distinct retention patterns") {
+    const auto flat_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/flat_pond.asc").string(),
+            "flat.csv",
+        });
+    const auto flat_result = run_example(flat_arguments);
+
+    const auto edge_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/edge_notch.asc").string(),
+            "edge.csv",
+        });
+    const auto edge_result = run_example(edge_arguments);
+
+    const auto urban_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/urban_block.asc").string(),
+            "urban.csv",
+        });
+    const auto urban_result = run_example(urban_arguments);
+
+    CHECK(flat_result.grid.total_water_depth() == doctest::Approx(0.266520).epsilon(1e-6));
+    CHECK(edge_result.grid.total_water_depth() == doctest::Approx(0.235312).epsilon(1e-6));
+    CHECK(urban_result.grid.total_water_depth() == doctest::Approx(0.403640).epsilon(1e-6));
+
+    CHECK(flat_result.summary_metrics.max_water_depth_m == doctest::Approx(0.088587).epsilon(1e-6));
+    CHECK(edge_result.summary_metrics.max_water_depth_m == doctest::Approx(0.024176).epsilon(1e-6));
+    CHECK(urban_result.summary_metrics.max_water_depth_m == doctest::Approx(0.039982).epsilon(1e-6));
+
+    CHECK(flat_result.summary_metrics.deepest_row == 2);
+    CHECK(flat_result.summary_metrics.deepest_col == 2);
+    CHECK(edge_result.summary_metrics.deepest_row == 0);
+    CHECK(edge_result.summary_metrics.deepest_col == 3);
+    CHECK(urban_result.summary_metrics.deepest_row == 2);
+    CHECK(urban_result.summary_metrics.deepest_col == 2);
+}
+
 TEST_CASE("batch comparison export writes deterministic scenario summary table") {
     const auto sample_dem = fixture_path("examples/real_terrain/data/sample_dem.tif").string();
     const auto batch_arguments = build_batch_scenario_arguments(parse_arguments(
