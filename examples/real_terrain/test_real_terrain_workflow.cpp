@@ -13,6 +13,7 @@ namespace {
 
 using floodsim::examples::real_terrain::ExampleArguments;
 using floodsim::examples::real_terrain::ExampleRunResult;
+using floodsim::examples::real_terrain::build_batch_scenario_arguments;
 using floodsim::examples::real_terrain::parse_arguments;
 using floodsim::examples::real_terrain::print_run_report;
 using floodsim::examples::real_terrain::run_example;
@@ -96,6 +97,48 @@ TEST_CASE("real terrain helper treats runoff coefficient as a CLI override") {
     CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
 }
 
+TEST_CASE("real terrain helper parses batch scenario list") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "batch.csv",
+            "--batch-scenarios",
+            "baseline,intense_short,long_moderate",
+            "--runoff-coefficient",
+            "0.5",
+        });
+
+    CHECK(arguments.batch_scenario_names.size() == 3);
+    CHECK(arguments.batch_scenario_names[0] == "baseline");
+    CHECK(arguments.batch_scenario_names[1] == "intense_short");
+    CHECK(arguments.batch_scenario_names[2] == "long_moderate");
+    CHECK(arguments.scenario_overrides.runoff_coefficient == doctest::Approx(0.5));
+}
+
+TEST_CASE("real terrain helper expands batch scenarios into deterministic output paths") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "batch_outputs.csv",
+            "--batch-scenarios",
+            "baseline,intense_short",
+            "--boundary-mode",
+            "closed",
+        });
+
+    const auto batch_arguments = build_batch_scenario_arguments(arguments);
+
+    REQUIRE(batch_arguments.size() == 2);
+    CHECK(batch_arguments[0].scenario.name == "baseline");
+    CHECK(batch_arguments[0].scenario.output_csv_path == std::filesystem::path("batch_outputs_baseline.csv"));
+    CHECK(batch_arguments[0].scenario.boundary_mode == floodsim::BoundaryMode::Closed);
+    CHECK(batch_arguments[1].scenario.name == "intense_short");
+    CHECK(batch_arguments[1].scenario.output_csv_path == std::filesystem::path("batch_outputs_intense_short.csv"));
+    CHECK(batch_arguments[1].scenario.boundary_mode == floodsim::BoundaryMode::Closed);
+}
+
 TEST_CASE("real terrain helper defaults to open boundary for clipped-terrain runs") {
     const auto arguments = parse_arguments(
         {
@@ -132,6 +175,19 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "2",
             })),
         doctest::Contains("Terrain window requires both --window-rows and --window-cols"));
+
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--scenario",
+                "baseline",
+                "--batch-scenarios",
+                "intense_short,long_moderate",
+            })),
+        doctest::Contains("Use either --scenario or --batch-scenarios, not both"));
 }
 
 TEST_CASE("real terrain helper runs nodata basin fixture and reports deterministic summary") {

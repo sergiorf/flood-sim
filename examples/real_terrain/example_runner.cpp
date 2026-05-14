@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 
 namespace floodsim::examples::real_terrain {
@@ -98,12 +99,45 @@ void validate_window_arguments(const std::optional<floodsim::TerrainWindow>& ter
     }
 }
 
+std::vector<std::string> parse_batch_scenario_names_argument(const std::string& value) {
+    std::vector<std::string> names;
+    std::stringstream value_stream(value);
+    std::string item;
+    while (std::getline(value_stream, item, ',')) {
+        if (item.empty()) {
+            throw_usage_error("Batch scenario list cannot contain empty names");
+        }
+        names.push_back(item);
+    }
+
+    if (names.empty()) {
+        throw_usage_error("Batch scenario list cannot be empty");
+    }
+
+    return names;
+}
+
+std::filesystem::path derive_batch_output_path(
+    const std::filesystem::path& base_output_path,
+    const std::string& scenario_name) {
+    const std::filesystem::path parent = base_output_path.parent_path();
+    const std::string stem = base_output_path.stem().string();
+    const std::string extension = base_output_path.has_extension()
+        ? base_output_path.extension().string()
+        : ".csv";
+    const std::string batch_stem = stem.empty()
+        ? base_output_path.filename().string()
+        : stem;
+    return parent / (batch_stem + "_" + scenario_name + extension);
+}
+
 }  // namespace
 
 std::string usage_message() {
     return
         "Usage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
         " [--scenario <name>]"
+        " [--batch-scenarios <name1,name2,...>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--runoff-coefficient <value>]"
@@ -190,6 +224,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
             },
     };
     std::optional<std::string> scenario_preset_name;
+    std::optional<std::vector<std::string>> batch_scenario_names;
     std::optional<double> rainfall_override;
     std::optional<double> runoff_coefficient_override;
     std::optional<double> time_step_override;
@@ -204,16 +239,23 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         const std::string& value = args[++index];
         if (option == "--scenario") {
             scenario_preset_name = value;
+        } else if (option == "--batch-scenarios") {
+            batch_scenario_names = parse_batch_scenario_names_argument(value);
         } else if (option == "--boundary-mode") {
             arguments.scenario.boundary_mode = parse_boundary_mode_argument(value);
+            arguments.scenario_overrides.boundary_mode = arguments.scenario.boundary_mode;
         } else if (option == "--rainfall-intensity-m-per-hour") {
             rainfall_override = parse_double_argument(option, value);
+            arguments.scenario_overrides.rainfall_intensity_m_per_hour = rainfall_override;
         } else if (option == "--runoff-coefficient") {
             runoff_coefficient_override = parse_double_argument(option, value);
+            arguments.scenario_overrides.runoff_coefficient = runoff_coefficient_override;
         } else if (option == "--time-step-seconds") {
             time_step_override = parse_double_argument(option, value);
+            arguments.scenario_overrides.time_step_seconds = time_step_override;
         } else if (option == "--steps") {
             step_count_override = parse_int_argument(option, value);
+            arguments.scenario_overrides.step_count = step_count_override;
         } else if (option == "--window-row-offset") {
             if (!arguments.terrain_window.has_value()) {
                 arguments.terrain_window = floodsim::TerrainWindow {};
@@ -255,8 +297,18 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         }
     }
 
+    if (scenario_preset_name.has_value() && batch_scenario_names.has_value()) {
+        throw_usage_error("Use either --scenario or --batch-scenarios, not both");
+    }
+
     if (scenario_preset_name.has_value()) {
         apply_scenario_preset(arguments.scenario, find_scenario_preset(*scenario_preset_name));
+    }
+    if (batch_scenario_names.has_value()) {
+        for (const std::string& name : *batch_scenario_names) {
+            static_cast<void>(find_scenario_preset(name));
+        }
+        arguments.batch_scenario_names = *batch_scenario_names;
     }
     if (rainfall_override.has_value()) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;
@@ -287,6 +339,53 @@ ExampleArguments parse_arguments(int argc, char** argv) {
         args.emplace_back(argv[index]);
     }
     return parse_arguments(args);
+}
+
+std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArguments& arguments) {
+    std::vector<ExampleArguments> batch_arguments;
+    batch_arguments.reserve(arguments.batch_scenario_names.size());
+
+    for (const std::string& scenario_name : arguments.batch_scenario_names) {
+        ExampleArguments scenario_arguments = arguments;
+        scenario_arguments.batch_scenario_names.clear();
+        scenario_arguments.scenario = ScenarioConfig {
+            .name = kDefaultScenarioName,
+            .output_csv_path = derive_batch_output_path(arguments.scenario.output_csv_path, scenario_name),
+        };
+
+        apply_scenario_preset(scenario_arguments.scenario, find_scenario_preset(scenario_name));
+
+        if (arguments.scenario_overrides.boundary_mode.has_value()) {
+            scenario_arguments.scenario.boundary_mode = *arguments.scenario_overrides.boundary_mode;
+        }
+        if (arguments.scenario_overrides.rainfall_intensity_m_per_hour.has_value()) {
+            scenario_arguments.scenario.rainfall_intensity_m_per_hour =
+                *arguments.scenario_overrides.rainfall_intensity_m_per_hour;
+        }
+        if (arguments.scenario_overrides.runoff_coefficient.has_value()) {
+            scenario_arguments.scenario.runoff_coefficient =
+                *arguments.scenario_overrides.runoff_coefficient;
+        }
+        if (arguments.scenario_overrides.time_step_seconds.has_value()) {
+            scenario_arguments.scenario.time_step_seconds =
+                *arguments.scenario_overrides.time_step_seconds;
+        }
+        if (arguments.scenario_overrides.step_count.has_value()) {
+            scenario_arguments.scenario.step_count =
+                *arguments.scenario_overrides.step_count;
+        }
+
+        scenario_arguments.scenario.cli_overrides_applied =
+            arguments.scenario_overrides.boundary_mode.has_value() ||
+            arguments.scenario_overrides.rainfall_intensity_m_per_hour.has_value() ||
+            arguments.scenario_overrides.runoff_coefficient.has_value() ||
+            arguments.scenario_overrides.time_step_seconds.has_value() ||
+            arguments.scenario_overrides.step_count.has_value();
+        validate_scenario_config(scenario_arguments.scenario);
+        batch_arguments.push_back(std::move(scenario_arguments));
+    }
+
+    return batch_arguments;
 }
 
 ExampleRunResult run_example(const ExampleArguments& arguments) {

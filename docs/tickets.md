@@ -52,38 +52,8 @@ Phase 2 stop rule:
 Planning note:
 - deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
 - `FS-029` completed the canonical real-scenario comparison walkthrough pass
-- the next queued work is the lower-priority batch/comparison path starting with `FS-024`
-
-## FS-024 - Add batch scenario execution for one terrain clip
-
-Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- Running one scenario at a time is enough for smoke tests, but it is weak for practical real-scenario exploration.
-- Early scenario comparison needs a tiny repeatable batch path before the project takes on a richer UI or orchestration layer.
-
-Proposed change:
-- Add a minimal batch mode that runs several named scenarios over the same terrain clip and writes outputs to separate deterministic paths.
-- Keep the interface narrow and local to the example or a small helper.
-
-Constraints:
-- Do not add job scheduling, concurrency, or a config-file hierarchy in this ticket.
-- Preserve a simple single-scenario mode.
-
-Acceptance criteria:
-- A user can run multiple documented named scenarios in one invocation.
-- Output files are deterministic and clearly associated with their scenario names.
-- Failures for one scenario are reported clearly.
-
-Required tests:
-- Add or update smoke coverage for a small batch run.
-- Add narrow tests for scenario list parsing if nontrivial logic is introduced.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
+- `FS-024` completed the first batch execution pass for one terrain clip
+- the next queued work is the comparison artifact path starting with `FS-025`
 
 ## FS-025 - Add scenario-comparison summaries across batch runs
 

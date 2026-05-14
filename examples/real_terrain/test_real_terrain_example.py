@@ -83,6 +83,34 @@ def run_example(binary_path: Path, terrain_path: Path, output_csv_path: Path, *a
     )
 
 
+def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
+    output_csv_path = output_directory / "batch_outputs.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--batch-scenarios",
+        "baseline,intense_short,long_moderate",
+    )
+
+    expected_outputs = {
+        "baseline": output_directory / "batch_outputs_baseline.csv",
+        "intense_short": output_directory / "batch_outputs_intense_short.csv",
+        "long_moderate": output_directory / "batch_outputs_long_moderate.csv",
+    }
+
+    for scenario_name, csv_path in expected_outputs.items():
+        assert f"scenario_name={scenario_name}" in completed.stdout
+        assert f'wrote_csv="{csv_path}"' in completed.stdout
+        assert csv_path.exists()
+
+        metadata, rows = parse_export(csv_path)
+        assert metadata["scenario_name"] == scenario_name
+        assert metadata["boundary_mode"] == "open"
+        assert expected_summary_line(rows) in completed.stdout
+
+
 def assert_fixture_run(
     binary_path: Path,
     output_directory: Path,
@@ -124,6 +152,8 @@ def main() -> int:
         completed, metadata, rows = assert_fixture_run(binary_path, output_directory, fixture)
         assert expected_summary_line(rows) in completed.stdout
         assert metadata["scenario_name"] == "baseline"
+
+    assert_batch_run(binary_path, output_directory)
 
     return 0
 

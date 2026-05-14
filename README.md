@@ -112,6 +112,16 @@ comparison:
   --scenario intense_short
 ```
 
+The same example now supports a minimal batch path for running several named
+scenarios over the same clip with deterministic per-scenario output paths:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_batch.csv \
+  --batch-scenarios baseline,intense_short,long_moderate
+```
+
 You can still override preset values directly when experimenting:
 
 ```bash

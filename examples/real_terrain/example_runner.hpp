@@ -25,10 +25,20 @@ struct ScenarioConfig {
     bool cli_overrides_applied {false};
 };
 
+struct ScenarioOverrides {
+    std::optional<double> rainfall_intensity_m_per_hour;
+    std::optional<double> runoff_coefficient;
+    std::optional<double> time_step_seconds;
+    std::optional<int> step_count;
+    std::optional<floodsim::BoundaryMode> boundary_mode;
+};
+
 struct ExampleArguments {
     std::filesystem::path input_dem_path;
     ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
+    ScenarioOverrides scenario_overrides;
+    std::vector<std::string> batch_scenario_names;
 };
 
 struct ScenarioPreset {
@@ -53,6 +63,7 @@ struct ExampleRunResult {
 [[nodiscard]] const std::vector<ScenarioPreset>& scenario_presets();
 [[nodiscard]] ExampleArguments parse_arguments(const std::vector<std::string>& args);
 [[nodiscard]] ExampleArguments parse_arguments(int argc, char** argv);
+[[nodiscard]] std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArguments& arguments);
 
 [[nodiscard]] ExampleRunResult run_example(const ExampleArguments& arguments);
 void write_export(

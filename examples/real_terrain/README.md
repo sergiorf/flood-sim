@@ -83,6 +83,29 @@ comparison, not calibrated local storm models. They are useful because they
 keep the repository talking about the same runs consistently while the
 underlying hydrology is still intentionally simple.
 
+You can also run several named scenarios over the same clip in one invocation:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_batch.csv \
+  --batch-scenarios baseline,intense_short,long_moderate
+```
+
+That batch path keeps the interface intentionally narrow:
+
+- the scenario list is a comma-separated set of the documented preset names
+- the same terrain clip, boundary mode, runoff coefficient, and optional window apply to every scenario in the batch
+- the positional output path becomes a deterministic base name, expanded into:
+- `real_terrain_batch_baseline.csv`
+- `real_terrain_batch_intense_short.csv`
+- `real_terrain_batch_long_moderate.csv`
+
+Each successful scenario still prints the same per-run summary and writes the
+same self-describing CSV metadata contract as single-scenario mode. If one
+scenario fails, the example reports `scenario_failed ...` with the scenario
+name and target output path so the failure is explicit.
+
 You can also override the rainfall and time-step settings through a small CLI:
 
 ```bash
@@ -122,6 +145,7 @@ repeatable real-area scenario without preprocessing a separate file first:
 Supported options:
 
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
+- `--batch-scenarios <name1,name2,...>`: run several documented scenario presets in one invocation and derive one output CSV per scenario from the positional output path
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
@@ -135,8 +159,9 @@ Supported options:
 Invalid values fail clearly. Rainfall intensity must be non-negative, and both
 the time step and step count must be positive. If any terrain-window option is
 used, both `--window-rows` and `--window-cols` are required, and the requested
-window must stay within the source raster bounds. Scenario validation is kept
-local to that `ScenarioConfig` construction instead of being spread across the
+window must stay within the source raster bounds. `--scenario` and
+`--batch-scenarios` are mutually exclusive. Scenario validation is kept local
+to that `ScenarioConfig` construction instead of being spread across the
 simulation setup path.
 
 The example prints a short load and simulation summary, then writes the same
