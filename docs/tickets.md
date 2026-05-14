@@ -54,39 +54,8 @@ Planning note:
 - `FS-029` completed the canonical real-scenario comparison walkthrough pass
 - `FS-024` completed the first batch execution pass for one terrain clip
 - `FS-025` completed the first batch comparison artifact pass
-- the next queued work is `FS-027` for an external scenario-definition format, or `FS-028` if intermediate time snapshots are more useful next
-
-## FS-027 - Add a simple scenario-definition file format
-
-Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- Named presets in code are a good bridge, but they will become limiting once users want to maintain a small set of shareable real scenarios.
-- Keeping all scenario definitions compiled into the example is friction for iteration and review.
-
-Proposed change:
-- Add a minimal human-editable scenario-definition format such as a narrow key-value or CSV contract.
-- Support only the fields already stabilized by the scenario config contract.
-
-Constraints:
-- Keep the format trivial to parse with the standard library.
-- Do not add YAML, JSON schema tooling, or external parsing dependencies unless explicitly justified later.
-
-Acceptance criteria:
-- A user can define at least one scenario outside the binary and run it reproducibly.
-- Invalid scenario files fail with clear messages.
-- The file contract is documented and intentionally small.
-
-Required tests:
-- Add parsing and validation coverage for valid and invalid files.
-- Existing CLI scenario paths continue to work.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- format notes in `docs/architecture.md` if needed
+- `FS-027` completed the first external scenario-definition format pass
+- the next queued work is `FS-028` for intermediate runoff snapshots, unless another modeling priority overtakes it
 
 ## FS-028 - Add runoff result snapshots at selected times
 

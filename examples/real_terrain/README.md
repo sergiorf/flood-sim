@@ -83,6 +83,40 @@ comparison, not calibrated local storm models. They are useful because they
 keep the repository talking about the same runs consistently while the
 underlying hydrology is still intentionally simple.
 
+You can also define scenarios outside the binary through a narrow CSV contract:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_from_file.csv \
+  --scenario-file examples/real_terrain/data/sample_single_scenario.csv
+```
+
+The current scenario-file header is fixed and intentionally small:
+
+```text
+scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode
+```
+
+Each non-empty row defines one scenario. The committed sample file looks like:
+
+```text
+scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode
+reviewed_screening,0.012000,1.000000,300.000000,12,open
+```
+
+Field meanings:
+
+- `scenario_name`: identifier written into reports and export metadata
+- `rainfall_intensity_m_per_hour`: uniform rainfall intensity in meters per hour
+- `runoff_coefficient`: retained rainfall fraction in `[0, 1]`
+- `time_step_seconds`: duration of one step in seconds
+- `steps`: positive integer number of steps
+- `boundary_mode`: `open` or `closed`
+
+Invalid files fail clearly for missing headers, malformed rows, unknown
+boundary modes, or invalid numeric bounds.
+
 You can also run several named scenarios over the same clip in one invocation:
 
 ```bash
@@ -92,9 +126,20 @@ You can also run several named scenarios over the same clip in one invocation:
   --batch-scenarios baseline,intense_short,long_moderate
 ```
 
+A multi-row scenario file uses the same batch/export path without requiring the
+scenario names to stay compiled into the example:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_file_batch.csv \
+  --scenario-file examples/real_terrain/data/sample_scenarios.csv
+```
+
 That batch path keeps the interface intentionally narrow:
 
 - the scenario list is a comma-separated set of the documented preset names
+- or a multi-row `--scenario-file` with the fixed header above
 - the same terrain clip, boundary mode, runoff coefficient, and optional window apply to every scenario in the batch
 - the positional output path becomes a deterministic base name, expanded into:
 - `real_terrain_batch_baseline.csv`
@@ -164,6 +209,7 @@ Supported options:
 
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
 - `--batch-scenarios <name1,name2,...>`: run several documented scenario presets in one invocation and derive one output CSV per scenario from the positional output path
+- `--scenario-file <path.csv>`: load one or more external scenario definitions from the fixed CSV contract above
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
@@ -178,9 +224,10 @@ Invalid values fail clearly. Rainfall intensity must be non-negative, and both
 the time step and step count must be positive. If any terrain-window option is
 used, both `--window-rows` and `--window-cols` are required, and the requested
 window must stay within the source raster bounds. `--scenario` and
-`--batch-scenarios` are mutually exclusive. Scenario validation is kept local
-to that `ScenarioConfig` construction instead of being spread across the
-simulation setup path.
+`--batch-scenarios` are mutually exclusive, and both are also mutually
+exclusive with `--scenario-file`. Scenario validation is kept local to that
+`ScenarioConfig` construction instead of being spread across the simulation
+setup path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing

@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
     try {
         const auto arguments = floodsim::examples::real_terrain::parse_arguments(argc, argv);
-        if (!arguments.batch_scenario_names.empty()) {
+        if (!arguments.batch_scenario_names.empty() || arguments.scenario_definitions.size() > 1) {
             bool had_failures = false;
             const auto batch_arguments =
                 floodsim::examples::real_terrain::build_batch_scenario_arguments(arguments);

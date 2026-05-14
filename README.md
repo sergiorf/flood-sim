@@ -112,6 +112,16 @@ comparison:
   --scenario intense_short
 ```
 
+It now also supports a narrow external scenario-definition CSV so reviewed
+scenario inputs do not need to remain compiled into the example:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_from_file.csv \
+  --scenario-file examples/real_terrain/data/sample_single_scenario.csv
+```
+
 The same example now supports a minimal batch path for running several named
 scenarios over the same clip with deterministic per-scenario output paths:
 

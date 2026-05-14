@@ -83,21 +83,42 @@ def run_example(binary_path: Path, terrain_path: Path, output_csv_path: Path, *a
     )
 
 
+def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
+    scenario_file_path = terrain_path.parent / "sample_single_scenario.csv"
+    output_csv_path = output_directory / "scenario_file_output.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--scenario-file",
+        str(scenario_file_path),
+    )
+
+    assert "scenario_name=reviewed_screening scenario_source=file" in completed.stdout
+    assert output_csv_path.exists()
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["scenario_name"] == "reviewed_screening"
+    assert metadata["boundary_mode"] == "open"
+    assert expected_summary_line(rows) in completed.stdout
+
+
 def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
+    scenario_file_path = terrain_path.parent / "sample_scenarios.csv"
     output_csv_path = output_directory / "batch_outputs.csv"
     completed = run_example(
         binary_path,
         terrain_path,
         output_csv_path,
-        "--batch-scenarios",
-        "baseline,intense_short,long_moderate",
+        "--scenario-file",
+        str(scenario_file_path),
     )
 
     expected_outputs = {
-        "baseline": output_directory / "batch_outputs_baseline.csv",
-        "intense_short": output_directory / "batch_outputs_intense_short.csv",
-        "long_moderate": output_directory / "batch_outputs_long_moderate.csv",
+        "baseline_file": output_directory / "batch_outputs_baseline_file.csv",
+        "intense_short_file": output_directory / "batch_outputs_intense_short_file.csv",
+        "long_moderate_file": output_directory / "batch_outputs_long_moderate_file.csv",
     }
     comparison_csv_path = output_directory / "batch_outputs_comparison.csv"
 
@@ -119,9 +140,9 @@ def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
         "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
         "deepest_row,deepest_col,output_csv\n"
     )
-    assert "baseline,open,0.012000,1.000000,300.000000,12,0.287743,24,0.096997,2,2," in comparison_csv_text
-    assert "intense_short,open,0.030000,1.000000,300.000000,6,0.359635,24,0.067712,2,2," in comparison_csv_text
-    assert "long_moderate,open,0.008000,1.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
+    assert "baseline_file,open,0.012000,1.000000,300.000000,12,0.287743,24,0.096997,2,2," in comparison_csv_text
+    assert "intense_short_file,open,0.030000,1.000000,300.000000,6,0.359635,24,0.067712,2,2," in comparison_csv_text
+    assert "long_moderate_file,open,0.008000,1.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
 
 
 def assert_fixture_run(
@@ -166,6 +187,7 @@ def main() -> int:
         assert expected_summary_line(rows) in completed.stdout
         assert metadata["scenario_name"] == "baseline"
 
+    assert_scenario_file_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
 
     return 0

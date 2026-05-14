@@ -22,6 +22,7 @@ struct ScenarioConfig {
     int step_count {12};
     floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Open};
     bool preset_applied {false};
+    bool file_applied {false};
     bool cli_overrides_applied {false};
 };
 
@@ -38,6 +39,8 @@ struct ExampleArguments {
     ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
     ScenarioOverrides scenario_overrides;
+    std::optional<std::filesystem::path> scenario_file_path;
+    std::vector<ScenarioConfig> scenario_definitions;
     std::vector<std::string> batch_scenario_names;
 };
 

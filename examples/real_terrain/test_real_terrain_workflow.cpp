@@ -32,6 +32,12 @@ std::string slurp_file(const std::filesystem::path& path) {
     return buffer.str();
 }
 
+void write_text_file(const std::filesystem::path& path, const std::string& text) {
+    std::ofstream output(path);
+    REQUIRE(output.good());
+    output << text;
+}
+
 ExampleRunResult run_fixture(const std::vector<std::string>& args, ExampleArguments& parsed_arguments) {
     parsed_arguments = parse_arguments(args);
     return run_example(parsed_arguments);
@@ -95,6 +101,48 @@ TEST_CASE("real terrain helper treats runoff coefficient as a CLI override") {
     CHECK(arguments.scenario.cli_overrides_applied);
     CHECK(arguments.scenario.runoff_coefficient == doctest::Approx(0.5));
     CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
+}
+
+TEST_CASE("real terrain helper loads single external scenario definition file") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--scenario-file",
+            fixture_path("examples/real_terrain/data/sample_single_scenario.csv").string(),
+        });
+
+    CHECK(arguments.scenario.file_applied);
+    CHECK(arguments.scenario.name == "reviewed_screening");
+    CHECK(arguments.scenario.rainfall_intensity_m_per_hour == doctest::Approx(0.012));
+    CHECK(arguments.scenario.runoff_coefficient == doctest::Approx(1.0));
+    CHECK(arguments.scenario.time_step_seconds == doctest::Approx(300.0));
+    CHECK(arguments.scenario.step_count == 12);
+    CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
+    CHECK(scenario_source_to_string(arguments.scenario) == "file");
+}
+
+TEST_CASE("real terrain helper loads batch external scenario definition file") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "file_batch.csv",
+            "--scenario-file",
+            fixture_path("examples/real_terrain/data/sample_scenarios.csv").string(),
+        });
+
+    REQUIRE(arguments.scenario_definitions.size() == 3);
+    CHECK(arguments.scenario_definitions[0].name == "baseline_file");
+    CHECK(arguments.scenario_definitions[1].name == "intense_short_file");
+    CHECK(arguments.scenario_definitions[2].name == "long_moderate_file");
+
+    const auto batch_arguments = build_batch_scenario_arguments(arguments);
+    REQUIRE(batch_arguments.size() == 3);
+    CHECK(batch_arguments[0].scenario.output_csv_path == std::filesystem::path("file_batch_baseline_file.csv"));
+    CHECK(batch_arguments[1].scenario.output_csv_path == std::filesystem::path("file_batch_intense_short_file.csv"));
+    CHECK(batch_arguments[2].scenario.output_csv_path == std::filesystem::path("file_batch_long_moderate_file.csv"));
 }
 
 TEST_CASE("real terrain helper parses batch scenario list") {
@@ -193,7 +241,41 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "--batch-scenarios",
                 "intense_short,long_moderate",
             })),
-        doctest::Contains("Use either --scenario or --batch-scenarios, not both"));
+        doctest::Contains("Use only one of --scenario, --batch-scenarios, or --scenario-file"));
+
+    const auto invalid_header_path = std::filesystem::temp_directory_path() / "floodsim_invalid_scenario_header.csv";
+    write_text_file(
+        invalid_header_path,
+        "scenario,bad_header\n"
+        "demo,0.012\n");
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--scenario-file",
+                invalid_header_path.string(),
+            })),
+        doctest::Contains("Scenario file has invalid header"));
+    std::filesystem::remove(invalid_header_path);
+
+    const auto invalid_boundary_path = std::filesystem::temp_directory_path() / "floodsim_invalid_scenario_boundary.csv";
+    write_text_file(
+        invalid_boundary_path,
+        "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode\n"
+        "demo,0.012000,1.000000,300.000000,12,sideways\n");
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--scenario-file",
+                invalid_boundary_path.string(),
+            })),
+        doctest::Contains("Invalid value for scenario file boundary mode"));
+    std::filesystem::remove(invalid_boundary_path);
 }
 
 TEST_CASE("real terrain helper runs nodata basin fixture and reports deterministic summary") {

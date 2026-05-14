@@ -39,6 +39,11 @@ simulation-facing rainfall and step settings. That workflow logic now lives in
 a small example-support C++ layer rather than in `main()`, so parsing,
 validation, execution, reporting, and export orchestration can be tested
 without pushing those concerns into the simulation kernel.
+That same example support layer now also accepts one tiny CSV scenario-file
+contract with a fixed header and one row per scenario. The format is
+intentionally narrow and local to the example workflow: it covers only the
+stabilized scenario fields already present in `ScenarioConfig` and avoids
+bringing in broader config-file tooling.
 Regression fixtures for that example live alongside the example assets and test
 harness, not in the simulation-core interfaces. That keeps fixture identity,
 test expectations, and smoke-case intent out of the engine configuration
