@@ -136,6 +136,10 @@ That batch run also writes one compact comparison CSV beside the per-scenario
 outputs so the first real-scenario workflow does not require manually reading
 every scenario export in isolation.
 
+The same workflow can also emit deterministic intermediate snapshot CSVs using
+`--snapshot-every-steps <count>` so scenario timing can be inspected before a
+richer viewer exists.
+
 You can still override preset values directly when experimenting:
 
 ```bash

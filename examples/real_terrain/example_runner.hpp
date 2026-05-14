@@ -38,6 +38,7 @@ struct ExampleArguments {
     std::filesystem::path input_dem_path;
     ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
+    std::optional<int> snapshot_every_steps;
     ScenarioOverrides scenario_overrides;
     std::optional<std::filesystem::path> scenario_file_path;
     std::vector<ScenarioConfig> scenario_definitions;
@@ -53,9 +54,17 @@ struct ScenarioPreset {
 };
 
 struct ExampleRunResult {
+    struct SnapshotResult {
+        int completed_steps;
+        double elapsed_seconds;
+        floodsim::Grid grid;
+        floodsim::GridSummaryMetrics summary_metrics;
+    };
+
     floodsim::LoadedTerrainRaster loaded_terrain;
     floodsim::Grid grid;
     floodsim::GridSummaryMetrics summary_metrics;
+    std::vector<SnapshotResult> snapshots;
 };
 
 struct BatchScenarioResult {
@@ -73,6 +82,10 @@ struct BatchScenarioResult {
 [[nodiscard]] ExampleArguments parse_arguments(int argc, char** argv);
 [[nodiscard]] std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArguments& arguments);
 [[nodiscard]] std::filesystem::path derive_batch_comparison_output_path(const std::filesystem::path& base_output_path);
+[[nodiscard]] std::filesystem::path derive_snapshot_output_path(
+    const std::filesystem::path& base_output_path,
+    int completed_steps,
+    double elapsed_seconds);
 
 [[nodiscard]] ExampleRunResult run_example(const ExampleArguments& arguments);
 void write_export(
@@ -84,6 +97,10 @@ void print_run_report(
     std::ostream& output,
     const ExampleArguments& arguments,
     const ExampleRunResult& result);
+void write_snapshot_exports(
+    const ExampleRunResult& result,
+    const ScenarioConfig& scenario,
+    const std::filesystem::path& base_output_path);
 void write_batch_comparison_csv(
     const std::vector<BatchScenarioResult>& batch_results,
     const std::filesystem::path& output_path);

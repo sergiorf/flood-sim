@@ -111,6 +111,11 @@ metrics summary derived from the current grid state, including wet-cell count,
 maximum depth, and the deepest-cell location. That summary is intentionally a
 lightweight comparison aid rather than a richer reporting artifact.
 
+The same workflow can now also emit deterministic intermediate snapshot CSVs at
+selected completed-step intervals. Those snapshots reuse the main per-cell CSV
+contract and identify simulation time through deterministic filenames rather
+than a separate time-series container.
+
 The simulation-facing configuration now also includes a simple runoff
 coefficient. In the current MVP this acts as a narrow rainfall-retention
 control: it scales how much rainfall becomes immediate surface water before

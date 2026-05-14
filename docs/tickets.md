@@ -55,39 +55,8 @@ Planning note:
 - `FS-024` completed the first batch execution pass for one terrain clip
 - `FS-025` completed the first batch comparison artifact pass
 - `FS-027` completed the first external scenario-definition format pass
-- the next queued work is `FS-028` for intermediate runoff snapshots, unless another modeling priority overtakes it
-
-## FS-028 - Add runoff result snapshots at selected times
-
-Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- Final-state output is not always enough for real scenarios because timing matters when comparing short intense storms against longer moderate ones.
-- Without intermediate snapshots, scenario review is biased toward end-state inspection only.
-
-Proposed change:
-- Allow the real-terrain workflow to export a small number of selected time snapshots during a run.
-- Keep selection simple, such as every N steps or a short explicit step list.
-
-Constraints:
-- Avoid building a full time-series storage system.
-- Keep default behavior small enough for local runs and tests.
-
-Acceptance criteria:
-- A user can request intermediate output snapshots in a documented way.
-- Snapshot filenames or metadata clearly identify simulation time.
-- The implementation preserves deterministic ordering and stable export semantics.
-
-Required tests:
-- Add coverage for snapshot selection and output naming.
-- Existing export and example tests continue to pass or are updated deliberately.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- export behavior notes where appropriate
+- `FS-028` completed the first intermediate runoff snapshot pass
+- the next planning surface is the product MVP task list in `docs/roadmap.md`, with bias toward more terrain fixtures, map loading, visualization, and the next realism-bearing model change
 
 ## In Progress
 

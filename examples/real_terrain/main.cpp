@@ -21,10 +21,24 @@ int main(int argc, char** argv) {
                         result.loaded_terrain.terrain,
                         scenario_arguments.scenario,
                         scenario_arguments.scenario.output_csv_path);
+                    floodsim::examples::real_terrain::write_snapshot_exports(
+                        result,
+                        scenario_arguments.scenario,
+                        scenario_arguments.scenario.output_csv_path);
                     floodsim::examples::real_terrain::print_run_report(
                         std::cout,
                         scenario_arguments,
                         result);
+                    for (const auto& snapshot : result.snapshots) {
+                        std::cout << "wrote_snapshot_csv=\""
+                                  << floodsim::examples::real_terrain::derive_snapshot_output_path(
+                                         scenario_arguments.scenario.output_csv_path,
+                                         snapshot.completed_steps,
+                                         snapshot.elapsed_seconds)
+                                         .string()
+                                  << "\" completed_steps=" << snapshot.completed_steps
+                                  << " elapsed_seconds=" << snapshot.elapsed_seconds << '\n';
+                    }
                     batch_results.push_back(
                         floodsim::examples::real_terrain::BatchScenarioResult {
                             .arguments = scenario_arguments,
@@ -57,7 +71,21 @@ int main(int argc, char** argv) {
             result.loaded_terrain.terrain,
             arguments.scenario,
             arguments.scenario.output_csv_path);
+        floodsim::examples::real_terrain::write_snapshot_exports(
+            result,
+            arguments.scenario,
+            arguments.scenario.output_csv_path);
         floodsim::examples::real_terrain::print_run_report(std::cout, arguments, result);
+        for (const auto& snapshot : result.snapshots) {
+            std::cout << "wrote_snapshot_csv=\""
+                      << floodsim::examples::real_terrain::derive_snapshot_output_path(
+                             arguments.scenario.output_csv_path,
+                             snapshot.completed_steps,
+                             snapshot.elapsed_seconds)
+                             .string()
+                      << "\" completed_steps=" << snapshot.completed_steps
+                      << " elapsed_seconds=" << snapshot.elapsed_seconds << '\n';
+        }
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

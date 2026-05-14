@@ -205,11 +205,39 @@ repeatable real-area scenario without preprocessing a separate file first:
   --window-cols 2
 ```
 
+You can also export a small number of intermediate runoff snapshots during a
+run:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  real_terrain_output.csv \
+  --snapshot-every-steps 4
+```
+
+With the default baseline scenario (`12` steps of `300` seconds), that writes:
+
+- `real_terrain_output.csv` for the final state at step `12`
+- `real_terrain_output_step0004_t1200s.csv`
+- `real_terrain_output_step0008_t2400s.csv`
+
+The snapshot path contract is intentionally simple and deterministic:
+
+- base output stem from the positional CSV path
+- `_stepNNNN` using zero-padded completed-step count
+- `_t<seconds>s` using elapsed simulation seconds
+- original `.csv` suffix
+
+Snapshots are intermediate-only. If a selected snapshot step would equal the
+final export step, the example keeps only the normal final output CSV rather
+than writing a duplicate snapshot file.
+
 Supported options:
 
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
 - `--batch-scenarios <name1,name2,...>`: run several documented scenario presets in one invocation and derive one output CSV per scenario from the positional output path
 - `--scenario-file <path.csv>`: load one or more external scenario definitions from the fixed CSV contract above
+- `--snapshot-every-steps <count>`: write one intermediate snapshot CSV every N completed steps, excluding the final output step
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
@@ -225,9 +253,9 @@ the time step and step count must be positive. If any terrain-window option is
 used, both `--window-rows` and `--window-cols` are required, and the requested
 window must stay within the source raster bounds. `--scenario` and
 `--batch-scenarios` are mutually exclusive, and both are also mutually
-exclusive with `--scenario-file`. Scenario validation is kept local to that
-`ScenarioConfig` construction instead of being spread across the simulation
-setup path.
+exclusive with `--scenario-file`. Snapshot intervals must be positive.
+Scenario validation is kept local to that `ScenarioConfig` construction instead
+of being spread across the simulation setup path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing

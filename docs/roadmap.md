@@ -28,6 +28,38 @@ toy scenario mechanics. Once the repository has enough scaffolding to run,
 label, and compare a small number of deterministic real-terrain cases, priority
 should shift to the first realism-bearing simulation improvements.
 
+## Product MVP Task List
+
+This is the current product-focused task stack for a free-data MVP aimed at
+city-planning screening workflows in markets such as Europe and Brazil.
+
+### Hydrology engine
+
+1. Add intermediate runoff snapshots so short and long events can be compared through time, not only at final state.
+2. Add a few more curated real-terrain regression clips that represent distinct planning cases such as steep drainage, flat ponding, and nodata-heavy edges.
+3. Add the next realism-bearing hydrology improvement after snapshots, biased toward model meaning rather than more workflow mechanics.
+4. Add benchmark-style fixture comparisons so changes in retained water, peak depth, and timing remain explainable.
+
+### Map loading
+
+1. Define one narrow MVP area-loading contract around a DEM clip, optional boundary, and explicit provenance.
+2. Add support for clipping user-selected areas from free baseline DEM sources, starting from globally or regionally available products.
+3. Normalize CRS, nodata, and clip-status reporting so imported areas are trustworthy enough for planner review.
+4. Add local cache and provenance metadata so repeated area loads are reproducible and inspectable.
+
+### Visualization
+
+1. Add snapshot-aware exports that can support time-based review before any richer viewer exists.
+2. Build a minimal local viewer that can show terrain plus flood-depth overlays over time.
+3. Add scenario comparison views, including side-by-side or delta inspection.
+4. Add exportable planner-facing artifacts such as screenshots, summary tables, and run provenance bundles.
+
+### Product guardrails
+
+1. Keep the MVP positioned as screening and scenario-comparison support, not regulatory or drainage-design analysis.
+2. Prefer a few reliable free-data workflows over broad source coverage without clear interpretation.
+3. Stop adding workflow mechanics once they no longer improve trust, usability, or decision value.
+
 ## Phase 1. Toy grid simulation
 
 Build a clear, tested raster-grid prototype with rainfall accumulation and simple downhill flow.

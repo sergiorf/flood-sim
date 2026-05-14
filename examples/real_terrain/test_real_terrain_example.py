@@ -103,6 +103,44 @@ def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
     assert expected_summary_line(rows) in completed.stdout
 
 
+def assert_snapshot_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
+    output_csv_path = output_directory / "snapshot_output.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--snapshot-every-steps",
+        "4",
+    )
+
+    snapshot_paths = (
+        output_directory / "snapshot_output_step0004_t1200s.csv",
+        output_directory / "snapshot_output_step0008_t2400s.csv",
+    )
+
+    expected_elapsed = {
+        snapshot_paths[0]: "1200.000",
+        snapshot_paths[1]: "2400.000",
+    }
+
+    for snapshot_path in snapshot_paths:
+        assert snapshot_path.exists()
+        assert f'wrote_snapshot_csv="{snapshot_path}"' in completed.stdout
+        metadata, rows = parse_export(snapshot_path)
+        assert metadata["scenario_name"] == "baseline"
+        assert metadata["boundary_mode"] == "open"
+        max_depth = max(float(row["water_depth_m"]) for row in rows)
+        wet_cells = sum(1 for row in rows if float(row["water_depth_m"]) > 0.0)
+        assert (
+            f"snapshot_metrics completed_steps="
+            f"{4 if snapshot_path == snapshot_paths[0] else 8} "
+            f"elapsed_seconds={expected_elapsed[snapshot_path]} "
+            f"wet_cells={wet_cells} "
+            f"max_water_depth_m={max_depth:.6f}"
+        ) in completed.stdout
+
+
 def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
     scenario_file_path = terrain_path.parent / "sample_scenarios.csv"
@@ -187,6 +225,7 @@ def main() -> int:
         assert expected_summary_line(rows) in completed.stdout
         assert metadata["scenario_name"] == "baseline"
 
+    assert_snapshot_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
 

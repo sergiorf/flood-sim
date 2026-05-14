@@ -164,6 +164,20 @@ TEST_CASE("real terrain helper parses batch scenario list") {
     CHECK(arguments.scenario_overrides.runoff_coefficient == doctest::Approx(0.5));
 }
 
+TEST_CASE("real terrain helper parses snapshot interval") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--snapshot-every-steps",
+            "4",
+        });
+
+    REQUIRE(arguments.snapshot_every_steps.has_value());
+    CHECK(*arguments.snapshot_every_steps == 4);
+}
+
 TEST_CASE("real terrain helper expands batch scenarios into deterministic output paths") {
     const auto arguments = parse_arguments(
         {
@@ -276,6 +290,17 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
             })),
         doctest::Contains("Invalid value for scenario file boundary mode"));
     std::filesystem::remove(invalid_boundary_path);
+
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--snapshot-every-steps",
+                "0",
+            })),
+        doctest::Contains("Snapshot interval must be positive"));
 }
 
 TEST_CASE("real terrain helper runs nodata basin fixture and reports deterministic summary") {
@@ -333,6 +358,33 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(export_text.find("# scenario_name,baseline") != std::string::npos);
     CHECK(export_text.find("# boundary_mode,open") != std::string::npos);
     std::filesystem::remove(export_path);
+}
+
+TEST_CASE("real terrain helper captures deterministic intermediate snapshots") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--snapshot-every-steps",
+            "4",
+        });
+    const auto result = run_example(arguments);
+
+    REQUIRE(result.snapshots.size() == 2);
+    CHECK(result.snapshots[0].completed_steps == 4);
+    CHECK(result.snapshots[0].elapsed_seconds == doctest::Approx(1200.0));
+    CHECK(result.snapshots[1].completed_steps == 8);
+    CHECK(result.snapshots[1].elapsed_seconds == doctest::Approx(2400.0));
+    CHECK(result.snapshots[0].summary_metrics.wet_cell_count == 24);
+    CHECK(result.snapshots[1].summary_metrics.wet_cell_count == 24);
+
+    const auto first_snapshot_path =
+        floodsim::examples::real_terrain::derive_snapshot_output_path("output.csv", 4, 1200.0);
+    const auto second_snapshot_path =
+        floodsim::examples::real_terrain::derive_snapshot_output_path("output.csv", 8, 2400.0);
+    CHECK(first_snapshot_path == std::filesystem::path("output_step0004_t1200s.csv"));
+    CHECK(second_snapshot_path == std::filesystem::path("output_step0008_t2400s.csv"));
 }
 
 TEST_CASE("real terrain helper runoff coefficient reduces retained water and is exported") {

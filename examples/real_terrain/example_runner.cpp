@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -146,6 +147,12 @@ void validate_window_arguments(const std::optional<floodsim::TerrainWindow>& ter
     }
 }
 
+void validate_snapshot_interval(const std::optional<int> snapshot_every_steps) {
+    if (snapshot_every_steps.has_value() && *snapshot_every_steps <= 0) {
+        throw_usage_error("Snapshot interval must be positive");
+    }
+}
+
 std::vector<std::string> parse_batch_scenario_names_argument(const std::string& value) {
     std::vector<std::string> names;
     std::stringstream value_stream(value);
@@ -247,6 +254,7 @@ std::string usage_message() {
         " [--scenario <name>]"
         " [--batch-scenarios <name1,name2,...>]"
         " [--scenario-file <path.csv>]"
+        " [--snapshot-every-steps <count>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--runoff-coefficient <value>]"
@@ -341,6 +349,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     std::optional<std::string> scenario_preset_name;
     std::optional<std::vector<std::string>> batch_scenario_names;
     std::optional<std::filesystem::path> scenario_file_path;
+    std::optional<int> snapshot_every_steps;
     std::optional<double> rainfall_override;
     std::optional<double> runoff_coefficient_override;
     std::optional<double> time_step_override;
@@ -359,6 +368,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
             batch_scenario_names = parse_batch_scenario_names_argument(value);
         } else if (option == "--scenario-file") {
             scenario_file_path = value;
+        } else if (option == "--snapshot-every-steps") {
+            snapshot_every_steps = parse_int_argument(option, value);
+            arguments.snapshot_every_steps = snapshot_every_steps;
         } else if (option == "--boundary-mode") {
             arguments.scenario.boundary_mode = parse_boundary_mode_argument(value);
             arguments.scenario_overrides.boundary_mode = arguments.scenario.boundary_mode;
@@ -459,6 +471,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
 
     validate_scenario_config(arguments.scenario);
     validate_window_arguments(arguments.terrain_window);
+    validate_snapshot_interval(arguments.snapshot_every_steps);
     return arguments;
 }
 
@@ -527,6 +540,22 @@ std::filesystem::path derive_batch_comparison_output_path(const std::filesystem:
     return parent / (batch_output_stem(base_output_path) + "_comparison.csv");
 }
 
+std::filesystem::path derive_snapshot_output_path(
+    const std::filesystem::path& base_output_path,
+    int completed_steps,
+    double elapsed_seconds) {
+    const std::filesystem::path parent = base_output_path.parent_path();
+    const std::string extension = base_output_path.has_extension()
+        ? base_output_path.extension().string()
+        : ".csv";
+    std::ostringstream step_fragment;
+    step_fragment << std::setw(4) << std::setfill('0') << completed_steps;
+    const long elapsed_seconds_rounded = std::lround(elapsed_seconds);
+    return parent /
+        (batch_output_stem(base_output_path) + "_step" + step_fragment.str() +
+         "_t" + std::to_string(elapsed_seconds_rounded) + "s" + extension);
+}
+
 ExampleRunResult run_example(const ExampleArguments& arguments) {
     ExampleRunResult result {
         .loaded_terrain = arguments.terrain_window.has_value()
@@ -548,6 +577,19 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
 
     for (int step = 0; step < arguments.scenario.step_count; ++step) {
         floodsim::step(result.grid, rainfall, config);
+        const int completed_steps = step + 1;
+        if (arguments.snapshot_every_steps.has_value() &&
+            completed_steps % *arguments.snapshot_every_steps == 0 &&
+            completed_steps < arguments.scenario.step_count) {
+            floodsim::Grid snapshot_grid = result.grid;
+            result.snapshots.push_back(
+                ExampleRunResult::SnapshotResult {
+                    .completed_steps = completed_steps,
+                    .elapsed_seconds = arguments.scenario.time_step_seconds * static_cast<double>(completed_steps),
+                    .grid = std::move(snapshot_grid),
+                    .summary_metrics = floodsim::compute_grid_summary_metrics(result.grid),
+                });
+        }
     }
 
     result.summary_metrics = floodsim::compute_grid_summary_metrics(result.grid);
@@ -646,6 +688,39 @@ void print_run_report(
     }
     output << '\n';
     output << "wrote_csv=" << scenario.output_csv_path << '\n';
+    for (const auto& snapshot : result.snapshots) {
+        output << "snapshot_metrics"
+               << " completed_steps=" << snapshot.completed_steps
+               << " elapsed_seconds=" << std::fixed << std::setprecision(3)
+               << snapshot.elapsed_seconds
+               << " wet_cells=" << snapshot.summary_metrics.wet_cell_count
+               << " max_water_depth_m=" << std::fixed << std::setprecision(6)
+               << snapshot.summary_metrics.max_water_depth_m
+               << '\n';
+    }
+}
+
+void write_snapshot_exports(
+    const ExampleRunResult& result,
+    const ScenarioConfig& scenario,
+    const std::filesystem::path& base_output_path) {
+    for (const auto& snapshot : result.snapshots) {
+        const std::filesystem::path snapshot_output_path =
+            derive_snapshot_output_path(base_output_path, snapshot.completed_steps, snapshot.elapsed_seconds);
+        write_export(
+            snapshot.grid,
+            result.loaded_terrain.terrain,
+            ScenarioConfig {
+                .name = scenario.name,
+                .output_csv_path = snapshot_output_path,
+                .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
+                .runoff_coefficient = scenario.runoff_coefficient,
+                .time_step_seconds = scenario.time_step_seconds,
+                .step_count = snapshot.completed_steps,
+                .boundary_mode = scenario.boundary_mode,
+            },
+            snapshot_output_path);
+    }
 }
 
 void write_batch_comparison_csv(
