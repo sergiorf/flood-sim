@@ -131,6 +131,11 @@ std::filesystem::path derive_batch_output_path(
     return parent / (batch_stem + "_" + scenario_name + extension);
 }
 
+std::string batch_output_stem(const std::filesystem::path& base_output_path) {
+    const std::string stem = base_output_path.stem().string();
+    return stem.empty() ? base_output_path.filename().string() : stem;
+}
+
 }  // namespace
 
 std::string usage_message() {
@@ -388,6 +393,11 @@ std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArgume
     return batch_arguments;
 }
 
+std::filesystem::path derive_batch_comparison_output_path(const std::filesystem::path& base_output_path) {
+    const std::filesystem::path parent = base_output_path.parent_path();
+    return parent / (batch_output_stem(base_output_path) + "_comparison.csv");
+}
+
 ExampleRunResult run_example(const ExampleArguments& arguments) {
     ExampleRunResult result {
         .loaded_terrain = arguments.terrain_window.has_value()
@@ -507,6 +517,46 @@ void print_run_report(
     }
     output << '\n';
     output << "wrote_csv=" << scenario.output_csv_path << '\n';
+}
+
+void write_batch_comparison_csv(
+    const std::vector<BatchScenarioResult>& batch_results,
+    const std::filesystem::path& output_path) {
+    std::ofstream output(output_path);
+    if (!output) {
+        throw std::runtime_error("Failed to open batch comparison CSV output path");
+    }
+
+    output << "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,"
+              "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
+              "deepest_row,deepest_col,output_csv\n";
+
+    for (const BatchScenarioResult& batch_result : batch_results) {
+        const ScenarioConfig& scenario = batch_result.arguments.scenario;
+        const floodsim::GridSummaryMetrics& metrics = batch_result.result.summary_metrics;
+        output << scenario.name << ','
+               << boundary_mode_to_string(scenario.boundary_mode) << ','
+               << std::fixed << std::setprecision(6)
+               << scenario.rainfall_intensity_m_per_hour << ','
+               << scenario.runoff_coefficient << ','
+               << scenario.time_step_seconds << ','
+               << scenario.step_count << ','
+               << batch_result.result.grid.total_water_depth() << ','
+               << metrics.wet_cell_count << ','
+               << metrics.max_water_depth_m << ',';
+        if (metrics.deepest_row.has_value()) {
+            output << *metrics.deepest_row;
+        } else {
+            output << "none";
+        }
+        output << ',';
+        if (metrics.deepest_col.has_value()) {
+            output << *metrics.deepest_col;
+        } else {
+            output << "none";
+        }
+        output << ',' << scenario.output_csv_path.string() << '\n';
+    }
 }
 
 }  // namespace floodsim::examples::real_terrain

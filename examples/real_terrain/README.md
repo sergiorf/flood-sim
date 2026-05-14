@@ -100,11 +100,29 @@ That batch path keeps the interface intentionally narrow:
 - `real_terrain_batch_baseline.csv`
 - `real_terrain_batch_intense_short.csv`
 - `real_terrain_batch_long_moderate.csv`
+- `real_terrain_batch_comparison.csv`
 
 Each successful scenario still prints the same per-run summary and writes the
 same self-describing CSV metadata contract as single-scenario mode. If one
 scenario fails, the example reports `scenario_failed ...` with the scenario
 name and target output path so the failure is explicit.
+
+The batch mode also writes one compact comparison artifact beside those
+per-scenario CSVs. The current contract is a narrow CSV table with one row per
+scenario and these columns:
+
+- `scenario_name`
+- `boundary_mode`
+- `rainfall_intensity_m_per_hour`
+- `runoff_coefficient`
+- `time_step_seconds`
+- `steps`
+- `total_water_depth_m`
+- `wet_cells`
+- `max_water_depth_m`
+- `deepest_row`
+- `deepest_col`
+- `output_csv`
 
 You can also override the rainfall and time-step settings through a small CLI:
 
@@ -252,6 +270,7 @@ Each run writes one deterministic CSV artifact:
 - `fs029_baseline.csv`
 - `fs029_intense_short.csv`
 - `fs029_long_moderate.csv`
+- `fs029_comparison.csv` if you instead use the batch invocation with `--batch-scenarios baseline,intense_short,long_moderate`
 
 Each CSV should carry the same terrain metadata and a scenario-specific
 metadata preamble, including:
@@ -297,6 +316,27 @@ python3 examples/simple_grid/inspect_export.py fs029_baseline.csv
 python3 examples/simple_grid/inspect_export.py fs029_intense_short.csv
 python3 examples/simple_grid/inspect_export.py fs029_long_moderate.csv
 ```
+
+If you want the same comparison captured as one machine-readable artifact
+instead of reading three separate run summaries, run the batch variant:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  fs029.csv \
+  --batch-scenarios baseline,intense_short,long_moderate
+```
+
+That invocation writes:
+
+- `fs029_baseline.csv`
+- `fs029_intense_short.csv`
+- `fs029_long_moderate.csv`
+- `fs029_comparison.csv`
+
+The comparison CSV currently contains one deterministic row per scenario with
+the summary values listed above. It is intended for manual inspection and
+future scripting, not as a stable long-term analytics schema yet.
 
 What this walkthrough proves today:
 

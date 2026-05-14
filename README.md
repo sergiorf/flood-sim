@@ -122,6 +122,10 @@ scenarios over the same clip with deterministic per-scenario output paths:
   --batch-scenarios baseline,intense_short,long_moderate
 ```
 
+That batch run also writes one compact comparison CSV beside the per-scenario
+outputs so the first real-scenario workflow does not require manually reading
+every scenario export in isolation.
+
 You can still override preset values directly when experimenting:
 
 ```bash

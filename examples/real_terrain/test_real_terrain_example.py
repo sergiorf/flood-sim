@@ -99,6 +99,7 @@ def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
         "intense_short": output_directory / "batch_outputs_intense_short.csv",
         "long_moderate": output_directory / "batch_outputs_long_moderate.csv",
     }
+    comparison_csv_path = output_directory / "batch_outputs_comparison.csv"
 
     for scenario_name, csv_path in expected_outputs.items():
         assert f"scenario_name={scenario_name}" in completed.stdout
@@ -109,6 +110,18 @@ def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
         assert metadata["scenario_name"] == scenario_name
         assert metadata["boundary_mode"] == "open"
         assert expected_summary_line(rows) in completed.stdout
+
+    assert f'wrote_comparison_csv="{comparison_csv_path}"' in completed.stdout
+    assert comparison_csv_path.exists()
+    comparison_csv_text = comparison_csv_path.read_text(encoding="utf-8")
+    assert comparison_csv_text.startswith(
+        "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,"
+        "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
+        "deepest_row,deepest_col,output_csv\n"
+    )
+    assert "baseline,open,0.012000,1.000000,300.000000,12,0.287743,24,0.096997,2,2," in comparison_csv_text
+    assert "intense_short,open,0.030000,1.000000,300.000000,6,0.359635,24,0.067712,2,2," in comparison_csv_text
+    assert "long_moderate,open,0.008000,1.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
 
 
 def assert_fixture_run(

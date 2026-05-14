@@ -139,6 +139,12 @@ TEST_CASE("real terrain helper expands batch scenarios into deterministic output
     CHECK(batch_arguments[1].scenario.boundary_mode == floodsim::BoundaryMode::Closed);
 }
 
+TEST_CASE("real terrain helper derives deterministic batch comparison path") {
+    const auto comparison_path =
+        floodsim::examples::real_terrain::derive_batch_comparison_output_path("batch_outputs.csv");
+    CHECK(comparison_path == std::filesystem::path("batch_outputs_comparison.csv"));
+}
+
 TEST_CASE("real terrain helper defaults to open boundary for clipped-terrain runs") {
     const auto arguments = parse_arguments(
         {
@@ -331,6 +337,39 @@ TEST_CASE("named real-terrain scenarios produce deterministic comparison metrics
     CHECK(baseline_result.summary_metrics.max_water_depth_m == doctest::Approx(0.096997).epsilon(1e-6));
     CHECK(intense_short_result.summary_metrics.max_water_depth_m == doctest::Approx(0.067712).epsilon(1e-6));
     CHECK(long_moderate_result.summary_metrics.max_water_depth_m == doctest::Approx(0.402130).epsilon(1e-6));
+}
+
+TEST_CASE("batch comparison export writes deterministic scenario summary table") {
+    const auto sample_dem = fixture_path("examples/real_terrain/data/sample_dem.tif").string();
+    const auto batch_arguments = build_batch_scenario_arguments(parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            sample_dem,
+            "batch_outputs.csv",
+            "--batch-scenarios",
+            "baseline,intense_short",
+        }));
+
+    std::vector<floodsim::examples::real_terrain::BatchScenarioResult> batch_results;
+    for (const auto& arguments : batch_arguments) {
+        batch_results.push_back(
+            floodsim::examples::real_terrain::BatchScenarioResult {
+                .arguments = arguments,
+                .result = run_example(arguments),
+            });
+    }
+
+    const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_batch_comparison.csv";
+    floodsim::examples::real_terrain::write_batch_comparison_csv(batch_results, export_path);
+    const std::string export_text = slurp_file(export_path);
+
+    CHECK(export_text.find(
+              "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,"
+              "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
+              "deepest_row,deepest_col,output_csv") == 0);
+    CHECK(export_text.find("baseline,open,0.012000,1.000000,300.000000,12,0.287743,24,0.096997,2,2,batch_outputs_baseline.csv") != std::string::npos);
+    CHECK(export_text.find("intense_short,open,0.030000,1.000000,300.000000,6,0.359635,24,0.067712,2,2,batch_outputs_intense_short.csv") != std::string::npos);
+    std::filesystem::remove(export_path);
 }
 
 TEST_CASE("open boundary retains less water than closed boundary on drainage slope fixture") {

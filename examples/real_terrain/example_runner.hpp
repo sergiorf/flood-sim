@@ -55,6 +55,11 @@ struct ExampleRunResult {
     floodsim::GridSummaryMetrics summary_metrics;
 };
 
+struct BatchScenarioResult {
+    ExampleArguments arguments;
+    ExampleRunResult result;
+};
+
 [[nodiscard]] std::string usage_message();
 [[nodiscard]] std::string nodata_status_to_string(floodsim::TerrainNodataStatus status);
 [[nodiscard]] std::string boundary_mode_to_string(floodsim::BoundaryMode mode);
@@ -64,6 +69,7 @@ struct ExampleRunResult {
 [[nodiscard]] ExampleArguments parse_arguments(const std::vector<std::string>& args);
 [[nodiscard]] ExampleArguments parse_arguments(int argc, char** argv);
 [[nodiscard]] std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArguments& arguments);
+[[nodiscard]] std::filesystem::path derive_batch_comparison_output_path(const std::filesystem::path& base_output_path);
 
 [[nodiscard]] ExampleRunResult run_example(const ExampleArguments& arguments);
 void write_export(
@@ -75,5 +81,8 @@ void print_run_report(
     std::ostream& output,
     const ExampleArguments& arguments,
     const ExampleRunResult& result);
+void write_batch_comparison_csv(
+    const std::vector<BatchScenarioResult>& batch_results,
+    const std::filesystem::path& output_path);
 
 }  // namespace floodsim::examples::real_terrain

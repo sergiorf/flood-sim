@@ -53,38 +53,8 @@ Planning note:
 - deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
 - `FS-029` completed the canonical real-scenario comparison walkthrough pass
 - `FS-024` completed the first batch execution pass for one terrain clip
-- the next queued work is the comparison artifact path starting with `FS-025`
-
-## FS-025 - Add scenario-comparison summaries across batch runs
-
-Status: Todo
-Owner: Unassigned
-Priority: P3
-
-Problem:
-- Batch execution alone still leaves users reading multiple outputs manually.
-- The first useful real-scenario workflow needs one compact comparison artifact before any map-based viewer exists.
-
-Proposed change:
-- Produce a small comparison table across batch runs with shared metrics such as maximum depth and wet-cell count.
-- Keep the artifact text-based or CSV-based for now.
-
-Constraints:
-- Reuse metrics already defined for single runs where possible.
-- Avoid introducing visualization or dashboard work in this ticket.
-
-Acceptance criteria:
-- Batch runs produce one deterministic comparison artifact.
-- The comparison clearly identifies each scenario and its summary values.
-- The output is documented well enough for manual inspection or future scripting.
-
-Required tests:
-- Add narrow tests for comparison-table generation.
-- Existing batch workflow tests continue to pass.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
+- `FS-025` completed the first batch comparison artifact pass
+- the next queued work is `FS-027` for an external scenario-definition format, or `FS-028` if intermediate time snapshots are more useful next
 
 ## FS-027 - Add a simple scenario-definition file format
 

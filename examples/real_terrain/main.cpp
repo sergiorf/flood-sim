@@ -10,6 +10,8 @@ int main(int argc, char** argv) {
             bool had_failures = false;
             const auto batch_arguments =
                 floodsim::examples::real_terrain::build_batch_scenario_arguments(arguments);
+            std::vector<floodsim::examples::real_terrain::BatchScenarioResult> batch_results;
+            batch_results.reserve(batch_arguments.size());
 
             for (const auto& scenario_arguments : batch_arguments) {
                 try {
@@ -23,12 +25,27 @@ int main(int argc, char** argv) {
                         std::cout,
                         scenario_arguments,
                         result);
+                    batch_results.push_back(
+                        floodsim::examples::real_terrain::BatchScenarioResult {
+                            .arguments = scenario_arguments,
+                            .result = result,
+                        });
                 } catch (const std::exception& error) {
                     had_failures = true;
                     std::cerr << "scenario_failed name=" << scenario_arguments.scenario.name
                               << " output_csv=\"" << scenario_arguments.scenario.output_csv_path.string()
                               << "\" error=\"" << error.what() << "\"\n";
                 }
+            }
+
+            if (!batch_results.empty()) {
+                const auto comparison_path =
+                    floodsim::examples::real_terrain::derive_batch_comparison_output_path(
+                        arguments.scenario.output_csv_path);
+                floodsim::examples::real_terrain::write_batch_comparison_csv(
+                    batch_results,
+                    comparison_path);
+                std::cout << "wrote_comparison_csv=\"" << comparison_path.string() << "\"\n";
             }
 
             return had_failures ? 1 : 0;
