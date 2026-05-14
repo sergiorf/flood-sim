@@ -51,6 +51,7 @@ city-planning screening workflows in markets such as Europe and Brazil.
 
 1. Add snapshot-aware exports that can support time-based review before any richer viewer exists.
 2. Build a minimal local viewer that can show terrain plus flood-depth overlays over time.
+   Current v1 scope: local debugging viewer for FloodSim CSV exports, snapshot series, and direct GeoTIFF viewing through the same GDAL-backed terrain ingestion path used by the simulation workflow, without a server or web stack.
 3. Add scenario comparison views, including side-by-side or delta inspection.
 4. Add exportable planner-facing artifacts such as screenshots, summary tables, and run provenance bundles.
 

@@ -139,6 +139,11 @@ every scenario export in isolation.
 The same workflow can also emit deterministic intermediate snapshot CSVs using
 `--snapshot-every-steps <count>` so scenario timing can be inspected before a
 richer viewer exists.
+The repository now includes a lightweight local debugging viewer for exported
+FloodSim CSVs, snapshot series, and terrain rasters under
+`examples/real_terrain/debug_viewer.py`. GeoTIFF support in that viewer now
+flows through the same GDAL-backed ingestion path used by the real-terrain
+simulation workflow.
 
 You can still override preset values directly when experimenting:
 

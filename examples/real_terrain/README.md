@@ -319,6 +319,32 @@ You can inspect the exported CSV with the existing consumer example:
 python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 ```
 
+For local debugging, the repository now also includes a lightweight viewer:
+
+```bash
+python3 examples/real_terrain/debug_viewer.py real_terrain_output.csv
+```
+
+Viewer v1 scope:
+
+- loads one FloodSim export CSV and automatically discovers matching snapshot CSVs beside it
+- can open GeoTIFF terrain rasters through the same GDAL-backed ingestion path used by the simulation workflow
+- can also open one or more ESRI ASCII terrain rasters directly
+- lets you step through frames locally without a server or web client
+- supports quick inspection of `elevation`, `water_depth`, and `surface_height`
+
+Current limits:
+
+- no basemap tiles or GIS layer stack yet
+- intended for debugging and product iteration, not polished planner delivery
+
+For direct terrain debugging on the committed sample GeoTIFF:
+
+```bash
+python3 examples/real_terrain/debug_viewer.py \
+  examples/real_terrain/data/sample_dem.tif
+```
+
 ## Canonical Comparison Walkthrough
 
 This is the current canonical Phase 2 comparison walkthrough for the committed

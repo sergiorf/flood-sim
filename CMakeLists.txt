@@ -59,6 +59,17 @@ target_link_libraries(floodsim_real_terrain_example
 
 target_compile_features(floodsim_real_terrain_example PRIVATE cxx_std_20)
 
+add_executable(floodsim_terrain_debug_export
+    examples/real_terrain/terrain_debug_export.cpp
+)
+
+target_link_libraries(floodsim_terrain_debug_export
+    PRIVATE
+        floodsim_core
+)
+
+target_compile_features(floodsim_terrain_debug_export PRIVATE cxx_std_20)
+
 if(FLOODSIM_BUILD_TESTS AND Python3_Interpreter_FOUND)
     add_test(
         NAME floodsim_export_consumer_tests
@@ -71,6 +82,13 @@ if(FLOODSIM_BUILD_TESTS AND Python3_Interpreter_FOUND)
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/test_real_terrain_example.py
             $<TARGET_FILE:floodsim_real_terrain_example>
             ${CMAKE_CURRENT_BINARY_DIR}/real_terrain_example
+    )
+
+    add_test(
+        NAME floodsim_real_terrain_viewer_tests
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/examples/real_terrain/test_debug_viewer.py
+            $<TARGET_FILE:floodsim_terrain_debug_export>
     )
 endif()
 
