@@ -80,6 +80,11 @@ Phase 2 should end once the repository can support one credible MVP workflow:
 - export outputs with enough metadata to avoid confusion
 - compare runs with a small deterministic summary
 
+The repository now has that minimum comparison path in documented form through
+the committed real-terrain example and its canonical scenario walkthrough. The
+remaining value in this area should come from targeted hardening or clearer
+interpretation, not from turning the example into a broad orchestration layer.
+
 Phase 2 is not meant to grow into a large scenario-management layer. If new
 work mostly adds orchestration, presets, file formats, or batch mechanics
 without improving interpretation or model meaning, that is a sign the phase is

@@ -198,6 +198,95 @@ You can inspect the exported CSV with the existing consumer example:
 python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 ```
 
+## Canonical Comparison Walkthrough
+
+This is the current canonical Phase 2 comparison walkthrough for the committed
+real clip. It uses the checked-in `sample_dem.tif` fixture plus the named
+scenario presets so another contributor can rerun the same comparison exactly.
+
+Run the three documented scenarios from the repository root:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  fs029_baseline.csv
+
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  fs029_intense_short.csv \
+  --scenario intense_short
+
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/sample_dem.tif \
+  fs029_long_moderate.csv \
+  --scenario long_moderate
+```
+
+Each run writes one deterministic CSV artifact:
+
+- `fs029_baseline.csv`
+- `fs029_intense_short.csv`
+- `fs029_long_moderate.csv`
+
+Each CSV should carry the same terrain metadata and a scenario-specific
+metadata preamble, including:
+
+- `# scenario_name,...`
+- `# boundary_mode,open`
+- `# rainfall_intensity_m_per_hour,...`
+- `# runoff_coefficient,1.000000`
+- `# time_step_seconds,300.000000`
+- `# total_duration_seconds,...`
+- `# origin_x_m,154320.000000`
+- `# origin_y_m,171205.000000`
+- `# crs_id,EPSG:31370`
+
+For quick terminal-side comparison, focus first on the printed
+`summary_metrics` line from each run:
+
+```text
+baseline:
+summary_metrics wet_cells=24 max_water_depth_m=0.096997 deepest_row=2 deepest_col=2
+total_water_depth_m=0.287743
+
+intense_short:
+summary_metrics wet_cells=24 max_water_depth_m=0.067712 deepest_row=2 deepest_col=2
+total_water_depth_m=0.359635
+
+long_moderate:
+summary_metrics wet_cells=24 max_water_depth_m=0.402130 deepest_row=2 deepest_col=2
+total_water_depth_m=0.575294
+```
+
+One compact way to interpret those outputs:
+
+- all three runs wet the same 24 valid cells on this tiny clip, so the comparison is about magnitude rather than footprint extent
+- `intense_short` retains more total water than `baseline`, but its peak depth is shallower on this fixture because the shorter run leaves less time for sustained ponding at the deepest cell
+- `long_moderate` produces the deepest and largest retained result here because its total rainfall duration is much longer
+
+If you want to inspect the exported artifacts directly, use the existing CSV
+consumer:
+
+```bash
+python3 examples/simple_grid/inspect_export.py fs029_baseline.csv
+python3 examples/simple_grid/inspect_export.py fs029_intense_short.csv
+python3 examples/simple_grid/inspect_export.py fs029_long_moderate.csv
+```
+
+What this walkthrough proves today:
+
+- the same committed real clip can be rerun reproducibly with multiple named scenarios
+- the example prints enough scenario identity and summary information to compare runs without guessing which output came from which setup
+- the CSV exports preserve enough metadata for manual review or later scripting
+
+Modeling limits for this walkthrough:
+
+- the scenarios are screening presets, not calibrated storms
+- rainfall is still spatially uniform
+- runoff loss is disabled in this canonical comparison path with `runoff_coefficient=1.0`
+- open-boundary outflow at the raster edge is a narrow approximation, not a drainage-network or downstream boundary model
+- these comparisons are useful for deterministic workflow review, not for real flood-risk claims
+
 What this example proves:
 
 - the GDAL loader can read a committed GeoTIFF from disk

@@ -46,47 +46,13 @@ Required documentation updates:
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
 - `FS-023` completed that minimum comparison scaffolding pass
-- `FS-030` completed the first clipped-terrain edge-outflow pass, so the next priority is the first rainfall-loss control
+- `FS-030` completed the first clipped-terrain edge-outflow pass
+- `FS-031` completed the first simple rainfall-loss control pass
 
 Planning note:
 - deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
-- if additional workflow hardening is still wanted before model work, `FS-029` is the remaining higher-priority documentation task
-
-## FS-031 - Add a simple infiltration or rainfall-loss control
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- Rainfall currently maps too directly to surface water accumulation, which limits the practical meaning of real-terrain screening runs.
-- The project needs one minimal loss mechanism so scenario comparisons can represent at least a first-pass difference between gross rainfall and surface runoff.
-
-Proposed change:
-- Add one deliberately simple loss representation, such as a constant infiltration rate or other bounded rainfall-loss term, applied through the existing simulation configuration.
-- Keep the model uniform and local for the first pass so the behavior is easy to test, explain, and compare before considering spatially varying soils or land cover.
-
-Constraints:
-- Do not introduce calibration-heavy hydrology, soil databases, evapotranspiration modeling, or spatial preprocessing in this ticket.
-- Preserve current behavior as a documented zero-loss or disabled-loss case so existing examples and tests can remain valid.
-- Keep parameter semantics explicit in physical units and guard against configurations that can remove more water than is available from rainfall or surface storage.
-
-Acceptance criteria:
-- A user can enable the loss model in the real-terrain workflow using a documented parameter with clear units and valid bounds.
-- With loss disabled, results remain backward-compatible with the current behavior.
-- With a positive loss value, a deterministic test case shows reduced accumulated surface water relative to the zero-loss case.
-- The implementation documents whether the loss applies to incoming rainfall only, ponded surface water, or both, and exports enough metadata to make that choice visible in outputs.
-
-Required tests:
-- Add unit coverage for parameter validation and for the zero-loss compatibility case.
-- Add a deterministic simulation test showing that a positive configured loss reduces retained water without producing negative depths.
-- Add or update a real-terrain example or regression test that exercises the documented loss parameter path.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- `docs/simulation_model.md`
-- `docs/architecture.md` if scenario or export contracts change
+- `FS-029` completed the canonical real-scenario comparison walkthrough pass
+- the next queued work is the lower-priority batch/comparison path starting with `FS-024`
 
 ## FS-024 - Add batch scenario execution for one terrain clip
 
@@ -213,38 +179,6 @@ Required documentation updates:
 - `README.md`
 - `examples/real_terrain/README.md`
 - export behavior notes where appropriate
-
-## FS-029 - Add one documented real-scenario comparison walkthrough
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The repository can gain scenario mechanics without becoming easier for a human to use.
-- Before Phase 2 is considered hardened, the docs should show one end-to-end comparison workflow on a real clip that another developer can rerun exactly.
-
-Proposed change:
-- Document one canonical scenario-comparison walkthrough using the real-terrain example, named scenarios, and the current output artifacts.
-- Keep the walkthrough focused on reproducibility and interpretation rather than visual polish.
-
-Constraints:
-- Do not require external web tooling or notebook infrastructure.
-- Keep the walkthrough aligned with the actual committed example data.
-
-Acceptance criteria:
-- A new contributor can run the documented comparison workflow and understand the produced outputs.
-- The walkthrough names the exact commands and expected artifacts.
-- The docs clearly state the modeling limits of the comparison.
-
-Required tests:
-- Add or update a smoke test for the documented walkthrough if practical.
-- Call out any remaining manual-only verification explicitly if full automation is not practical yet.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- `docs/roadmap.md` if the Phase 2 wording should reflect the hardened scenario path
 
 ## In Progress
 

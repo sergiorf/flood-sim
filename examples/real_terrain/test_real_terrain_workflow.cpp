@@ -229,6 +229,54 @@ TEST_CASE("real terrain helper runoff coefficient reduces retained water and is 
     std::filesystem::remove(export_path);
 }
 
+TEST_CASE("named real-terrain scenarios produce deterministic comparison metrics on sample clip") {
+    const auto sample_dem = fixture_path("examples/real_terrain/data/sample_dem.tif").string();
+
+    const ExampleArguments baseline_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            sample_dem,
+            "baseline.csv",
+        });
+    const auto baseline_result = run_example(baseline_arguments);
+
+    const ExampleArguments intense_short_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            sample_dem,
+            "intense_short.csv",
+            "--scenario",
+            "intense_short",
+        });
+    const auto intense_short_result = run_example(intense_short_arguments);
+
+    const ExampleArguments long_moderate_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            sample_dem,
+            "long_moderate.csv",
+            "--scenario",
+            "long_moderate",
+        });
+    const auto long_moderate_result = run_example(long_moderate_arguments);
+
+    CHECK(baseline_arguments.scenario.name == "baseline");
+    CHECK(intense_short_arguments.scenario.name == "intense_short");
+    CHECK(long_moderate_arguments.scenario.name == "long_moderate");
+
+    CHECK(baseline_result.summary_metrics.wet_cell_count == 24);
+    CHECK(intense_short_result.summary_metrics.wet_cell_count == 24);
+    CHECK(long_moderate_result.summary_metrics.wet_cell_count == 24);
+
+    CHECK(baseline_result.grid.total_water_depth() == doctest::Approx(0.287743).epsilon(1e-6));
+    CHECK(intense_short_result.grid.total_water_depth() == doctest::Approx(0.359635).epsilon(1e-6));
+    CHECK(long_moderate_result.grid.total_water_depth() == doctest::Approx(0.575294).epsilon(1e-6));
+
+    CHECK(baseline_result.summary_metrics.max_water_depth_m == doctest::Approx(0.096997).epsilon(1e-6));
+    CHECK(intense_short_result.summary_metrics.max_water_depth_m == doctest::Approx(0.067712).epsilon(1e-6));
+    CHECK(long_moderate_result.summary_metrics.max_water_depth_m == doctest::Approx(0.402130).epsilon(1e-6));
+}
+
 TEST_CASE("open boundary retains less water than closed boundary on drainage slope fixture") {
     ExampleArguments open_arguments = parse_arguments(
         {

@@ -150,6 +150,9 @@ edges behave more like narrow outflow boundaries than retaining walls. You can
 still force `--boundary-mode closed` for conservative comparisons or toy-style
 retention tests. They can also choose a simple `--runoff-coefficient` to
 approximate that not all rainfall becomes retained surface water immediately.
+The example documentation now includes one canonical comparison walkthrough
+over the committed sample clip so another contributor can rerun the same named
+scenarios and inspect the expected artifacts deterministically.
 
 ## Run tests
 
