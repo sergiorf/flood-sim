@@ -272,7 +272,8 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     }
     arguments.scenario.cli_overrides_applied =
         arguments.scenario.preset_applied &&
-        (rainfall_override.has_value() || time_step_override.has_value() || step_count_override.has_value());
+        (rainfall_override.has_value() || runoff_coefficient_override.has_value() ||
+         time_step_override.has_value() || step_count_override.has_value());
 
     validate_scenario_config(arguments.scenario);
     validate_window_arguments(arguments.terrain_window);

@@ -45,47 +45,12 @@ Required documentation updates:
 
 Phase 2 stop rule:
 - after the minimum comparison scaffolding is in place, priority should shift to the first realism-bearing model changes rather than broader scenario orchestration
-- `FS-023` completed that minimum comparison scaffolding pass, so the next priority is realism-bearing model work
+- `FS-023` completed that minimum comparison scaffolding pass
+- `FS-030` completed the first clipped-terrain edge-outflow pass, so the next priority is the first rainfall-loss control
 
 Planning note:
 - deterministic real-terrain regression fixtures are now in place for nodata influence and clear drainage coverage
 - if additional workflow hardening is still wanted before model work, `FS-029` is the remaining higher-priority documentation task
-
-## FS-030 - Add clipped-terrain edge outflow behavior
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- The current model still leans on closed-edge behavior as the default mental model, which can trap water unrealistically on clipped real-terrain rasters.
-- Real-terrain runs need one explicit edge treatment that better approximates water leaving the simulated domain so scenario comparisons are not dominated by artificial perimeter ponding.
-
-Proposed change:
-- Add one narrow outflow behavior for clipped terrain that allows water to leave eligible boundary cells in a deterministic, documented way.
-- Keep the change small by expressing it through the existing simulation and example configuration path rather than introducing a broad boundary-policy framework.
-
-Constraints:
-- Preserve the current simple raster kernel and avoid introducing channel routing, full hydraulic boundary conditions, or external dependencies.
-- Keep existing closed-boundary behavior available and unchanged for tests and toy examples.
-- Define the new behavior in physically modest terms and document clearly what it approximates and what it does not.
-
-Acceptance criteria:
-- A user can run the real-terrain example with the new edge behavior through the existing scenario or CLI configuration path.
-- On a small deterministic drainage fixture, the new mode reduces retained water relative to closed boundaries in a way that is stable across repeated runs.
-- Water loss occurs only through documented boundary conditions; interior valid cells and nodata masking semantics remain unchanged.
-- Exported metadata and run summaries identify which boundary behavior was used so comparisons remain unambiguous.
-
-Required tests:
-- Add core simulation coverage for a small raster where boundary outflow changes the final retained-water result relative to closed boundaries.
-- Add or update a real-terrain regression test using the committed drainage fixture to show stable, deterministic behavior for the new mode.
-- Existing closed-boundary tests continue to pass unchanged.
-
-Required documentation updates:
-- `README.md`
-- `examples/real_terrain/README.md`
-- `docs/simulation_model.md`
-- `docs/architecture.md` if configuration or export contracts change
 
 ## FS-031 - Add a simple infiltration or rainfall-loss control
 

@@ -155,6 +155,18 @@ TEST_CASE("runoff coefficient must stay within bounds") {
         "Runoff coefficient must be in [0, 1]");
 }
 
+TEST_CASE("unit runoff coefficient preserves default rainfall behavior") {
+    Grid default_grid(1, 1);
+    Grid explicit_grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    floodsim::add_uniform_rainfall(default_grid, rainfall, 1800.0);
+    floodsim::add_uniform_rainfall(explicit_grid, rainfall, 1800.0, 1.0);
+
+    CHECK(nearly_equal(default_grid.water_depth(0, 0), explicit_grid.water_depth(0, 0)));
+    CHECK(nearly_equal(default_grid.total_water_depth(), explicit_grid.total_water_depth()));
+}
+
 TEST_CASE("water flows downhill") {
     Grid grid(1, 2);
     grid.set_elevation(0, 0, 2.0);
@@ -369,6 +381,30 @@ TEST_CASE("open boundary allows edge outflow when no lower in-domain neighbor ex
     CHECK(nearly_equal(grid.total_water_depth(), 0.2));
 }
 
+TEST_CASE("open boundary shares edge-cell outflow between lower neighbors and raster exits") {
+    Grid grid(2, 2);
+    grid.set_elevation(0, 0, 5.0);
+    grid.set_elevation(0, 1, 3.0);
+    grid.set_elevation(1, 0, 6.0);
+    grid.set_elevation(1, 1, 7.0);
+    grid.set_water_depth(0, 0, 1.0);
+
+    RainfallScenario rainfall {};
+    SimulationConfig config {
+        .time_step_seconds = 1.0,
+        .max_outflow_fraction = 0.6,
+        .boundary_mode = BoundaryMode::Open,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.4));
+    CHECK(nearly_equal(grid.water_depth(0, 1), 0.36));
+    CHECK(nearly_equal(grid.water_depth(1, 0), 0.0));
+    CHECK(nearly_equal(grid.water_depth(1, 1), 0.0));
+    CHECK(nearly_equal(grid.total_water_depth(), 0.76));
+}
+
 TEST_CASE("water is conserved without rainfall") {
     Grid grid(3, 3);
     grid.set_elevation(1, 1, 2.0);
@@ -404,6 +440,31 @@ TEST_CASE("step applies runoff coefficient before routing") {
     floodsim::step(grid, rainfall, config);
 
     CHECK(nearly_equal(grid.water_depth(0, 0), 0.4));
+}
+
+TEST_CASE("positive runoff loss reduces retained water without going negative") {
+    Grid baseline_grid(1, 2);
+    baseline_grid.set_elevation(0, 0, 1.0);
+    baseline_grid.set_elevation(0, 1, 0.0);
+
+    Grid reduced_runoff_grid = baseline_grid;
+
+    RainfallScenario rainfall {0.012};
+    SimulationConfig baseline_config {
+        .time_step_seconds = 3600.0,
+        .runoff_coefficient = 1.0,
+        .max_outflow_fraction = 0.5,
+    };
+    SimulationConfig reduced_runoff_config = baseline_config;
+    reduced_runoff_config.runoff_coefficient = 0.25;
+
+    floodsim::step(baseline_grid, rainfall, baseline_config);
+    floodsim::step(reduced_runoff_grid, rainfall, reduced_runoff_config);
+
+    CHECK(reduced_runoff_grid.total_water_depth() < baseline_grid.total_water_depth());
+    CHECK(reduced_runoff_grid.water_depth(0, 0) >= 0.0);
+    CHECK(reduced_runoff_grid.water_depth(0, 1) >= 0.0);
+    CHECK(nearly_equal(reduced_runoff_grid.total_water_depth(), 0.003 * 2.0));
 }
 
 TEST_CASE("repeated steps accumulate rainfall linearly without flow") {

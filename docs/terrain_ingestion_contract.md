@@ -380,7 +380,8 @@ Runtime behavior coupled to that loader:
 - invalid cells behave as out-of-domain cells
 - rainfall is applied only to valid cells
 - routing ignores invalid neighbors entirely
-- clipped or nodata-adjacent edges behave like absent neighbors in the current closed-boundary model
+- clipped or nodata-adjacent gaps do not create extra receiver cells by themselves
+- open-boundary outflow applies only across missing orthogonal neighbors at the raster edge, not across internal nodata gaps
 
 The loader now also exposes a narrow `TerrainIngestionReport` alongside the
 validated `TerrainRaster` when callers need inspectable ingestion metadata.

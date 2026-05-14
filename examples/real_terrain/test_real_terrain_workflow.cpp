@@ -77,6 +77,25 @@ TEST_CASE("real terrain helper parses preset overrides and clipped window") {
     CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
 }
 
+TEST_CASE("real terrain helper treats runoff coefficient as a CLI override") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--scenario",
+            "baseline",
+            "--runoff-coefficient",
+            "0.5",
+        });
+
+    CHECK(arguments.scenario.name == "baseline");
+    CHECK(arguments.scenario.preset_applied);
+    CHECK(arguments.scenario.cli_overrides_applied);
+    CHECK(arguments.scenario.runoff_coefficient == doctest::Approx(0.5));
+    CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
+}
+
 TEST_CASE("real terrain helper defaults to open boundary for clipped-terrain runs") {
     const auto arguments = parse_arguments(
         {
@@ -169,6 +188,44 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(export_text.find("# origin_y_m,1020.000000") != std::string::npos);
     CHECK(export_text.find("# scenario_name,baseline") != std::string::npos);
     CHECK(export_text.find("# boundary_mode,open") != std::string::npos);
+    std::filesystem::remove(export_path);
+}
+
+TEST_CASE("real terrain helper runoff coefficient reduces retained water and is exported") {
+    ExampleArguments baseline_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "baseline.csv",
+        });
+    const auto baseline_result = run_example(baseline_arguments);
+
+    ExampleArguments reduced_runoff_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "reduced.csv",
+            "--runoff-coefficient",
+            "0.5",
+        });
+    const auto reduced_runoff_result = run_example(reduced_runoff_arguments);
+
+    CHECK(reduced_runoff_result.grid.total_water_depth() < baseline_result.grid.total_water_depth());
+    CHECK(reduced_runoff_result.summary_metrics.max_water_depth_m < baseline_result.summary_metrics.max_water_depth_m);
+    CHECK(reduced_runoff_result.summary_metrics.max_water_depth_m >= 0.0);
+
+    std::ostringstream report;
+    print_run_report(report, reduced_runoff_arguments, reduced_runoff_result);
+    CHECK(report.str().find("runoff_coefficient=0.500000") != std::string::npos);
+
+    const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_runoff_export.csv";
+    write_export(
+        reduced_runoff_result.grid,
+        reduced_runoff_result.loaded_terrain.terrain,
+        reduced_runoff_arguments.scenario,
+        export_path);
+    const std::string export_text = slurp_file(export_path);
+    CHECK(export_text.find("# runoff_coefficient,0.500000") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 

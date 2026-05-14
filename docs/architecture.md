@@ -54,13 +54,13 @@ Current responsibilities:
 - apply uniform rainfall before each flow step, with rainfall scenario intensity expressed in meters per hour and converted using `time_step_seconds`
 - route a fraction of water to lower orthogonal neighbors using surface height (`elevation + water depth`)
 - accumulate transfers across the full grid and apply them after the scan completes
-- expose boundary handling as an explicit simulation setting, with Phase 1 currently supporting closed boundaries only
+- expose boundary handling as an explicit simulation setting, with support for closed boundaries plus one narrow open edge-outflow mode for clipped terrain
 - treat invalid imported-terrain cells as out-of-domain cells that do not receive rainfall and cannot receive routed flow
 
 Later responsibilities may include:
 
 - import-ready raster adapters
-- additional boundary modes such as open edge outflow
+- additional boundary modes beyond the current open edge-outflow behavior
 - drainage and impervious surface effects
 - better time stepping and calibration hooks
 

@@ -41,24 +41,23 @@ uses:
 - rainfall intensity: `0.012 m/hour`
 - step duration: `300 seconds`
 - number of steps: `12`
-- boundary mode: `Closed`
+- boundary mode: `Open`
 
-For clipped real-terrain runs, you can also choose an open edge behavior when
-the raster boundary should approximate water leaving the modeled area instead
-of being trapped by an artificial wall:
+For conservative comparisons or toy-style retention checks, you can still
+force the older closed-edge behavior explicitly:
 
 ```bash
 ./build/floodsim_real_terrain_example \
   examples/real_terrain/data/sample_dem.tif \
-  real_terrain_open_boundary.csv \
-  --boundary-mode open
+  real_terrain_closed_boundary.csv \
+  --boundary-mode closed
 ```
 
-This `open` mode is intentionally simple. It lets edge cells discharge part of
-their water out of the raster across missing orthogonal neighbors. That is
-often a more practical approximation for clipped real terrain than the default
-`closed` mode, but it is still not a drainage-network or calibrated outflow
-model.
+The default `open` mode is intentionally simple. It lets edge cells discharge
+part of their water out of the raster across missing orthogonal neighbors at
+the raster perimeter. That is often a more practical approximation for clipped
+real terrain than `closed` mode, but it is still not a drainage-network or
+calibrated outflow model.
 
 Those run fields now flow through one narrow `ScenarioConfig` inside the
 example so default runs, CLI overrides, and later named scenarios can share the
