@@ -15,8 +15,11 @@ constexpr std::string_view kScenarioFileHeader =
     "scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode";
 constexpr std::string_view kAreaFileHeader =
     "area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path";
+constexpr std::string_view kExternalAreaFileHeader =
+    "area_name,source_kind,staged_dem_path,cache_key,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,source_url,license_name,boundary_path";
 constexpr std::string_view kRainfallProfileHeader =
     "step_index,rainfall_intensity_m_per_hour";
+constexpr std::string_view kDefaultCacheDir = ".floodsim_cache/external_dem";
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
     throw std::runtime_error(message + "\n" + usage_message());
@@ -258,7 +261,7 @@ void validate_area_definition(const AreaDefinition& area_definition) {
     if (area_definition.area_name.empty()) {
         throw_usage_error("Area definition must provide a non-empty area_name");
     }
-    if (area_definition.input_dem_path.empty()) {
+    if (!area_definition.external_source && area_definition.input_dem_path.empty()) {
         throw_usage_error("Area definition must provide a non-empty input_dem_path");
     }
     if (area_definition.source_name.empty()) {
@@ -267,9 +270,60 @@ void validate_area_definition(const AreaDefinition& area_definition) {
     if (area_definition.source_details.empty()) {
         throw_usage_error("Area definition must provide a non-empty source_details");
     }
+    if (area_definition.external_source) {
+        if (!area_definition.source_kind.has_value() || area_definition.source_kind->empty()) {
+            throw_usage_error("External area definition must provide a non-empty source_kind");
+        }
+        if (!area_definition.source_url.has_value() || area_definition.source_url->empty()) {
+            throw_usage_error("External area definition must provide a non-empty source_url");
+        }
+        if (!area_definition.license_name.has_value() || area_definition.license_name->empty()) {
+            throw_usage_error("External area definition must provide a non-empty license_name");
+        }
+        if (!area_definition.cache_key.has_value() || area_definition.cache_key->empty()) {
+            throw_usage_error("External area definition must provide a non-empty cache_key");
+        }
+        if (!area_definition.staged_input_dem_path.has_value()) {
+            throw_usage_error("External area definition must provide a staged_dem_path");
+        }
+    }
     if (area_definition.terrain_window.has_value()) {
         validate_window_arguments(area_definition.terrain_window);
     }
+}
+
+std::filesystem::path default_cache_dir() {
+    return std::filesystem::current_path() / kDefaultCacheDir;
+}
+
+AreaDefinition materialize_external_area_cache(
+    AreaDefinition area_definition,
+    const std::filesystem::path& cache_dir) {
+    if (!area_definition.external_source) {
+        return area_definition;
+    }
+
+    const std::filesystem::path& staged_dem_path = *area_definition.staged_input_dem_path;
+    if (!std::filesystem::exists(staged_dem_path)) {
+        throw_usage_error("External staged DEM path does not exist: '" + staged_dem_path.string() + "'");
+    }
+
+    const std::filesystem::path cached_dem_path =
+        cache_dir /
+        *area_definition.source_kind /
+        *area_definition.cache_key /
+        staged_dem_path.filename();
+    std::filesystem::create_directories(cached_dem_path.parent_path());
+
+    const bool cache_hit = std::filesystem::exists(cached_dem_path);
+    if (!cache_hit) {
+        std::filesystem::copy_file(staged_dem_path, cached_dem_path, std::filesystem::copy_options::overwrite_existing);
+    }
+
+    area_definition.input_dem_path = cached_dem_path;
+    area_definition.cached_input_dem_path = cached_dem_path;
+    area_definition.cache_status = cache_hit ? std::optional<std::string>("reused") : std::optional<std::string>("materialized");
+    return area_definition;
 }
 
 std::vector<std::string> parse_batch_scenario_names_argument(const std::string& value) {
@@ -372,6 +426,95 @@ AreaDefinition load_area_definition(const std::filesystem::path& area_file_path)
     return area_definition;
 }
 
+AreaDefinition load_external_area_definition(
+    const std::filesystem::path& area_file_path,
+    const std::filesystem::path& cache_dir) {
+    std::ifstream input(area_file_path);
+    if (!input) {
+        throw_usage_error("Failed to open external area file: '" + area_file_path.string() + "'");
+    }
+
+    std::string header_line;
+    if (!std::getline(input, header_line)) {
+        throw_usage_error("External area file is empty: '" + area_file_path.string() + "'");
+    }
+    if (trim_copy(header_line) != kExternalAreaFileHeader) {
+        throw_usage_error(
+            "External area file has invalid header in '" + area_file_path.string() +
+            "'. Expected: " + std::string(kExternalAreaFileHeader));
+    }
+
+    std::vector<std::string> non_empty_rows;
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!trim_copy(line).empty()) {
+            non_empty_rows.push_back(line);
+        }
+    }
+
+    if (non_empty_rows.empty()) {
+        throw_usage_error("External area file does not contain any area rows: '" + area_file_path.string() + "'");
+    }
+    if (non_empty_rows.size() != 1) {
+        throw_usage_error("External area file must contain exactly one non-empty area row: '" + area_file_path.string() + "'");
+    }
+
+    std::vector<std::string> fields = split_csv_line(non_empty_rows.front());
+    if (fields.size() == 12 && !non_empty_rows.front().empty() && non_empty_rows.front().back() == ',') {
+        fields.push_back("");
+    }
+    if (fields.size() != 13) {
+        throw_usage_error(
+            "External area file row in '" + area_file_path.string() +
+            "' must contain exactly 13 comma-separated fields");
+    }
+
+    AreaDefinition area_definition;
+    area_definition.external_source = true;
+    area_definition.contract_path = area_file_path;
+    area_definition.area_name = fields[0];
+    area_definition.source_kind = fields[1];
+    area_definition.staged_input_dem_path = resolve_contract_path(area_file_path, fields[2]);
+    area_definition.cache_key = fields[3];
+    area_definition.source_name = fields[8];
+    area_definition.source_details = fields[9];
+    area_definition.source_url = fields[10];
+    area_definition.license_name = fields[11];
+    if (!fields[12].empty()) {
+        area_definition.boundary_path = resolve_contract_path(area_file_path, fields[12]);
+    }
+
+    const bool has_any_window_field =
+        !fields[4].empty() || !fields[5].empty() || !fields[6].empty() || !fields[7].empty();
+    const bool has_complete_window =
+        !fields[4].empty() && !fields[5].empty() && !fields[6].empty() && !fields[7].empty();
+    if (has_any_window_field && !has_complete_window) {
+        throw_usage_error(
+            "External area file window fields must provide row_offset, col_offset, rows, and cols together");
+    }
+    if (has_complete_window) {
+        floodsim::TerrainWindow window;
+        const int row_offset = parse_int_argument("external area file window_row_offset", fields[4]);
+        const int col_offset = parse_int_argument("external area file window_col_offset", fields[5]);
+        const int rows = parse_int_argument("external area file window_rows", fields[6]);
+        const int cols = parse_int_argument("external area file window_cols", fields[7]);
+        if (row_offset < 0 || col_offset < 0) {
+            throw_usage_error("External area file window offsets must be non-negative");
+        }
+        if (rows <= 0 || cols <= 0) {
+            throw_usage_error("External area file window rows and cols must be positive");
+        }
+        window.row_offset = static_cast<std::size_t>(row_offset);
+        window.col_offset = static_cast<std::size_t>(col_offset);
+        window.rows = static_cast<std::size_t>(rows);
+        window.cols = static_cast<std::size_t>(cols);
+        area_definition.terrain_window = window;
+    }
+
+    validate_area_definition(area_definition);
+    return materialize_external_area_cache(std::move(area_definition), cache_dir);
+}
+
 std::vector<ScenarioConfig> load_scenario_file_definitions(const std::filesystem::path& scenario_file_path) {
     std::ifstream input(scenario_file_path);
     if (!input) {
@@ -443,9 +586,11 @@ std::string usage_message() {
     return
         "Usage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
         " | floodsim_real_terrain_example --area-file <path.csv> <output.csv>"
+        " | floodsim_real_terrain_example --external-area-file <path.csv> <output.csv>"
         " [--scenario <name>]"
         " [--batch-scenarios <name1,name2,...>]"
         " [--scenario-file <path.csv>]"
+        " [--cache-dir <path>]"
         " [--snapshot-every-steps <count>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
@@ -471,7 +616,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
                 .name = kDefaultScenarioName,
             },
     };
+    arguments.cache_dir = default_cache_dir();
     std::size_t index = 1;
+    std::optional<std::filesystem::path> pending_external_area_file_path;
     if (args[index] == "--area-file") {
         if (args.size() < 4) {
             throw_usage_error("Area-file mode requires --area-file <path.csv> <output.csv>");
@@ -480,6 +627,13 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         arguments.area_definition = load_area_definition(area_file_path);
         arguments.input_dem_path = arguments.area_definition->input_dem_path;
         arguments.terrain_window = arguments.area_definition->terrain_window;
+        arguments.scenario.output_csv_path = args[index + 2];
+        index += 3;
+    } else if (args[index] == "--external-area-file") {
+        if (args.size() < 4) {
+            throw_usage_error("External-area-file mode requires --external-area-file <path.csv> <output.csv>");
+        }
+        pending_external_area_file_path = args[index + 1];
         arguments.scenario.output_csv_path = args[index + 2];
         index += 3;
     } else {
@@ -515,6 +669,8 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
             batch_scenario_names = parse_batch_scenario_names_argument(value);
         } else if (option == "--scenario-file") {
             scenario_file_path = value;
+        } else if (option == "--cache-dir") {
+            arguments.cache_dir = value;
         } else if (option == "--snapshot-every-steps") {
             snapshot_every_steps = parse_int_argument(option, value);
             arguments.snapshot_every_steps = snapshot_every_steps;
@@ -609,6 +765,11 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
             arguments.scenario = arguments.scenario_definitions.front();
             arguments.scenario.output_csv_path = output_csv_path;
         }
+    }
+    if (pending_external_area_file_path.has_value()) {
+        arguments.area_definition = load_external_area_definition(*pending_external_area_file_path, *arguments.cache_dir);
+        arguments.input_dem_path = arguments.area_definition->input_dem_path;
+        arguments.terrain_window = arguments.area_definition->terrain_window;
     }
     if (rainfall_override.has_value()) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;

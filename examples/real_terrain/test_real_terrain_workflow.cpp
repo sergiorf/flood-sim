@@ -190,6 +190,41 @@ TEST_CASE("real terrain helper loads area definition file with provenance and cl
     CHECK(arguments.terrain_window->cols == 2);
 }
 
+TEST_CASE("real terrain helper loads external area definition file with cached provenance") {
+    const auto cache_dir = std::filesystem::temp_directory_path() / "floodsim_external_area_cache_workflow_test";
+    std::filesystem::remove_all(cache_dir);
+
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            "--external-area-file",
+            fixture_path("examples/real_terrain/data/sample_external_area_clip.csv").string(),
+            "output.csv",
+            "--cache-dir",
+            cache_dir.string(),
+        });
+
+    REQUIRE(arguments.area_definition.has_value());
+    CHECK(arguments.area_definition->external_source);
+    CHECK(arguments.area_definition->area_name == "sample_external_center_clip");
+    CHECK(arguments.area_definition->source_kind == std::optional<std::string>("copernicus-glo30"));
+    CHECK(arguments.area_definition->cache_key == std::optional<std::string>("sample_dem_center_clip_v1"));
+    CHECK(arguments.area_definition->source_name == "copernicus_dem_glo30_sample");
+    CHECK(arguments.area_definition->license_name == std::optional<std::string>("European Union Copernicus Programme"));
+    CHECK(arguments.area_definition->cache_status == std::optional<std::string>("materialized"));
+    REQUIRE(arguments.area_definition->staged_input_dem_path.has_value());
+    REQUIRE(arguments.area_definition->cached_input_dem_path.has_value());
+    CHECK(std::filesystem::exists(*arguments.area_definition->cached_input_dem_path));
+    CHECK(arguments.input_dem_path == *arguments.area_definition->cached_input_dem_path);
+    REQUIRE(arguments.terrain_window.has_value());
+    CHECK(arguments.terrain_window->row_offset == 1);
+    CHECK(arguments.terrain_window->col_offset == 1);
+    CHECK(arguments.terrain_window->rows == 3);
+    CHECK(arguments.terrain_window->cols == 2);
+
+    std::filesystem::remove_all(cache_dir);
+}
+
 TEST_CASE("real terrain helper parses batch scenario list") {
     const auto arguments = parse_arguments(
         {
@@ -304,6 +339,16 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "output.csv",
             })),
         doctest::Contains("Area definition must provide a non-empty source_name"));
+
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                "--external-area-file",
+                fixture_path("examples/real_terrain/data/invalid_external_area_missing_cache_key.csv").string(),
+                "output.csv",
+            })),
+        doctest::Contains("External area definition must provide a non-empty cache_key"));
 
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(

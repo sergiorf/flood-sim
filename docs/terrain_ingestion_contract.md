@@ -136,6 +136,54 @@ The first user-facing area-loading entry point now also accepts one narrow
 single-row CSV contract that names the source DEM clip, optional pixel window,
 and required provenance fields for local repeatable workflows.
 
+The workflow now also supports one staged external-source variant for free DEM
+data. In that path:
+
+- the user points FloodSim at a locally available staged DEM file that came
+  from one documented free-data source
+- FloodSim materializes that staged file into a deterministic cache path
+- the run preserves source kind, source URL, license name, and cache key in
+  reports and CSV metadata
+
+This is intentionally narrow. The repository still does not download DEMs
+itself or manage a broad source catalog yet.
+
+## External staged-source contract
+
+The current external area-file header is:
+
+```text
+area_name,source_kind,staged_dem_path,cache_key,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,source_url,license_name,boundary_path
+```
+
+Required fields for this path:
+
+- `area_name`
+- `source_kind`
+- `staged_dem_path`
+- `cache_key`
+- `source_name`
+- `source_details`
+- `source_url`
+- `license_name`
+
+Behavior:
+
+- `staged_dem_path` is resolved relative to the external area file when it is
+  not absolute
+- the staged DEM is copied into a deterministic cache path:
+  `<cache_dir>/<source_kind>/<cache_key>/<filename>`
+- the cached DEM path becomes the raster actually loaded by the example
+- repeated runs reuse that cached file if it already exists
+
+Default cache root:
+
+- `.floodsim_cache/external_dem` relative to the current working directory
+
+Override:
+
+- `--cache-dir <path>`
+
 When a window is used, the contract still preserves the clipped raster shape
 exactly, keeps row-major indexing local to the clipped result, and shifts the
 optional origin metadata to the clipped top-left cell.

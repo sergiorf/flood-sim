@@ -187,6 +187,18 @@ window, and explicit provenance fields. More detail is in
 [docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md:1)
 and [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).
 
+There is now also one staged external-source variant for free DEM workflows:
+
+```bash
+./build/floodsim_real_terrain_example \
+  --external-area-file examples/real_terrain/data/sample_external_area_clip.csv \
+  real_terrain_external_area_clip.csv
+```
+
+That path still expects a locally available staged DEM file, but it now
+materializes that source into a deterministic cache and preserves source kind,
+URL, license, and cache identity in reports and CSV metadata.
+
 Viewer quickstart:
 
 ```bash

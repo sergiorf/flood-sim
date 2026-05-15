@@ -63,6 +63,14 @@ struct AreaDefinition {
     std::filesystem::path input_dem_path;
     std::string source_name;
     std::string source_details;
+    bool external_source {false};
+    std::optional<std::string> source_kind;
+    std::optional<std::string> source_url;
+    std::optional<std::string> license_name;
+    std::optional<std::string> cache_key;
+    std::optional<std::filesystem::path> staged_input_dem_path;
+    std::optional<std::filesystem::path> cached_input_dem_path;
+    std::optional<std::string> cache_status;
     std::optional<std::filesystem::path> boundary_path;
     std::optional<floodsim::TerrainWindow> terrain_window;
 };
@@ -72,6 +80,7 @@ struct ExampleArguments {
     std::filesystem::path input_dem_path;
     std::optional<AreaDefinition> area_definition;
     ScenarioConfig scenario;
+    std::optional<std::filesystem::path> cache_dir;
     std::optional<floodsim::TerrainWindow> terrain_window;
     std::optional<int> snapshot_every_steps;
     ScenarioOverrides scenario_overrides;

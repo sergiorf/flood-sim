@@ -141,6 +141,18 @@ void write_export(
             .area_source_details = area_definition.has_value()
                 ? std::optional<std::string>(area_definition->source_details)
                 : std::nullopt,
+            .area_source_kind = (area_definition.has_value() && area_definition->source_kind.has_value())
+                ? area_definition->source_kind
+                : std::nullopt,
+            .area_source_url = (area_definition.has_value() && area_definition->source_url.has_value())
+                ? area_definition->source_url
+                : std::nullopt,
+            .area_license_name = (area_definition.has_value() && area_definition->license_name.has_value())
+                ? area_definition->license_name
+                : std::nullopt,
+            .area_cache_key = (area_definition.has_value() && area_definition->cache_key.has_value())
+                ? area_definition->cache_key
+                : std::nullopt,
             .area_boundary_path = (area_definition.has_value() && area_definition->boundary_path.has_value())
                 ? std::optional<std::string>(area_definition->boundary_path->string())
                 : std::nullopt,
@@ -176,6 +188,15 @@ void print_run_report(
         output << "area_contract_path=" << area_definition.contract_path << '\n';
         output << "area_source_name=" << area_definition.source_name << '\n';
         output << "area_source_details=" << area_definition.source_details << '\n';
+        if (area_definition.external_source) {
+            output << "area_source_kind=" << *area_definition.source_kind << '\n';
+            output << "area_source_url=" << *area_definition.source_url << '\n';
+            output << "area_license_name=" << *area_definition.license_name << '\n';
+            output << "area_cache_key=" << *area_definition.cache_key << '\n';
+            output << "area_staged_dem_path=" << *area_definition.staged_input_dem_path << '\n';
+            output << "area_cached_dem_path=" << *area_definition.cached_input_dem_path << '\n';
+            output << "area_cache_status=" << *area_definition.cache_status << '\n';
+        }
         if (area_definition.boundary_path.has_value()) {
             output << "area_boundary_path=" << *area_definition.boundary_path << '\n';
         }

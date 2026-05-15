@@ -294,6 +294,31 @@ provenance when present, but it is not yet used to clip the raster itself.
 The example report and export CSV metadata now preserve the area name and
 provenance fields so generated artifacts remain self-describing.
 
+For one narrow staged external-source workflow, the example also supports:
+
+```bash
+./build/floodsim_real_terrain_example \
+  --external-area-file examples/real_terrain/data/sample_external_area_clip.csv \
+  real_terrain_external_area_clip.csv \
+  --cache-dir /tmp/floodsim_external_dem_cache
+```
+
+The current external area-file header is:
+
+```text
+area_name,source_kind,staged_dem_path,cache_key,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,source_url,license_name,boundary_path
+```
+
+This path is meant for a locally staged DEM that came from one documented free
+external source. FloodSim then materializes that DEM into a deterministic
+cache path:
+
+- `<cache_dir>/<source_kind>/<cache_key>/<filename>`
+
+The committed sample external area file demonstrates that workflow using the
+same tiny `sample_dem.tif` fixture as a staged stand-in for an externally
+downloaded Copernicus DEM clip.
+
 You can also export a small number of intermediate runoff snapshots during a
 run:
 
@@ -327,6 +352,8 @@ Supported options:
 - `--batch-scenarios <name1,name2,...>`: run several documented scenario presets in one invocation and derive one output CSV per scenario from the positional output path
 - `--scenario-file <path.csv>`: load one or more external scenario definitions from the fixed CSV contract above
 - `--area-file <path.csv>`: load one area-definition row with DEM path, optional window, and required provenance fields
+- `--external-area-file <path.csv>`: load one staged external-source area definition and materialize its DEM into the local cache
+- `--cache-dir <path>`: override the external DEM cache root, default `.floodsim_cache/external_dem`
 - `--snapshot-every-steps <count>`: write one intermediate snapshot CSV every N completed steps, excluding the final output step
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
@@ -350,7 +377,9 @@ positive. `--rainfall-intensity-m-per-hour` and `--rainfall-profile-file` are
 mutually exclusive, and `--steps` cannot be combined with
 `--rainfall-profile-file` because the profile length defines the step count.
 Scenario validation is kept local to that `ScenarioConfig` construction
-instead of being spread across the simulation setup path.
+instead of being spread across the simulation setup path. External area-file
+validation also requires source kind, source URL, license name, cache key, and
+an existing staged DEM path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing
@@ -371,6 +400,10 @@ ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped
 # scenario_name,baseline
 # boundary_mode,open
 # rainfall_mode,uniform
+# area_source_kind,...
+# area_source_url,...
+# area_license_name,...
+# area_cache_key,...
 # rainfall_intensity_m_per_hour,0.012000
 # peak_rainfall_intensity_m_per_hour,0.012000
 # total_rainfall_depth_m,0.012000

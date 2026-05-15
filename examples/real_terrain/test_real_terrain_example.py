@@ -293,6 +293,43 @@ def assert_area_file_run(binary_path: Path, output_directory: Path) -> None:
     assert len(rows) == 6
 
 
+def assert_external_area_file_run(binary_path: Path, output_directory: Path) -> None:
+    area_file_path = Path(__file__).resolve().parent / "data" / "sample_external_area_clip.csv"
+    cache_dir = output_directory / "external_dem_cache"
+    output_csv_path = output_directory / "external_area_clip_output.csv"
+    completed = run_example_command(
+        binary_path,
+        "--external-area-file",
+        str(area_file_path),
+        str(output_csv_path),
+        "--cache-dir",
+        str(cache_dir),
+    )
+
+    cached_dem_path = cache_dir / "copernicus-glo30" / "sample_dem_center_clip_v1" / "sample_dem.tif"
+    assert cached_dem_path.exists()
+    assert "area_name=sample_external_center_clip" in completed.stdout
+    assert "area_source_kind=copernicus-glo30" in completed.stdout
+    assert "area_source_name=copernicus_dem_glo30_sample" in completed.stdout
+    assert "area_license_name=European Union Copernicus Programme" in completed.stdout
+    assert "area_cache_key=sample_dem_center_clip_v1" in completed.stdout
+    assert f'area_cached_dem_path="{cached_dem_path}"' in completed.stdout
+    assert "area_cache_status=materialized" in completed.stdout
+    assert output_csv_path.exists()
+
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["area_name"] == "sample_external_center_clip"
+    assert metadata["area_source_name"] == "copernicus_dem_glo30_sample"
+    assert metadata["area_source_details"] == "checked_in_staged_external_clip"
+    assert metadata["area_source_kind"] == "copernicus-glo30"
+    assert metadata["area_source_url"].startswith("https://dataspace.copernicus.eu/")
+    assert metadata["area_license_name"] == "European Union Copernicus Programme"
+    assert metadata["area_cache_key"] == "sample_dem_center_clip_v1"
+    assert metadata["rows"] == "3"
+    assert metadata["cols"] == "2"
+    assert len(rows) == 6
+
+
 def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
     scenario_file_path = terrain_path.parent / "sample_scenarios.csv"
@@ -421,6 +458,7 @@ def main() -> int:
 
     assert_snapshot_run(binary_path, output_directory)
     assert_area_file_run(binary_path, output_directory)
+    assert_external_area_file_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)
     assert_profile_scenario_file_run(binary_path, output_directory)
     assert_rainfall_profile_run(binary_path, output_directory)

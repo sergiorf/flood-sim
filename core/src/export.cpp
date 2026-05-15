@@ -59,6 +59,18 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.area_source_details.has_value()) {
         output << "# area_source_details," << *metadata.area_source_details << '\n';
     }
+    if (metadata.area_source_kind.has_value()) {
+        output << "# area_source_kind," << *metadata.area_source_kind << '\n';
+    }
+    if (metadata.area_source_url.has_value()) {
+        output << "# area_source_url," << *metadata.area_source_url << '\n';
+    }
+    if (metadata.area_license_name.has_value()) {
+        output << "# area_license_name," << *metadata.area_license_name << '\n';
+    }
+    if (metadata.area_cache_key.has_value()) {
+        output << "# area_cache_key," << *metadata.area_cache_key << '\n';
+    }
     if (metadata.area_boundary_path.has_value()) {
         output << "# area_boundary_path," << *metadata.area_boundary_path << '\n';
     }

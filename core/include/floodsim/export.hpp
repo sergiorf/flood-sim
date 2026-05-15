@@ -31,6 +31,10 @@ struct GridCsvMetadata {
     std::optional<std::string> area_name;
     std::optional<std::string> area_source_name;
     std::optional<std::string> area_source_details;
+    std::optional<std::string> area_source_kind;
+    std::optional<std::string> area_source_url;
+    std::optional<std::string> area_license_name;
+    std::optional<std::string> area_cache_key;
     std::optional<std::string> area_boundary_path;
     std::optional<double> rainfall_intensity_m_per_hour;
     std::optional<double> peak_rainfall_intensity_m_per_hour;

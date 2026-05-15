@@ -1,0 +1,2 @@
+area_name,source_kind,staged_dem_path,cache_key,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,source_url,license_name,boundary_path
+broken_external_clip,copernicus-glo30,sample_dem.tif,,1,1,3,2,copernicus_dem_glo30_sample,checked_in_staged_external_clip,https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM,European Union Copernicus Programme,
