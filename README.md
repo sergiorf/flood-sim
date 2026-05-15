@@ -145,6 +145,20 @@ Those scenario inputs now include both `runoff_coefficient` and a narrow
 This remains a screening-oriented approximation, not a calibrated infiltration
 or drainage model.
 
+The same workflow can now also load one small external rainfall-profile CSV so
+the event shape does not need to stay constant over the whole run:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/drainage_slope.asc \
+  real_terrain_profile.csv \
+  --rainfall-profile-file examples/real_terrain/data/sample_storm_profile.csv
+```
+
+That contract keeps the time step fixed and supplies one uniform intensity per
+simulation step. It is the first narrow path toward reviewed real storm
+scenarios without adding a broader scenario-management subsystem yet.
+
 The same workflow can also emit deterministic intermediate snapshot CSVs using
 `--snapshot-every-steps <count>` so scenario timing can be inspected before a
 richer viewer exists.

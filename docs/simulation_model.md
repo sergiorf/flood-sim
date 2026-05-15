@@ -42,6 +42,11 @@ The current algorithm is deliberately simple and should be read as an exact beha
 
 This means the step uses a shared snapshot of the grid state after rainfall has been added but before any per-cell flow transfers are applied.
 
+The core step function still operates on one uniform rainfall pulse at a time.
+Higher-level workflows can represent a simple storm profile by calling `step()`
+repeatedly with a different uniform intensity for each step while keeping the
+same `SimulationConfig`.
+
 The current model can also scale that rainfall input through a simple
 `runoff_coefficient` in the simulation configuration:
 

@@ -15,6 +15,8 @@ constexpr std::string_view kScenarioFileHeader =
     "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode";
 constexpr std::string_view kAreaFileHeader =
     "area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path";
+constexpr std::string_view kRainfallProfileHeader =
+    "step_index,rainfall_intensity_m_per_hour";
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
     throw std::runtime_error(message + "\n" + usage_message());
@@ -106,12 +108,78 @@ std::filesystem::path resolve_contract_path(
     return contract_path.parent_path() / parsed_path;
 }
 
+RainfallProfile load_rainfall_profile(const std::filesystem::path& profile_path) {
+    std::ifstream input(profile_path);
+    if (!input) {
+        throw_usage_error("Failed to open rainfall profile file: '" + profile_path.string() + "'");
+    }
+
+    std::string header_line;
+    if (!std::getline(input, header_line)) {
+        throw_usage_error("Rainfall profile file is empty: '" + profile_path.string() + "'");
+    }
+    if (trim_copy(header_line) != kRainfallProfileHeader) {
+        throw_usage_error(
+            "Rainfall profile file has invalid header in '" + profile_path.string() +
+            "'. Expected: " + std::string(kRainfallProfileHeader));
+    }
+
+    RainfallProfile profile {
+        .source_path = profile_path,
+    };
+
+    std::string line;
+    std::size_t expected_step_index = 1;
+    std::size_t line_number = 1;
+    while (std::getline(input, line)) {
+        ++line_number;
+        if (trim_copy(line).empty()) {
+            continue;
+        }
+
+        const std::vector<std::string> fields = split_csv_line(line);
+        if (fields.size() != 2) {
+            throw_usage_error(
+                "Rainfall profile row " + std::to_string(line_number) + " in '" +
+                profile_path.string() + "' must contain exactly 2 comma-separated fields");
+        }
+
+        const int step_index = parse_int_argument("rainfall profile step_index", fields[0]);
+        if (step_index <= 0) {
+            throw_usage_error("Rainfall profile step_index must be positive");
+        }
+        if (static_cast<std::size_t>(step_index) != expected_step_index) {
+            throw_usage_error(
+                "Rainfall profile steps in '" + profile_path.string() +
+                "' must start at 1 and remain contiguous");
+        }
+
+        const double intensity = parse_double_argument("rainfall profile intensity", fields[1]);
+        if (intensity < 0.0) {
+            throw_usage_error("Rainfall profile intensity must be non-negative");
+        }
+
+        profile.step_intensities_m_per_hour.push_back(intensity);
+        ++expected_step_index;
+    }
+
+    if (profile.step_intensities_m_per_hour.empty()) {
+        throw_usage_error("Rainfall profile file does not contain any rainfall rows: '" + profile_path.string() + "'");
+    }
+
+    return profile;
+}
+
 void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.name.empty()) {
         throw_usage_error("Scenario name must not be empty");
     }
     if (scenario.rainfall_intensity_m_per_hour < 0.0) {
         throw_usage_error("Rainfall intensity must be non-negative");
+    }
+    if (scenario.rainfall_profile.has_value() &&
+        scenario.rainfall_profile->step_intensities_m_per_hour.empty()) {
+        throw_usage_error("Rainfall profile must contain at least one step");
     }
     if (scenario.runoff_coefficient < 0.0 || scenario.runoff_coefficient > 1.0) {
         throw_usage_error("Runoff coefficient must be in [0, 1]");
@@ -125,6 +193,11 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.step_count <= 0) {
         throw_usage_error("Step count must be positive");
     }
+    if (scenario.rainfall_profile.has_value() &&
+        static_cast<std::size_t>(scenario.step_count) !=
+            scenario.rainfall_profile->step_intensities_m_per_hour.size()) {
+        throw_usage_error("Step count must match the rainfall profile length");
+    }
 }
 
 void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides& overrides) {
@@ -133,6 +206,10 @@ void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides&
     }
     if (overrides.rainfall_intensity_m_per_hour.has_value()) {
         scenario.rainfall_intensity_m_per_hour = *overrides.rainfall_intensity_m_per_hour;
+    }
+    if (overrides.rainfall_profile.has_value()) {
+        scenario.rainfall_profile = overrides.rainfall_profile;
+        scenario.step_count = static_cast<int>(scenario.rainfall_profile->step_intensities_m_per_hour.size());
     }
     if (overrides.runoff_coefficient.has_value()) {
         scenario.runoff_coefficient = *overrides.runoff_coefficient;
@@ -357,6 +434,7 @@ std::string usage_message() {
         " [--snapshot-every-steps <count>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
+        " [--rainfall-profile-file <path.csv>]"
         " [--runoff-coefficient <value>]"
         " [--initial-loss-m <value>]"
         " [--time-step-seconds <value>]"
@@ -403,6 +481,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     std::optional<std::filesystem::path> scenario_file_path;
     std::optional<int> snapshot_every_steps;
     std::optional<double> rainfall_override;
+    std::optional<RainfallProfile> rainfall_profile_override;
     std::optional<double> runoff_coefficient_override;
     std::optional<double> initial_loss_override;
     std::optional<double> time_step_override;
@@ -430,6 +509,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         } else if (option == "--rainfall-intensity-m-per-hour") {
             rainfall_override = parse_double_argument(option, value);
             arguments.scenario_overrides.rainfall_intensity_m_per_hour = rainfall_override;
+        } else if (option == "--rainfall-profile-file") {
+            rainfall_profile_override = load_rainfall_profile(value);
+            arguments.scenario_overrides.rainfall_profile = rainfall_profile_override;
         } else if (option == "--runoff-coefficient") {
             runoff_coefficient_override = parse_double_argument(option, value);
             arguments.scenario_overrides.runoff_coefficient = runoff_coefficient_override;
@@ -488,6 +570,12 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         (batch_scenario_names.has_value() && scenario_file_path.has_value())) {
         throw_usage_error("Use only one of --scenario, --batch-scenarios, or --scenario-file");
     }
+    if (rainfall_override.has_value() && rainfall_profile_override.has_value()) {
+        throw_usage_error("Use only one of --rainfall-intensity-m-per-hour or --rainfall-profile-file");
+    }
+    if (step_count_override.has_value() && rainfall_profile_override.has_value()) {
+        throw_usage_error("Do not use --steps with --rainfall-profile-file; the profile length defines the step count");
+    }
 
     if (scenario_preset_name.has_value()) {
         apply_scenario_preset(arguments.scenario, find_scenario_preset(*scenario_preset_name));
@@ -510,6 +598,11 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     if (rainfall_override.has_value()) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;
     }
+    if (rainfall_profile_override.has_value()) {
+        arguments.scenario.rainfall_profile = rainfall_profile_override;
+        arguments.scenario.step_count =
+            static_cast<int>(arguments.scenario.rainfall_profile->step_intensities_m_per_hour.size());
+    }
     if (runoff_coefficient_override.has_value()) {
         arguments.scenario.runoff_coefficient = *runoff_coefficient_override;
     }
@@ -523,7 +616,8 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         arguments.scenario.step_count = *step_count_override;
     }
     const bool has_cli_scenario_overrides =
-        rainfall_override.has_value() || runoff_coefficient_override.has_value() ||
+        rainfall_override.has_value() || rainfall_profile_override.has_value() ||
+        runoff_coefficient_override.has_value() ||
         initial_loss_override.has_value() ||
         time_step_override.has_value() || step_count_override.has_value();
     arguments.scenario.cli_overrides_applied =

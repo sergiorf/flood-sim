@@ -47,6 +47,35 @@ Planning note:
 - The minimum deterministic real-terrain comparison path is in place.
 - New tickets should bias toward interpretation, trusted area loading, curated fixtures, and lightweight visualization over broader orchestration.
 
+## FS-037 - Allow reviewed scenario files to reference rainfall profiles
+
+Status: Todo
+Owner: Unassigned
+Priority: P1
+
+Problem:
+- The real-terrain example can now replay a step-varying rainfall profile from the CLI, but reviewed multi-scenario CSV contracts still only describe constant-intensity events.
+
+Proposed change:
+- Extend the narrow scenario-file contract so one reviewed scenario row can reference an external rainfall-profile CSV without relying on ad hoc CLI assembly.
+
+Constraints:
+- Keep the scenario-file contract explicit and local to the example workflow.
+- Do not build a generalized scheduler or nested config format.
+- Preserve deterministic reporting and export metadata for both uniform and profile-driven runs.
+
+Acceptance criteria:
+- A scenario file can describe at least one profile-driven rainfall event through a documented path field or equivalent narrow contract.
+- Batch and single-scenario runs preserve enough metadata to distinguish uniform and profile-driven events safely.
+- Tests cover both valid and invalid reviewed profile references.
+
+Required tests:
+- Real-terrain workflow regression coverage for scenario-file-driven rainfall profiles.
+
+Required documentation updates:
+- `examples/real_terrain/README.md`
+- `README.md`
+
 ## In Progress
 
 No tickets in progress.

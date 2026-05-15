@@ -13,10 +13,27 @@
 
 namespace floodsim::examples::real_terrain {
 
+// Narrow time-series rainfall contract for the real-terrain example.
+//
+// Each entry is the uniform rainfall intensity for one simulation step. The
+// example keeps the time step constant across the full run, so realistic
+// event shape comes from changing intensity over steps rather than from a full
+// general scheduler.
+struct RainfallProfile {
+    std::filesystem::path source_path;
+    std::vector<double> step_intensities_m_per_hour;
+};
+
+// One fully resolved scenario passed into the example runner.
+//
+// This is intentionally a small, explicit contract rather than a generalized
+// scenario-management layer. Values may come from presets, scenario files, or
+// CLI overrides, but run_example() receives a single normalized structure.
 struct ScenarioConfig {
     std::string name;
     std::filesystem::path output_csv_path;
     double rainfall_intensity_m_per_hour {0.012};
+    std::optional<RainfallProfile> rainfall_profile;
     double runoff_coefficient {1.0};
     double initial_loss_m {0.0};
     double time_step_seconds {300.0};
@@ -27,8 +44,11 @@ struct ScenarioConfig {
     bool cli_overrides_applied {false};
 };
 
+// Optional CLI overrides applied after presets or external scenario
+// definitions are loaded.
 struct ScenarioOverrides {
     std::optional<double> rainfall_intensity_m_per_hour;
+    std::optional<RainfallProfile> rainfall_profile;
     std::optional<double> runoff_coefficient;
     std::optional<double> initial_loss_m;
     std::optional<double> time_step_seconds;
@@ -36,6 +56,7 @@ struct ScenarioOverrides {
     std::optional<floodsim::BoundaryMode> boundary_mode;
 };
 
+// Narrow area-loading contract used by --area-file.
 struct AreaDefinition {
     std::string area_name;
     std::filesystem::path contract_path;
@@ -46,6 +67,7 @@ struct AreaDefinition {
     std::optional<floodsim::TerrainWindow> terrain_window;
 };
 
+// Parsed command-line arguments plus any loaded scenario/area contracts.
 struct ExampleArguments {
     std::filesystem::path input_dem_path;
     std::optional<AreaDefinition> area_definition;
@@ -66,6 +88,7 @@ struct ScenarioPreset {
     std::string_view description;
 };
 
+// Full output of one example run, including optional intermediate snapshots.
 struct ExampleRunResult {
     struct SnapshotResult {
         int completed_steps;
@@ -89,6 +112,9 @@ struct BatchScenarioResult {
 [[nodiscard]] std::string nodata_status_to_string(floodsim::TerrainNodataStatus status);
 [[nodiscard]] std::string boundary_mode_to_string(floodsim::BoundaryMode mode);
 [[nodiscard]] std::string scenario_source_to_string(const ScenarioConfig& scenario);
+[[nodiscard]] std::string rainfall_mode_to_string(const ScenarioConfig& scenario);
+[[nodiscard]] double scenario_peak_rainfall_intensity_m_per_hour(const ScenarioConfig& scenario);
+[[nodiscard]] double scenario_total_rainfall_depth_m(const ScenarioConfig& scenario);
 
 [[nodiscard]] const std::vector<ScenarioPreset>& scenario_presets();
 [[nodiscard]] ExampleArguments parse_arguments(const std::vector<std::string>& args);

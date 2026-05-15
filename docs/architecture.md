@@ -62,6 +62,15 @@ Current responsibilities:
 - expose boundary handling as an explicit simulation setting, with support for closed boundaries plus one narrow open edge-outflow mode for clipped terrain
 - treat invalid imported-terrain cells as out-of-domain cells that do not receive rainfall and cannot receive routed flow
 
+Important public types:
+
+- `Grid`: the simulation-state raster, including terrain elevation, ponded water depth, valid-cell mask, and remaining event-start loss per cell
+- `RainfallScenario`: one uniform rainfall pulse passed into a single step
+- `SimulationConfig`: time-step, runoff-loss, initial-loss, and boundary settings shared across steps
+- `TerrainRaster`: validated imported terrain with dimensions, elevations, valid-cell mask, and optional origin / CRS metadata
+- `LoadedTerrainRaster`: `TerrainRaster` plus a `TerrainIngestionReport` so ingestion diagnostics stay out of the simulation state itself
+- `ScenarioConfig` in the real-terrain example: one normalized workflow scenario assembled from presets, files, and CLI overrides before the run starts
+
 Later responsibilities may include:
 
 - import-ready raster adapters
@@ -88,7 +97,11 @@ Terrain-derived exports may also include:
 
 - `scenario_name`
 - `boundary_mode`
+- `rainfall_mode`
+- `rainfall_profile_path`
 - `rainfall_intensity_m_per_hour`
+- `peak_rainfall_intensity_m_per_hour`
+- `total_rainfall_depth_m`
 - `runoff_coefficient`
 - `initial_loss_m`
 - `time_step_seconds`
@@ -128,6 +141,11 @@ abstraction control. In the current MVP it represents a fixed per-cell depth
 that must be satisfied before rainfall appears as surface water. This improves
 screening realism for short events, but it is still not a full infiltration,
 soil-moisture, or drainage-process model.
+
+The real-terrain example can now also load a narrow external rainfall-profile
+CSV and replay one intensity per step. That is the first step toward more
+realistic reviewed storm events without turning the repository into a broad
+scenario scheduler.
 
 The first real-terrain example workflow now lives in
 [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).

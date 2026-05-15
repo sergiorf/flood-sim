@@ -122,6 +122,26 @@ Field meanings:
 Invalid files fail clearly for missing headers, malformed rows, unknown
 boundary modes, or invalid numeric bounds.
 
+For step-varying storm shapes, the example also supports one separate rainfall
+profile file:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/drainage_slope.asc \
+  real_terrain_profile.csv \
+  --rainfall-profile-file examples/real_terrain/data/sample_storm_profile.csv
+```
+
+The rainfall-profile header is fixed:
+
+```text
+step_index,rainfall_intensity_m_per_hour
+```
+
+Each non-empty row defines the uniform rainfall intensity for one simulation
+step. The profile length defines the run step count, so `--steps` cannot be
+used together with `--rainfall-profile-file`.
+
 You can also run several named scenarios over the same clip in one invocation:
 
 ```bash
@@ -163,7 +183,11 @@ scenario and these columns:
 
 - `scenario_name`
 - `boundary_mode`
+- `rainfall_mode`
 - `rainfall_intensity_m_per_hour`
+- `rainfall_profile_path`
+- `peak_rainfall_intensity_m_per_hour`
+- `total_rainfall_depth_m`
 - `runoff_coefficient`
 - `initial_loss_m`
 - `time_step_seconds`
@@ -205,6 +229,11 @@ cumulative rainfall to satisfy that depth before any water from later rainfall
 appears as surface ponding in a cell. In this MVP, that is a practical
 screening control for short events, not a calibrated soil or infiltration
 model.
+
+For a non-uniform event, use `--rainfall-profile-file` instead of
+`--rainfall-intensity-m-per-hour`. The profile keeps the same
+`time_step_seconds`, but intensity can vary from one step to the next. That
+is the repository's first narrow "real storm shape" input path.
 
 You can clip a smaller pixel window from a larger source raster when you want a
 repeatable real-area scenario without preprocessing a separate file first:
@@ -285,6 +314,7 @@ Supported options:
 - `--snapshot-every-steps <count>`: write one intermediate snapshot CSV every N completed steps, excluding the final output step
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`
+- `--rainfall-profile-file <path.csv>`: load one per-step rainfall profile instead of one constant intensity
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
 - `--initial-loss-m <value>`: per-cell event-start loss depth in meters, default `0.0`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
@@ -300,8 +330,11 @@ terrain-window option is used, both `--window-rows` and `--window-cols` are
 required, and the requested window must stay within the source raster bounds.
 `--scenario` and `--batch-scenarios` are mutually exclusive, and both are also
 mutually exclusive with `--scenario-file`. Snapshot intervals must be
-positive. Scenario validation is kept local to that `ScenarioConfig`
-construction instead of being spread across the simulation setup path.
+positive. `--rainfall-intensity-m-per-hour` and `--rainfall-profile-file` are
+mutually exclusive, and `--steps` cannot be combined with
+`--rainfall-profile-file` because the profile length defines the step count.
+Scenario validation is kept local to that `ScenarioConfig` construction
+instead of being spread across the simulation setup path.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing
@@ -311,6 +344,7 @@ without confusing them:
 ```text
 scenario_name=baseline scenario_source=direct_cli_or_default
 boundary_mode=open
+rainfall_mode=uniform
 runoff_coefficient=1.000000
 initial_loss_m=0.000000
 ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped_cells=0 invalid_cells=1 nodata_metadata_present=true nan_cells=0 nodata_status=band_metadata_applied
@@ -320,7 +354,10 @@ ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped
 # cell_size_m,2.000000
 # scenario_name,baseline
 # boundary_mode,open
+# rainfall_mode,uniform
 # rainfall_intensity_m_per_hour,0.012000
+# peak_rainfall_intensity_m_per_hour,0.012000
+# total_rainfall_depth_m,0.012000
 # runoff_coefficient,1.000000
 # initial_loss_m,0.000000
 # time_step_seconds,300.000000
@@ -349,9 +386,9 @@ These are raster-model summaries for screening and comparison. They are useful
 for fast repeatable review, but they are not a substitute for calibrated
 hydrology metrics.
 
-The runoff coefficient and initial loss belong to that same category: they are
-simple practical approximations for MVP scenario screening, not calibrated
-infiltration models.
+The runoff coefficient, initial loss, and rainfall-profile support all belong
+to that same category: they are practical approximations for MVP scenario
+screening, not calibrated hydrology models.
 
 The default open boundary is also a practical screening choice. For clipped
 real-terrain rasters it avoids treating the raster edge like a retaining wall
@@ -462,7 +499,10 @@ metadata preamble, including:
 
 - `# scenario_name,...`
 - `# boundary_mode,open`
+- `# rainfall_mode,uniform`
 - `# rainfall_intensity_m_per_hour,...`
+- `# peak_rainfall_intensity_m_per_hour,...`
+- `# total_rainfall_depth_m,...`
 - `# runoff_coefficient,1.000000`
 - `# initial_loss_m,0.000000`
 - `# time_step_seconds,300.000000`

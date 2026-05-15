@@ -8,6 +8,8 @@
 
 namespace floodsim {
 
+// Small summary metrics used for deterministic comparisons in tests, CLI
+// output, and lightweight scenario reporting.
 struct GridSummaryMetrics {
     double total_water_depth_m {0.0};
     double max_water_depth_m {0.0};
@@ -16,14 +18,23 @@ struct GridSummaryMetrics {
     std::optional<std::size_t> deepest_col;
 };
 
+// Optional metadata preamble for CSV exports.
+//
+// The export format stays row-per-cell and text-based, so scenario identity,
+// timing, and terrain provenance are carried through this narrow sideband
+// rather than a separate manifest.
 struct GridCsvMetadata {
     std::optional<std::string> scenario_name;
     std::optional<std::string> boundary_mode;
+    std::optional<std::string> rainfall_mode;
+    std::optional<std::string> rainfall_profile_path;
     std::optional<std::string> area_name;
     std::optional<std::string> area_source_name;
     std::optional<std::string> area_source_details;
     std::optional<std::string> area_boundary_path;
     std::optional<double> rainfall_intensity_m_per_hour;
+    std::optional<double> peak_rainfall_intensity_m_per_hour;
+    std::optional<double> total_rainfall_depth_m;
     std::optional<double> runoff_coefficient;
     std::optional<double> initial_loss_m;
     std::optional<double> time_step_seconds;

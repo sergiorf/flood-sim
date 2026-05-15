@@ -9,6 +9,11 @@ enum class BoundaryMode {
     Open,
 };
 
+// Uniform rainfall used by the core step function.
+//
+// The core still operates on one step at a time. More complex event sequences
+// can be represented by calling step() repeatedly with a different uniform
+// intensity for each step.
 struct RainfallScenario {
     // Uniform rainfall intensity applied to every cell.
     // The unit is meters of water depth per hour, independent of the chosen
@@ -38,12 +43,17 @@ struct SimulationConfig {
     BoundaryMode boundary_mode {BoundaryMode::Closed};
 };
 
+// Add one uniform rainfall pulse to the grid without routing. This is exposed
+// separately so tests and higher-level workflows can reason about rainfall
+// semantics independently of flow transfers.
 void add_uniform_rainfall(
     Grid& grid,
     const RainfallScenario& rainfall,
     double duration_seconds,
     double runoff_coefficient = 1.0,
     double initial_loss_m = 0.0);
+
+// Execute one full simulation step: rainfall first, then routing.
 void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& config);
 
 }  // namespace floodsim

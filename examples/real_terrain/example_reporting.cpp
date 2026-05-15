@@ -41,6 +41,39 @@ std::string boundary_mode_to_string(floodsim::BoundaryMode mode) {
     throw std::runtime_error("Unhandled boundary mode");
 }
 
+std::string rainfall_mode_to_string(const ScenarioConfig& scenario) {
+    return scenario.rainfall_profile.has_value() ? "profile" : "uniform";
+}
+
+double scenario_peak_rainfall_intensity_m_per_hour(const ScenarioConfig& scenario) {
+    if (!scenario.rainfall_profile.has_value()) {
+        return scenario.rainfall_intensity_m_per_hour;
+    }
+
+    double peak_intensity = 0.0;
+    for (const double intensity : scenario.rainfall_profile->step_intensities_m_per_hour) {
+        if (intensity > peak_intensity) {
+            peak_intensity = intensity;
+        }
+    }
+    return peak_intensity;
+}
+
+double scenario_total_rainfall_depth_m(const ScenarioConfig& scenario) {
+    const double seconds_per_hour = 3600.0;
+    if (!scenario.rainfall_profile.has_value()) {
+        return scenario.rainfall_intensity_m_per_hour *
+            (scenario.time_step_seconds / seconds_per_hour) *
+            static_cast<double>(scenario.step_count);
+    }
+
+    double total_depth_m = 0.0;
+    for (const double intensity : scenario.rainfall_profile->step_intensities_m_per_hour) {
+        total_depth_m += intensity * (scenario.time_step_seconds / seconds_per_hour);
+    }
+    return total_depth_m;
+}
+
 std::string scenario_source_to_string(const ScenarioConfig& scenario) {
     if (scenario.file_applied && scenario.cli_overrides_applied) {
         return "file_with_cli_overrides";
@@ -95,6 +128,10 @@ void write_export(
         floodsim::GridCsvMetadata {
             .scenario_name = scenario.name,
             .boundary_mode = boundary_mode_to_string(scenario.boundary_mode),
+            .rainfall_mode = rainfall_mode_to_string(scenario),
+            .rainfall_profile_path = scenario.rainfall_profile.has_value()
+                ? std::optional<std::string>(scenario.rainfall_profile->source_path.string())
+                : std::nullopt,
             .area_name = area_definition.has_value()
                 ? std::optional<std::string>(area_definition->area_name)
                 : std::nullopt,
@@ -107,7 +144,11 @@ void write_export(
             .area_boundary_path = (area_definition.has_value() && area_definition->boundary_path.has_value())
                 ? std::optional<std::string>(area_definition->boundary_path->string())
                 : std::nullopt,
-            .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
+            .rainfall_intensity_m_per_hour = scenario.rainfall_profile.has_value()
+                ? std::nullopt
+                : std::optional<double>(scenario.rainfall_intensity_m_per_hour),
+            .peak_rainfall_intensity_m_per_hour = scenario_peak_rainfall_intensity_m_per_hour(scenario),
+            .total_rainfall_depth_m = scenario_total_rainfall_depth_m(scenario),
             .runoff_coefficient = scenario.runoff_coefficient,
             .initial_loss_m = scenario.initial_loss_m,
             .time_step_seconds = scenario.time_step_seconds,
@@ -140,6 +181,14 @@ void print_run_report(
         }
     }
     output << "boundary_mode=" << boundary_mode_to_string(scenario.boundary_mode) << '\n';
+    output << "rainfall_mode=" << rainfall_mode_to_string(scenario) << '\n';
+    if (scenario.rainfall_profile.has_value()) {
+        output << "rainfall_profile_path=" << scenario.rainfall_profile->source_path << '\n';
+        output << "peak_rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
+               << scenario_peak_rainfall_intensity_m_per_hour(scenario) << '\n';
+        output << "total_rainfall_depth_m=" << std::fixed << std::setprecision(6)
+               << scenario_total_rainfall_depth_m(scenario) << '\n';
+    }
     output << "runoff_coefficient=" << std::fixed << std::setprecision(6)
            << scenario.runoff_coefficient << '\n';
     output << "initial_loss_m=" << std::fixed << std::setprecision(6)
@@ -171,8 +220,12 @@ void print_run_report(
                << " window_cols=" << window.cols << '\n';
     }
 
-    output << "rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
-           << scenario.rainfall_intensity_m_per_hour << '\n';
+    if (!scenario.rainfall_profile.has_value()) {
+        output << "rainfall_intensity_m_per_hour=" << std::fixed << std::setprecision(6)
+               << scenario.rainfall_intensity_m_per_hour << '\n';
+        output << "total_rainfall_depth_m=" << std::fixed << std::setprecision(6)
+               << scenario_total_rainfall_depth_m(scenario) << '\n';
+    }
     output << "time_step_seconds=" << std::fixed << std::setprecision(3)
            << scenario.time_step_seconds << '\n';
     output << "steps=" << scenario.step_count
@@ -242,7 +295,8 @@ void write_batch_comparison_csv(
         throw std::runtime_error("Failed to open batch comparison CSV output path");
     }
 
-    output << "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,"
+    output << "scenario_name,boundary_mode,rainfall_mode,rainfall_intensity_m_per_hour,rainfall_profile_path,"
+              "peak_rainfall_intensity_m_per_hour,total_rainfall_depth_m,runoff_coefficient,initial_loss_m,"
               "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
               "deepest_row,deepest_col,output_csv\n";
 
@@ -251,8 +305,18 @@ void write_batch_comparison_csv(
         const floodsim::GridSummaryMetrics& metrics = batch_result.result.summary_metrics;
         output << scenario.name << ','
                << boundary_mode_to_string(scenario.boundary_mode) << ','
-               << std::fixed << std::setprecision(6)
-               << scenario.rainfall_intensity_m_per_hour << ','
+               << rainfall_mode_to_string(scenario) << ','
+               << std::fixed << std::setprecision(6);
+        if (!scenario.rainfall_profile.has_value()) {
+            output << scenario.rainfall_intensity_m_per_hour;
+        }
+        output << ',';
+        if (scenario.rainfall_profile.has_value()) {
+            output << scenario.rainfall_profile->source_path.string();
+        }
+        output << ','
+               << scenario_peak_rainfall_intensity_m_per_hour(scenario) << ','
+               << scenario_total_rainfall_depth_m(scenario) << ','
                << scenario.runoff_coefficient << ','
                << scenario.initial_loss_m << ','
                << scenario.time_step_seconds << ','

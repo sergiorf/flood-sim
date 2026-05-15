@@ -203,6 +203,25 @@ TEST_CASE("real terrain helper parses snapshot interval") {
     CHECK(*arguments.snapshot_every_steps == 4);
 }
 
+TEST_CASE("real terrain helper loads rainfall profile and derives step count") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--rainfall-profile-file",
+            fixture_path("examples/real_terrain/data/sample_storm_profile.csv").string(),
+        });
+
+    REQUIRE(arguments.scenario.rainfall_profile.has_value());
+    CHECK(arguments.scenario.rainfall_profile->source_path ==
+          fixture_path("examples/real_terrain/data/sample_storm_profile.csv"));
+    REQUIRE(arguments.scenario.rainfall_profile->step_intensities_m_per_hour.size() == 6);
+    CHECK(arguments.scenario.rainfall_profile->step_intensities_m_per_hour[0] == doctest::Approx(0.0));
+    CHECK(arguments.scenario.rainfall_profile->step_intensities_m_per_hour[3] == doctest::Approx(0.03));
+    CHECK(arguments.scenario.step_count == 6);
+}
+
 TEST_CASE("real terrain helper expands batch scenarios into deterministic output paths") {
     const auto arguments = parse_arguments(
         {
@@ -336,6 +355,19 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "0",
             })),
         doctest::Contains("Snapshot interval must be positive"));
+
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--rainfall-profile-file",
+                fixture_path("examples/real_terrain/data/sample_storm_profile.csv").string(),
+                "--steps",
+                "12",
+            })),
+        doctest::Contains("Do not use --steps with --rainfall-profile-file"));
 }
 
 TEST_CASE("real terrain helper runs nodata basin fixture and reports deterministic summary") {
@@ -361,6 +393,7 @@ TEST_CASE("real terrain helper runs nodata basin fixture and reports determinist
     std::ostringstream report;
     print_run_report(report, arguments, result);
     CHECK(report.str().find("boundary_mode=open") != std::string::npos);
+    CHECK(report.str().find("rainfall_mode=uniform") != std::string::npos);
     CHECK(report.str().find("nodata_status=band_metadata_applied") != std::string::npos);
     CHECK(report.str().find("summary_metrics wet_cells=24 max_water_depth_m=0.096997 deepest_row=2 deepest_col=2") != std::string::npos);
 }
@@ -392,6 +425,7 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(export_text.find("# origin_y_m,1020.000000") != std::string::npos);
     CHECK(export_text.find("# scenario_name,baseline") != std::string::npos);
     CHECK(export_text.find("# boundary_mode,open") != std::string::npos);
+    CHECK(export_text.find("# rainfall_mode,uniform") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 
@@ -496,6 +530,51 @@ TEST_CASE("real terrain helper initial loss delays runoff and is exported") {
         export_path);
     const std::string export_text = slurp_file(export_path);
     CHECK(export_text.find("# initial_loss_m,0.002000") != std::string::npos);
+    std::filesystem::remove(export_path);
+}
+
+TEST_CASE("real terrain helper supports external rainfall profile events") {
+    ExampleArguments baseline_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "baseline.csv",
+        });
+    const auto baseline_result = run_example(baseline_arguments);
+
+    ExampleArguments profile_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "profile.csv",
+            "--rainfall-profile-file",
+            fixture_path("examples/real_terrain/data/sample_storm_profile.csv").string(),
+        });
+    const auto profile_result = run_example(profile_arguments);
+
+    REQUIRE(profile_arguments.scenario.rainfall_profile.has_value());
+    CHECK(profile_arguments.scenario.step_count == 6);
+    CHECK(profile_result.grid.total_water_depth() < baseline_result.grid.total_water_depth());
+
+    std::ostringstream report;
+    print_run_report(report, profile_arguments, profile_result);
+    CHECK(report.str().find("rainfall_mode=profile") != std::string::npos);
+    CHECK(report.str().find("rainfall_profile_path=") != std::string::npos);
+    CHECK(report.str().find("peak_rainfall_intensity_m_per_hour=0.030000") != std::string::npos);
+    CHECK(report.str().find("total_rainfall_depth_m=0.007500") != std::string::npos);
+
+    const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_profile_export.csv";
+    write_export(
+        profile_result.grid,
+        profile_result.loaded_terrain.terrain,
+        profile_arguments.area_definition,
+        profile_arguments.scenario,
+        export_path);
+    const std::string export_text = slurp_file(export_path);
+    CHECK(export_text.find("# rainfall_mode,profile") != std::string::npos);
+    CHECK(export_text.find("# rainfall_profile_path,") != std::string::npos);
+    CHECK(export_text.find("# peak_rainfall_intensity_m_per_hour,0.030000") != std::string::npos);
+    CHECK(export_text.find("# total_rainfall_depth_m,0.007500") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 
@@ -625,11 +704,12 @@ TEST_CASE("batch comparison export writes deterministic scenario summary table")
     const std::string export_text = slurp_file(export_path);
 
     CHECK(export_text.find(
-              "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,"
+              "scenario_name,boundary_mode,rainfall_mode,rainfall_intensity_m_per_hour,rainfall_profile_path,"
+              "peak_rainfall_intensity_m_per_hour,total_rainfall_depth_m,runoff_coefficient,initial_loss_m,"
               "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
               "deepest_row,deepest_col,output_csv") == 0);
-    CHECK(export_text.find("baseline,open,0.012000,1.000000,0.000000,300.000000,12,0.287743,24,0.096997,2,2,batch_outputs_baseline.csv") != std::string::npos);
-    CHECK(export_text.find("intense_short,open,0.030000,1.000000,0.000000,300.000000,6,0.359635,24,0.067712,2,2,batch_outputs_intense_short.csv") != std::string::npos);
+    CHECK(export_text.find("baseline,open,uniform,0.012000,,0.012000,0.012000,1.000000,0.000000,300.000000,12,0.287743,24,0.096997,2,2,batch_outputs_baseline.csv") != std::string::npos);
+    CHECK(export_text.find("intense_short,open,uniform,0.030000,,0.030000,0.015000,1.000000,0.000000,300.000000,6,0.359635,24,0.067712,2,2,batch_outputs_intense_short.csv") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 

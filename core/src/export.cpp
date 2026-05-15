@@ -44,6 +44,12 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.boundary_mode.has_value()) {
         output << "# boundary_mode," << *metadata.boundary_mode << '\n';
     }
+    if (metadata.rainfall_mode.has_value()) {
+        output << "# rainfall_mode," << *metadata.rainfall_mode << '\n';
+    }
+    if (metadata.rainfall_profile_path.has_value()) {
+        output << "# rainfall_profile_path," << *metadata.rainfall_profile_path << '\n';
+    }
     if (metadata.area_name.has_value()) {
         output << "# area_name," << *metadata.area_name << '\n';
     }
@@ -58,6 +64,12 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     }
     if (metadata.rainfall_intensity_m_per_hour.has_value()) {
         output << "# rainfall_intensity_m_per_hour," << *metadata.rainfall_intensity_m_per_hour << '\n';
+    }
+    if (metadata.peak_rainfall_intensity_m_per_hour.has_value()) {
+        output << "# peak_rainfall_intensity_m_per_hour," << *metadata.peak_rainfall_intensity_m_per_hour << '\n';
+    }
+    if (metadata.total_rainfall_depth_m.has_value()) {
+        output << "# total_rainfall_depth_m," << *metadata.total_rainfall_depth_m << '\n';
     }
     if (metadata.runoff_coefficient.has_value()) {
         output << "# runoff_coefficient," << *metadata.runoff_coefficient << '\n';

@@ -35,8 +35,15 @@ void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides&
     if (overrides.rainfall_intensity_m_per_hour.has_value()) {
         scenario.rainfall_intensity_m_per_hour = *overrides.rainfall_intensity_m_per_hour;
     }
+    if (overrides.rainfall_profile.has_value()) {
+        scenario.rainfall_profile = overrides.rainfall_profile;
+        scenario.step_count = static_cast<int>(scenario.rainfall_profile->step_intensities_m_per_hour.size());
+    }
     if (overrides.runoff_coefficient.has_value()) {
         scenario.runoff_coefficient = *overrides.runoff_coefficient;
+    }
+    if (overrides.initial_loss_m.has_value()) {
+        scenario.initial_loss_m = *overrides.initial_loss_m;
     }
     if (overrides.time_step_seconds.has_value()) {
         scenario.time_step_seconds = *overrides.time_step_seconds;
@@ -53,14 +60,26 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.rainfall_intensity_m_per_hour < 0.0) {
         throw std::runtime_error("Rainfall intensity must be non-negative");
     }
+    if (scenario.rainfall_profile.has_value() &&
+        scenario.rainfall_profile->step_intensities_m_per_hour.empty()) {
+        throw std::runtime_error("Rainfall profile must contain at least one step");
+    }
     if (scenario.runoff_coefficient < 0.0 || scenario.runoff_coefficient > 1.0) {
         throw std::runtime_error("Runoff coefficient must be in [0, 1]");
+    }
+    if (scenario.initial_loss_m < 0.0) {
+        throw std::runtime_error("Initial loss must be non-negative");
     }
     if (scenario.time_step_seconds <= 0.0) {
         throw std::runtime_error("Time step must be positive");
     }
     if (scenario.step_count <= 0) {
         throw std::runtime_error("Step count must be positive");
+    }
+    if (scenario.rainfall_profile.has_value() &&
+        static_cast<std::size_t>(scenario.step_count) !=
+            scenario.rainfall_profile->step_intensities_m_per_hour.size()) {
+        throw std::runtime_error("Step count must match the rainfall profile length");
     }
 }
 
@@ -125,7 +144,9 @@ std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArgume
             scenario_arguments.scenario.cli_overrides_applied =
                 arguments.scenario_overrides.boundary_mode.has_value() ||
                 arguments.scenario_overrides.rainfall_intensity_m_per_hour.has_value() ||
+                arguments.scenario_overrides.rainfall_profile.has_value() ||
                 arguments.scenario_overrides.runoff_coefficient.has_value() ||
+                arguments.scenario_overrides.initial_loss_m.has_value() ||
                 arguments.scenario_overrides.time_step_seconds.has_value() ||
                 arguments.scenario_overrides.step_count.has_value();
             validate_scenario_config(scenario_arguments.scenario);
@@ -148,7 +169,9 @@ std::vector<ExampleArguments> build_batch_scenario_arguments(const ExampleArgume
         scenario_arguments.scenario.cli_overrides_applied =
             arguments.scenario_overrides.boundary_mode.has_value() ||
             arguments.scenario_overrides.rainfall_intensity_m_per_hour.has_value() ||
+            arguments.scenario_overrides.rainfall_profile.has_value() ||
             arguments.scenario_overrides.runoff_coefficient.has_value() ||
+            arguments.scenario_overrides.initial_loss_m.has_value() ||
             arguments.scenario_overrides.time_step_seconds.has_value() ||
             arguments.scenario_overrides.step_count.has_value();
         validate_scenario_config(scenario_arguments.scenario);
@@ -167,9 +190,6 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
     };
     result.grid = floodsim::make_grid_from_terrain(result.loaded_terrain.terrain);
 
-    const floodsim::RainfallScenario rainfall {
-        .intensity_m_per_hour = arguments.scenario.rainfall_intensity_m_per_hour,
-    };
     const floodsim::SimulationConfig config {
         .time_step_seconds = arguments.scenario.time_step_seconds,
         .runoff_coefficient = arguments.scenario.runoff_coefficient,
@@ -179,6 +199,12 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
     };
 
     for (int step = 0; step < arguments.scenario.step_count; ++step) {
+        const double rainfall_intensity_m_per_hour = arguments.scenario.rainfall_profile.has_value()
+            ? arguments.scenario.rainfall_profile->step_intensities_m_per_hour[static_cast<std::size_t>(step)]
+            : arguments.scenario.rainfall_intensity_m_per_hour;
+        const floodsim::RainfallScenario rainfall {
+            .intensity_m_per_hour = rainfall_intensity_m_per_hour,
+        };
         floodsim::step(result.grid, rainfall, config);
         const int completed_steps = step + 1;
         if (arguments.snapshot_every_steps.has_value() &&

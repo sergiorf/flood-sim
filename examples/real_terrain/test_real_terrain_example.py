@@ -113,9 +113,14 @@ def assert_metrics_match_benchmark(
     computed = compute_metrics(rows)
     assert metadata["scenario_name"] == benchmark["scenario_name"]
     assert metadata["boundary_mode"] == benchmark["boundary_mode"]
+    assert metadata["rainfall_mode"] == "uniform"
     assert float(metadata["runoff_coefficient"]) == float(benchmark["runoff_coefficient"])
     assert float(metadata.get("initial_loss_m", "0.0")) == 0.0
     assert float(metadata["rainfall_intensity_m_per_hour"]) == float(benchmark["rainfall_intensity_m_per_hour"])
+    assert float(metadata["peak_rainfall_intensity_m_per_hour"]) == float(benchmark["rainfall_intensity_m_per_hour"])
+    assert float(metadata["total_rainfall_depth_m"]) == float(benchmark["rainfall_intensity_m_per_hour"]) * (
+        float(benchmark["elapsed_seconds"]) / 3600.0
+    )
     assert float(metadata["time_step_seconds"]) == float(benchmark["time_step_seconds"])
     assert float(metadata["total_duration_seconds"]) == float(benchmark["elapsed_seconds"])
     assert computed["total_water_depth_m"] == benchmark["total_water_depth_m"]
@@ -161,7 +166,33 @@ def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
     metadata, rows = parse_export(output_csv_path)
     assert metadata["scenario_name"] == "reviewed_screening"
     assert metadata["boundary_mode"] == "open"
+    assert metadata["rainfall_mode"] == "uniform"
     assert metadata["initial_loss_m"] == "0.000000"
+    assert expected_summary_line(rows) in completed.stdout
+
+
+def assert_rainfall_profile_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[1].terrain_path
+    profile_path = terrain_path.parent / "sample_storm_profile.csv"
+    output_csv_path = output_directory / "rainfall_profile_output.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--rainfall-profile-file",
+        str(profile_path),
+    )
+
+    assert "rainfall_mode=profile" in completed.stdout
+    assert f'rainfall_profile_path="{profile_path}"' in completed.stdout
+    assert "peak_rainfall_intensity_m_per_hour=0.030000" in completed.stdout
+    assert "total_rainfall_depth_m=0.007500" in completed.stdout
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["rainfall_mode"] == "profile"
+    assert metadata["rainfall_profile_path"] == str(profile_path)
+    assert metadata["peak_rainfall_intensity_m_per_hour"] == "0.030000"
+    assert metadata["total_rainfall_depth_m"] == "0.007500"
+    assert "rainfall_intensity_m_per_hour" not in metadata
     assert expected_summary_line(rows) in completed.stdout
 
 
@@ -268,13 +299,14 @@ def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
     assert comparison_csv_path.exists()
     comparison_csv_text = comparison_csv_path.read_text(encoding="utf-8")
     assert comparison_csv_text.startswith(
-        "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,"
+        "scenario_name,boundary_mode,rainfall_mode,rainfall_intensity_m_per_hour,rainfall_profile_path,"
+        "peak_rainfall_intensity_m_per_hour,total_rainfall_depth_m,runoff_coefficient,initial_loss_m,"
         "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
         "deepest_row,deepest_col,output_csv\n"
     )
-    assert "baseline_file,open,0.012000,1.000000,0.000000,300.000000,12,0.287743,24,0.096997,2,2," in comparison_csv_text
-    assert "intense_short_file,open,0.030000,1.000000,0.000000,300.000000,6,0.359635,24,0.067712,2,2," in comparison_csv_text
-    assert "long_moderate_file,open,0.008000,1.000000,0.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
+    assert "baseline_file,open,uniform,0.012000,,0.012000,0.012000,1.000000,0.000000,300.000000,12,0.287743,24,0.096997,2,2," in comparison_csv_text
+    assert "intense_short_file,open,uniform,0.030000,,0.030000,0.015000,1.000000,0.000000,300.000000,6,0.359635,24,0.067712,2,2," in comparison_csv_text
+    assert "long_moderate_file,open,uniform,0.008000,,0.008000,0.024000,1.000000,0.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
 
 
 def assert_fixture_run(
@@ -287,6 +319,7 @@ def assert_fixture_run(
 
     assert f'loaded_dem="{fixture.terrain_path}"' in completed.stdout
     assert "rainfall_intensity_m_per_hour=0.012000" in completed.stdout
+    assert "rainfall_mode=uniform" in completed.stdout
     assert "initial_loss_m=0.000000" in completed.stdout
     assert "time_step_seconds=300.000" in completed.stdout
     assert "steps=12 " in completed.stdout
@@ -326,6 +359,7 @@ def main() -> int:
     assert_snapshot_run(binary_path, output_directory)
     assert_area_file_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)
+    assert_rainfall_profile_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
 
     return 0
