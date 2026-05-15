@@ -99,28 +99,34 @@ You can also define scenarios outside the binary through a narrow CSV contract:
 The current scenario-file header is fixed and intentionally small:
 
 ```text
-scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode
+scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode
 ```
 
 Each non-empty row defines one scenario. The committed sample file looks like:
 
 ```text
-scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode
-reviewed_screening,0.012000,1.000000,0.000000,300.000000,12,open
+scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode
+reviewed_screening,0.012000,,1.000000,0.000000,300.000000,12,open
 ```
 
 Field meanings:
 
 - `scenario_name`: identifier written into reports and export metadata
-- `rainfall_intensity_m_per_hour`: uniform rainfall intensity in meters per hour
+- `rainfall_intensity_m_per_hour`: uniform rainfall intensity in meters per hour for constant-intensity rows
+- `rainfall_profile_path`: optional path to a reviewed per-step rainfall profile file, resolved relative to the scenario file when not absolute
 - `runoff_coefficient`: retained rainfall fraction in `[0, 1]`
 - `initial_loss_m`: event-start loss depth in meters that must be satisfied before rainfall appears as surface runoff
 - `time_step_seconds`: duration of one step in seconds
-- `steps`: positive integer number of steps
+- `steps`: positive integer number of steps; for profile-backed rows this must match the profile length
 - `boundary_mode`: `open` or `closed`
 
-Invalid files fail clearly for missing headers, malformed rows, unknown
-boundary modes, or invalid numeric bounds.
+Each scenario row must choose exactly one rainfall source:
+
+- either a non-empty `rainfall_intensity_m_per_hour`
+- or a non-empty `rainfall_profile_path`
+
+Invalid files fail clearly for missing headers, malformed rows, conflicting
+rainfall sources, unknown boundary modes, or invalid numeric bounds.
 
 For step-varying storm shapes, the example also supports one separate rainfall
 profile file:
@@ -159,6 +165,16 @@ scenario names to stay compiled into the example:
   examples/real_terrain/data/sample_dem.tif \
   real_terrain_file_batch.csv \
   --scenario-file examples/real_terrain/data/sample_scenarios.csv
+```
+
+The same reviewed scenario-file path can now also mix uniform and
+profile-backed rows, for example:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/drainage_slope.asc \
+  real_terrain_profile_batch.csv \
+  --scenario-file examples/real_terrain/data/sample_profile_scenarios.csv
 ```
 
 That batch path keeps the interface intentionally narrow:

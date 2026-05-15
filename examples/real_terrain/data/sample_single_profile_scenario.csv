@@ -1,2 +1,2 @@
 scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode
-reviewed_screening,0.012000,,1.000000,0.000000,300.000000,12,open
+reviewed_profile_event,,sample_storm_profile.csv,1.000000,0.000000,300.000000,6,open

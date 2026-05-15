@@ -124,6 +124,26 @@ TEST_CASE("real terrain helper loads single external scenario definition file") 
     CHECK(scenario_source_to_string(arguments.scenario) == "file");
 }
 
+TEST_CASE("real terrain helper loads single external profile-backed scenario definition file") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "output.csv",
+            "--scenario-file",
+            fixture_path("examples/real_terrain/data/sample_single_profile_scenario.csv").string(),
+        });
+
+    CHECK(arguments.scenario.file_applied);
+    CHECK(arguments.scenario.name == "reviewed_profile_event");
+    REQUIRE(arguments.scenario.rainfall_profile.has_value());
+    CHECK(arguments.scenario.rainfall_profile->source_path ==
+          fixture_path("examples/real_terrain/data/sample_storm_profile.csv"));
+    CHECK(arguments.scenario.rainfall_intensity_m_per_hour == doctest::Approx(0.0));
+    CHECK(arguments.scenario.step_count == 6);
+    CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
+}
+
 TEST_CASE("real terrain helper loads batch external scenario definition file") {
     const auto arguments = parse_arguments(
         {
@@ -331,8 +351,8 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
     const auto invalid_boundary_path = std::filesystem::temp_directory_path() / "floodsim_invalid_scenario_boundary.csv";
     write_text_file(
         invalid_boundary_path,
-        "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode\n"
-        "demo,0.012000,1.000000,0.000000,300.000000,12,sideways\n");
+        "scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode\n"
+        "demo,0.012000,,1.000000,0.000000,300.000000,12,sideways\n");
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(
             {
@@ -344,6 +364,26 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
             })),
         doctest::Contains("Invalid value for scenario file boundary mode"));
     std::filesystem::remove(invalid_boundary_path);
+
+    const auto invalid_rainfall_source_path = std::filesystem::temp_directory_path() / "floodsim_invalid_scenario_rainfall_source.csv";
+    write_text_file(
+        invalid_rainfall_source_path,
+        std::string(
+            "scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode\n"
+            "demo,0.012000,") +
+            fixture_path("examples/real_terrain/data/sample_storm_profile.csv").string() +
+            ",1.000000,0.000000,300.000000,6,open\n");
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+                "output.csv",
+                "--scenario-file",
+                invalid_rainfall_source_path.string(),
+            })),
+        doctest::Contains("Scenario cannot define both uniform rainfall intensity and a rainfall profile"));
+    std::filesystem::remove(invalid_rainfall_source_path);
 
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(

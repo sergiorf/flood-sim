@@ -12,7 +12,7 @@ namespace {
 
 constexpr const char* kDefaultScenarioName = "baseline";
 constexpr std::string_view kScenarioFileHeader =
-    "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode";
+    "scenario_name,rainfall_intensity_m_per_hour,rainfall_profile_path,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode";
 constexpr std::string_view kAreaFileHeader =
     "area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path";
 constexpr std::string_view kRainfallProfileHeader =
@@ -177,6 +177,12 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.rainfall_intensity_m_per_hour < 0.0) {
         throw_usage_error("Rainfall intensity must be non-negative");
     }
+    if (scenario.rainfall_profile.has_value() && scenario.rainfall_intensity_m_per_hour > 0.0) {
+        throw_usage_error("Scenario cannot define both uniform rainfall intensity and a rainfall profile");
+    }
+    if (!scenario.rainfall_profile.has_value() && scenario.rainfall_intensity_m_per_hour == 0.0) {
+        throw_usage_error("Scenario must define either a rainfall intensity or a rainfall profile");
+    }
     if (scenario.rainfall_profile.has_value() &&
         scenario.rainfall_profile->step_intensities_m_per_hour.empty()) {
         throw_usage_error("Rainfall profile must contain at least one step");
@@ -205,9 +211,11 @@ void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides&
         scenario.boundary_mode = *overrides.boundary_mode;
     }
     if (overrides.rainfall_intensity_m_per_hour.has_value()) {
+        scenario.rainfall_profile.reset();
         scenario.rainfall_intensity_m_per_hour = *overrides.rainfall_intensity_m_per_hour;
     }
     if (overrides.rainfall_profile.has_value()) {
+        scenario.rainfall_intensity_m_per_hour = 0.0;
         scenario.rainfall_profile = overrides.rainfall_profile;
         scenario.step_count = static_cast<int>(scenario.rainfall_profile->step_intensities_m_per_hour.size());
     }
@@ -390,26 +398,33 @@ std::vector<ScenarioConfig> load_scenario_file_definitions(const std::filesystem
         }
 
         const std::vector<std::string> fields = split_csv_line(line);
-        if (fields.size() != 7) {
+        if (fields.size() != 8) {
             throw_usage_error(
                 "Scenario file row " + std::to_string(line_number) + " in '" +
-                scenario_file_path.string() + "' must contain exactly 7 comma-separated fields");
+                scenario_file_path.string() + "' must contain exactly 8 comma-separated fields");
         }
 
         ScenarioConfig scenario;
         scenario.name = fields[0];
-        scenario.rainfall_intensity_m_per_hour =
-            parse_double_argument("scenario file rainfall intensity", fields[1]);
+        if (!fields[1].empty()) {
+            scenario.rainfall_intensity_m_per_hour =
+                parse_double_argument("scenario file rainfall intensity", fields[1]);
+        } else {
+            scenario.rainfall_intensity_m_per_hour = 0.0;
+        }
+        if (!fields[2].empty()) {
+            scenario.rainfall_profile = load_rainfall_profile(resolve_contract_path(scenario_file_path, fields[2]));
+        }
         scenario.runoff_coefficient =
-            parse_double_argument("scenario file runoff coefficient", fields[2]);
+            parse_double_argument("scenario file runoff coefficient", fields[3]);
         scenario.initial_loss_m =
-            parse_double_argument("scenario file initial loss", fields[3]);
+            parse_double_argument("scenario file initial loss", fields[4]);
         scenario.time_step_seconds =
-            parse_double_argument("scenario file time step", fields[4]);
+            parse_double_argument("scenario file time step", fields[5]);
         scenario.step_count =
-            parse_int_argument("scenario file step count", fields[5]);
+            parse_int_argument("scenario file step count", fields[6]);
         scenario.boundary_mode =
-            parse_boundary_mode_value(fields[6], "scenario file boundary mode");
+            parse_boundary_mode_value(fields[7], "scenario file boundary mode");
         scenario.file_applied = true;
         validate_scenario_config(scenario);
         scenarios.push_back(std::move(scenario));
@@ -599,6 +614,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;
     }
     if (rainfall_profile_override.has_value()) {
+        arguments.scenario.rainfall_intensity_m_per_hour = 0.0;
         arguments.scenario.rainfall_profile = rainfall_profile_override;
         arguments.scenario.step_count =
             static_cast<int>(arguments.scenario.rainfall_profile->step_intensities_m_per_hour.size());

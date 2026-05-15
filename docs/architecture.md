@@ -44,6 +44,9 @@ contract with a fixed header and one row per scenario. The format is
 intentionally narrow and local to the example workflow: it covers only the
 stabilized scenario fields already present in `ScenarioConfig` and avoids
 bringing in broader config-file tooling.
+That contract can now describe either a constant-intensity rainfall event or a
+profile-backed event through one referenced per-step rainfall CSV, while still
+normalizing both paths into the same `ScenarioConfig` before execution.
 Regression fixtures for that example live alongside the example assets and test
 harness, not in the simulation-core interfaces. That keeps fixture identity,
 test expectations, and smoke-case intent out of the engine configuration

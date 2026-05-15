@@ -171,6 +171,33 @@ def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
     assert expected_summary_line(rows) in completed.stdout
 
 
+def assert_profile_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[1].terrain_path
+    scenario_file_path = terrain_path.parent / "sample_single_profile_scenario.csv"
+    profile_path = terrain_path.parent / "sample_storm_profile.csv"
+    output_csv_path = output_directory / "profile_scenario_file_output.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--scenario-file",
+        str(scenario_file_path),
+    )
+
+    assert "scenario_name=reviewed_profile_event scenario_source=file" in completed.stdout
+    assert 'rainfall_mode=profile' in completed.stdout
+    assert f'rainfall_profile_path="{profile_path}"' in completed.stdout
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["scenario_name"] == "reviewed_profile_event"
+    assert metadata["boundary_mode"] == "open"
+    assert metadata["rainfall_mode"] == "profile"
+    assert metadata["rainfall_profile_path"] == str(profile_path)
+    assert metadata["peak_rainfall_intensity_m_per_hour"] == "0.030000"
+    assert metadata["total_rainfall_depth_m"] == "0.007500"
+    assert "rainfall_intensity_m_per_hour" not in metadata
+    assert expected_summary_line(rows) in completed.stdout
+
+
 def assert_rainfall_profile_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[1].terrain_path
     profile_path = terrain_path.parent / "sample_storm_profile.csv"
@@ -309,6 +336,42 @@ def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
     assert "long_moderate_file,open,uniform,0.008000,,0.008000,0.024000,1.000000,0.000000,300.000000,36,0.575294,24,0.402130,2,2," in comparison_csv_text
 
 
+def assert_profile_batch_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[1].terrain_path
+    scenario_file_path = terrain_path.parent / "sample_profile_scenarios.csv"
+    profile_path = terrain_path.parent / "sample_storm_profile.csv"
+    output_csv_path = output_directory / "profile_batch_outputs.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--scenario-file",
+        str(scenario_file_path),
+    )
+
+    baseline_csv_path = output_directory / "profile_batch_outputs_baseline_file.csv"
+    profile_csv_path = output_directory / "profile_batch_outputs_reviewed_profile_event.csv"
+    comparison_csv_path = output_directory / "profile_batch_outputs_comparison.csv"
+
+    assert baseline_csv_path.exists()
+    assert profile_csv_path.exists()
+    assert comparison_csv_path.exists()
+    assert "scenario_name=baseline_file" in completed.stdout
+    assert "scenario_name=reviewed_profile_event" in completed.stdout
+
+    baseline_metadata, _ = parse_export(baseline_csv_path)
+    profile_metadata, profile_rows = parse_export(profile_csv_path)
+    assert baseline_metadata["rainfall_mode"] == "uniform"
+    assert profile_metadata["rainfall_mode"] == "profile"
+    assert profile_metadata["peak_rainfall_intensity_m_per_hour"] == "0.030000"
+    assert expected_summary_line(profile_rows) in completed.stdout
+
+    comparison_csv_text = comparison_csv_path.read_text(encoding="utf-8")
+    assert "baseline_file,open,uniform,0.012000,,0.012000,0.012000,1.000000,0.000000,300.000000,12," in comparison_csv_text
+    assert "reviewed_profile_event,open,profile,," in comparison_csv_text
+    assert f",{profile_path},0.030000,0.007500,1.000000,0.000000,300.000000,6," in comparison_csv_text
+
+
 def assert_fixture_run(
     binary_path: Path,
     output_directory: Path,
@@ -359,8 +422,10 @@ def main() -> int:
     assert_snapshot_run(binary_path, output_directory)
     assert_area_file_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)
+    assert_profile_scenario_file_run(binary_path, output_directory)
     assert_rainfall_profile_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
+    assert_profile_batch_run(binary_path, output_directory)
 
     return 0
 

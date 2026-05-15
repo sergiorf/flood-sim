@@ -33,9 +33,11 @@ void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides&
         scenario.boundary_mode = *overrides.boundary_mode;
     }
     if (overrides.rainfall_intensity_m_per_hour.has_value()) {
+        scenario.rainfall_profile.reset();
         scenario.rainfall_intensity_m_per_hour = *overrides.rainfall_intensity_m_per_hour;
     }
     if (overrides.rainfall_profile.has_value()) {
+        scenario.rainfall_intensity_m_per_hour = 0.0;
         scenario.rainfall_profile = overrides.rainfall_profile;
         scenario.step_count = static_cast<int>(scenario.rainfall_profile->step_intensities_m_per_hour.size());
     }
@@ -59,6 +61,12 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     }
     if (scenario.rainfall_intensity_m_per_hour < 0.0) {
         throw std::runtime_error("Rainfall intensity must be non-negative");
+    }
+    if (scenario.rainfall_profile.has_value() && scenario.rainfall_intensity_m_per_hour > 0.0) {
+        throw std::runtime_error("Scenario cannot define both uniform rainfall intensity and a rainfall profile");
+    }
+    if (!scenario.rainfall_profile.has_value() && scenario.rainfall_intensity_m_per_hour == 0.0) {
+        throw std::runtime_error("Scenario must define either a rainfall intensity or a rainfall profile");
     }
     if (scenario.rainfall_profile.has_value() &&
         scenario.rainfall_profile->step_intensities_m_per_hour.empty()) {

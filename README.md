@@ -122,6 +122,11 @@ scenario inputs do not need to remain compiled into the example:
   --scenario-file examples/real_terrain/data/sample_single_scenario.csv
 ```
 
+That reviewed scenario-file contract can now describe either:
+
+- a constant-intensity event
+- or a profile-backed event that references one external per-step rainfall CSV
+
 The same example now supports a minimal batch path for running several named
 scenarios over the same clip with deterministic per-scenario output paths:
 
