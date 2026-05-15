@@ -208,6 +208,36 @@ repeatable real-area scenario without preprocessing a separate file first:
   --window-cols 2
 ```
 
+For a repeatable local area-selection workflow, you can also load one narrow
+area-definition CSV that carries the DEM path, optional pixel window, and
+required provenance fields:
+
+```bash
+./build/floodsim_real_terrain_example \
+  --area-file examples/real_terrain/data/sample_area_clip.csv \
+  real_terrain_area_clip.csv
+```
+
+The current area-file header is fixed:
+
+```text
+area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path
+```
+
+The committed sample area file uses:
+
+- `area_name=sample_center_clip`
+- `input_dem_path=sample_dem.tif`
+- a `3 x 2` pixel window starting at row `1`, col `1`
+- `source_name=checked_in_sample_dem`
+- `source_details=checked_in_demo_clip`
+
+Paths inside the area file are resolved relative to the area file location when
+they are not absolute. The optional `boundary_path` field is preserved for
+provenance when present, but it is not yet used to clip the raster itself.
+The example report and export CSV metadata now preserve the area name and
+provenance fields so generated artifacts remain self-describing.
+
 You can also export a small number of intermediate runoff snapshots during a
 run:
 
@@ -240,6 +270,7 @@ Supported options:
 - `--scenario <name>`: load one documented rainfall preset: `baseline`, `intense_short`, or `long_moderate`
 - `--batch-scenarios <name1,name2,...>`: run several documented scenario presets in one invocation and derive one output CSV per scenario from the positional output path
 - `--scenario-file <path.csv>`: load one or more external scenario definitions from the fixed CSV contract above
+- `--area-file <path.csv>`: load one area-definition row with DEM path, optional window, and required provenance fields
 - `--snapshot-every-steps <count>`: write one intermediate snapshot CSV every N completed steps, excluding the final output step
 - `--boundary-mode <closed|open>`: choose whether raster edges trap water or allow edge outflow, default `open` for the real-terrain workflow
 - `--rainfall-intensity-m-per-hour <value>`: uniform rainfall intensity in meters per hour, default `0.012`

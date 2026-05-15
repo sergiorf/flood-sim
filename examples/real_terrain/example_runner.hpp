@@ -34,8 +34,19 @@ struct ScenarioOverrides {
     std::optional<floodsim::BoundaryMode> boundary_mode;
 };
 
+struct AreaDefinition {
+    std::string area_name;
+    std::filesystem::path contract_path;
+    std::filesystem::path input_dem_path;
+    std::string source_name;
+    std::string source_details;
+    std::optional<std::filesystem::path> boundary_path;
+    std::optional<floodsim::TerrainWindow> terrain_window;
+};
+
 struct ExampleArguments {
     std::filesystem::path input_dem_path;
+    std::optional<AreaDefinition> area_definition;
     ScenarioConfig scenario;
     std::optional<floodsim::TerrainWindow> terrain_window;
     std::optional<int> snapshot_every_steps;
@@ -91,6 +102,7 @@ struct BatchScenarioResult {
 void write_export(
     const floodsim::Grid& grid,
     const floodsim::TerrainRaster& terrain,
+    const std::optional<AreaDefinition>& area_definition,
     const ScenarioConfig& scenario,
     const std::filesystem::path& output_path);
 void print_run_report(
@@ -99,6 +111,7 @@ void print_run_report(
     const ExampleRunResult& result);
 void write_snapshot_exports(
     const ExampleRunResult& result,
+    const std::optional<AreaDefinition>& area_definition,
     const ScenarioConfig& scenario,
     const std::filesystem::path& base_output_path);
 void write_batch_comparison_csv(

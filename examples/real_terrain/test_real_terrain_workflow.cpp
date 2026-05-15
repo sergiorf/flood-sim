@@ -145,6 +145,30 @@ TEST_CASE("real terrain helper loads batch external scenario definition file") {
     CHECK(batch_arguments[2].scenario.output_csv_path == std::filesystem::path("file_batch_long_moderate_file.csv"));
 }
 
+TEST_CASE("real terrain helper loads area definition file with provenance and clipped window") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            "--area-file",
+            fixture_path("examples/real_terrain/data/sample_area_clip.csv").string(),
+            "output.csv",
+            "--scenario",
+            "baseline",
+        });
+
+    REQUIRE(arguments.area_definition.has_value());
+    CHECK(arguments.area_definition->area_name == "sample_center_clip");
+    CHECK(arguments.area_definition->input_dem_path == fixture_path("examples/real_terrain/data/sample_dem.tif"));
+    CHECK(arguments.area_definition->source_name == "checked_in_sample_dem");
+    CHECK(arguments.area_definition->source_details == "checked_in_demo_clip");
+    CHECK(!arguments.area_definition->boundary_path.has_value());
+    REQUIRE(arguments.terrain_window.has_value());
+    CHECK(arguments.terrain_window->row_offset == 1);
+    CHECK(arguments.terrain_window->col_offset == 1);
+    CHECK(arguments.terrain_window->rows == 3);
+    CHECK(arguments.terrain_window->cols == 2);
+}
+
 TEST_CASE("real terrain helper parses batch scenario list") {
     const auto arguments = parse_arguments(
         {
@@ -230,6 +254,16 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "1.5",
             })),
         doctest::Contains("Runoff coefficient must be in [0, 1]"));
+
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                "--area-file",
+                fixture_path("examples/real_terrain/data/invalid_area_missing_provenance.csv").string(),
+                "output.csv",
+            })),
+        doctest::Contains("Area definition must provide a non-empty source_name"));
 
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(
@@ -349,7 +383,7 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(*result.summary_metrics.deepest_col == 3);
 
     const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_helper_export.csv";
-    write_export(result.grid, result.loaded_terrain.terrain, arguments.scenario, export_path);
+    write_export(result.grid, result.loaded_terrain.terrain, arguments.area_definition, arguments.scenario, export_path);
     const std::string export_text = slurp_file(export_path);
     CHECK(export_text.find("# rows,4") != std::string::npos);
     CHECK(export_text.find("# cols,4") != std::string::npos);
@@ -418,6 +452,7 @@ TEST_CASE("real terrain helper runoff coefficient reduces retained water and is 
     write_export(
         reduced_runoff_result.grid,
         reduced_runoff_result.loaded_terrain.terrain,
+        reduced_runoff_arguments.area_definition,
         reduced_runoff_arguments.scenario,
         export_path);
     const std::string export_text = slurp_file(export_path);

@@ -1,0 +1,2 @@
+area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path
+missing_provenance_clip,sample_dem.tif,1,1,3,2,,,

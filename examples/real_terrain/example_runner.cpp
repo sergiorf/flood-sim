@@ -15,6 +15,8 @@ namespace {
 constexpr const char* kDefaultScenarioName = "baseline";
 constexpr std::string_view kScenarioFileHeader =
     "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode";
+constexpr std::string_view kAreaFileHeader =
+    "area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path";
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
     throw std::runtime_error(message + "\n" + usage_message());
@@ -96,6 +98,16 @@ std::vector<std::string> split_csv_line(const std::string& line) {
     return fields;
 }
 
+std::filesystem::path resolve_contract_path(
+    const std::filesystem::path& contract_path,
+    const std::string& field_value) {
+    const std::filesystem::path parsed_path(field_value);
+    if (parsed_path.is_absolute()) {
+        return parsed_path;
+    }
+    return contract_path.parent_path() / parsed_path;
+}
+
 void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.name.empty()) {
         throw_usage_error("Scenario name must not be empty");
@@ -153,6 +165,24 @@ void validate_snapshot_interval(const std::optional<int> snapshot_every_steps) {
     }
 }
 
+void validate_area_definition(const AreaDefinition& area_definition) {
+    if (area_definition.area_name.empty()) {
+        throw_usage_error("Area definition must provide a non-empty area_name");
+    }
+    if (area_definition.input_dem_path.empty()) {
+        throw_usage_error("Area definition must provide a non-empty input_dem_path");
+    }
+    if (area_definition.source_name.empty()) {
+        throw_usage_error("Area definition must provide a non-empty source_name");
+    }
+    if (area_definition.source_details.empty()) {
+        throw_usage_error("Area definition must provide a non-empty source_details");
+    }
+    if (area_definition.terrain_window.has_value()) {
+        validate_window_arguments(area_definition.terrain_window);
+    }
+}
+
 std::vector<std::string> parse_batch_scenario_names_argument(const std::string& value) {
     std::vector<std::string> names;
     std::stringstream value_stream(value);
@@ -169,6 +199,88 @@ std::vector<std::string> parse_batch_scenario_names_argument(const std::string& 
     }
 
     return names;
+}
+
+AreaDefinition load_area_definition(const std::filesystem::path& area_file_path) {
+    std::ifstream input(area_file_path);
+    if (!input) {
+        throw_usage_error("Failed to open area file: '" + area_file_path.string() + "'");
+    }
+
+    std::string header_line;
+    if (!std::getline(input, header_line)) {
+        throw_usage_error("Area file is empty: '" + area_file_path.string() + "'");
+    }
+    if (trim_copy(header_line) != kAreaFileHeader) {
+        throw_usage_error(
+            "Area file has invalid header in '" + area_file_path.string() +
+            "'. Expected: " + std::string(kAreaFileHeader));
+    }
+
+    std::vector<std::string> non_empty_rows;
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!trim_copy(line).empty()) {
+            non_empty_rows.push_back(line);
+        }
+    }
+
+    if (non_empty_rows.empty()) {
+        throw_usage_error("Area file does not contain any area rows: '" + area_file_path.string() + "'");
+    }
+    if (non_empty_rows.size() != 1) {
+        throw_usage_error("Area file must contain exactly one non-empty area row: '" + area_file_path.string() + "'");
+    }
+
+    std::vector<std::string> fields = split_csv_line(non_empty_rows.front());
+    if (fields.size() == 8 && !non_empty_rows.front().empty() && non_empty_rows.front().back() == ',') {
+        fields.push_back("");
+    }
+    if (fields.size() != 9) {
+        throw_usage_error(
+            "Area file row in '" + area_file_path.string() +
+            "' must contain exactly 9 comma-separated fields");
+    }
+
+    AreaDefinition area_definition;
+    area_definition.contract_path = area_file_path;
+    area_definition.area_name = fields[0];
+    area_definition.input_dem_path = resolve_contract_path(area_file_path, fields[1]);
+    area_definition.source_name = fields[6];
+    area_definition.source_details = fields[7];
+    if (!fields[8].empty()) {
+        area_definition.boundary_path = resolve_contract_path(area_file_path, fields[8]);
+    }
+
+    const bool has_any_window_field =
+        !fields[2].empty() || !fields[3].empty() || !fields[4].empty() || !fields[5].empty();
+    const bool has_complete_window =
+        !fields[2].empty() && !fields[3].empty() && !fields[4].empty() && !fields[5].empty();
+    if (has_any_window_field && !has_complete_window) {
+        throw_usage_error(
+            "Area file window fields must provide row_offset, col_offset, rows, and cols together");
+    }
+    if (has_complete_window) {
+        floodsim::TerrainWindow window;
+        const int row_offset = parse_int_argument("area file window_row_offset", fields[2]);
+        const int col_offset = parse_int_argument("area file window_col_offset", fields[3]);
+        const int rows = parse_int_argument("area file window_rows", fields[4]);
+        const int cols = parse_int_argument("area file window_cols", fields[5]);
+        if (row_offset < 0 || col_offset < 0) {
+            throw_usage_error("Area file window offsets must be non-negative");
+        }
+        if (rows <= 0 || cols <= 0) {
+            throw_usage_error("Area file window rows and cols must be positive");
+        }
+        window.row_offset = static_cast<std::size_t>(row_offset);
+        window.col_offset = static_cast<std::size_t>(col_offset);
+        window.rows = static_cast<std::size_t>(rows);
+        window.cols = static_cast<std::size_t>(cols);
+        area_definition.terrain_window = window;
+    }
+
+    validate_area_definition(area_definition);
+    return area_definition;
 }
 
 std::filesystem::path derive_batch_output_path(
@@ -251,6 +363,7 @@ std::vector<ScenarioConfig> load_scenario_file_definitions(const std::filesystem
 std::string usage_message() {
     return
         "Usage: floodsim_real_terrain_example <input_dem.tif> <output.csv>"
+        " | floodsim_real_terrain_example --area-file <path.csv> <output.csv>"
         " [--scenario <name>]"
         " [--batch-scenarios <name1,name2,...>]"
         " [--scenario-file <path.csv>]"
@@ -334,18 +447,36 @@ const std::vector<ScenarioPreset>& scenario_presets() {
 }
 
 ExampleArguments parse_arguments(const std::vector<std::string>& args) {
-    if (args.size() < 3) {
+    if (args.size() < 2) {
         throw_usage_error("Missing required arguments");
     }
 
     ExampleArguments arguments {
-        .input_dem_path = args[1],
         .scenario =
             ScenarioConfig {
                 .name = kDefaultScenarioName,
-                .output_csv_path = args[2],
             },
     };
+    std::size_t index = 1;
+    if (args[index] == "--area-file") {
+        if (args.size() < 4) {
+            throw_usage_error("Area-file mode requires --area-file <path.csv> <output.csv>");
+        }
+        const std::filesystem::path area_file_path = args[index + 1];
+        arguments.area_definition = load_area_definition(area_file_path);
+        arguments.input_dem_path = arguments.area_definition->input_dem_path;
+        arguments.terrain_window = arguments.area_definition->terrain_window;
+        arguments.scenario.output_csv_path = args[index + 2];
+        index += 3;
+    } else {
+        if (args.size() < 3) {
+            throw_usage_error("Missing required arguments");
+        }
+        arguments.input_dem_path = args[index];
+        arguments.scenario.output_csv_path = args[index + 1];
+        index += 2;
+    }
+
     std::optional<std::string> scenario_preset_name;
     std::optional<std::vector<std::string>> batch_scenario_names;
     std::optional<std::filesystem::path> scenario_file_path;
@@ -355,7 +486,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     std::optional<double> time_step_override;
     std::optional<int> step_count_override;
 
-    for (std::size_t index = 3; index < args.size(); ++index) {
+    for (; index < args.size(); ++index) {
         const std::string& option = args[index];
         if (index + 1 >= args.size()) {
             throw_usage_error("Missing value for " + option);
@@ -446,8 +577,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         arguments.scenario_file_path = *scenario_file_path;
         arguments.scenario_definitions = load_scenario_file_definitions(*scenario_file_path);
         if (arguments.scenario_definitions.size() == 1) {
+            const std::filesystem::path output_csv_path = arguments.scenario.output_csv_path;
             arguments.scenario = arguments.scenario_definitions.front();
-            arguments.scenario.output_csv_path = args[2];
+            arguments.scenario.output_csv_path = output_csv_path;
         }
     }
     if (rainfall_override.has_value()) {
@@ -599,6 +731,7 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
 void write_export(
     const floodsim::Grid& grid,
     const floodsim::TerrainRaster& terrain,
+    const std::optional<AreaDefinition>& area_definition,
     const ScenarioConfig& scenario,
     const std::filesystem::path& output_path) {
     std::ofstream output(output_path);
@@ -612,6 +745,18 @@ void write_export(
         floodsim::GridCsvMetadata {
             .scenario_name = scenario.name,
             .boundary_mode = boundary_mode_to_string(scenario.boundary_mode),
+            .area_name = area_definition.has_value()
+                ? std::optional<std::string>(area_definition->area_name)
+                : std::nullopt,
+            .area_source_name = area_definition.has_value()
+                ? std::optional<std::string>(area_definition->source_name)
+                : std::nullopt,
+            .area_source_details = area_definition.has_value()
+                ? std::optional<std::string>(area_definition->source_details)
+                : std::nullopt,
+            .area_boundary_path = (area_definition.has_value() && area_definition->boundary_path.has_value())
+                ? std::optional<std::string>(area_definition->boundary_path->string())
+                : std::nullopt,
             .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
             .runoff_coefficient = scenario.runoff_coefficient,
             .time_step_seconds = scenario.time_step_seconds,
@@ -633,6 +778,16 @@ void print_run_report(
     output << "loaded_dem=" << arguments.input_dem_path << '\n';
     output << "scenario_name=" << scenario.name
            << " scenario_source=" << scenario_source_to_string(scenario) << '\n';
+    if (arguments.area_definition.has_value()) {
+        const AreaDefinition& area_definition = *arguments.area_definition;
+        output << "area_name=" << area_definition.area_name << '\n';
+        output << "area_contract_path=" << area_definition.contract_path << '\n';
+        output << "area_source_name=" << area_definition.source_name << '\n';
+        output << "area_source_details=" << area_definition.source_details << '\n';
+        if (area_definition.boundary_path.has_value()) {
+            output << "area_boundary_path=" << *area_definition.boundary_path << '\n';
+        }
+    }
     output << "boundary_mode=" << boundary_mode_to_string(scenario.boundary_mode) << '\n';
     output << "runoff_coefficient=" << std::fixed << std::setprecision(6)
            << scenario.runoff_coefficient << '\n';
@@ -702,6 +857,7 @@ void print_run_report(
 
 void write_snapshot_exports(
     const ExampleRunResult& result,
+    const std::optional<AreaDefinition>& area_definition,
     const ScenarioConfig& scenario,
     const std::filesystem::path& base_output_path) {
     for (const auto& snapshot : result.snapshots) {
@@ -710,6 +866,7 @@ void write_snapshot_exports(
         write_export(
             snapshot.grid,
             result.loaded_terrain.terrain,
+            area_definition,
             ScenarioConfig {
                 .name = scenario.name,
                 .output_csv_path = snapshot_output_path,

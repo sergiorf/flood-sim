@@ -145,6 +145,20 @@ FloodSim CSVs, snapshot series, and terrain rasters under
 flows through the same GDAL-backed ingestion path used by the real-terrain
 simulation workflow.
 
+The real-terrain example also now supports one narrow area-definition CSV
+contract for repeatable local DEM clip selection with provenance:
+
+```bash
+./build/floodsim_real_terrain_example \
+  --area-file examples/real_terrain/data/sample_area_clip.csv \
+  real_terrain_area_clip.csv
+```
+
+That contract keeps the MVP scope narrow: one DEM path, one optional pixel
+window, and explicit provenance fields. More detail is in
+[docs/terrain_ingestion_contract.md](/home/sergio/dev/flood-sim/docs/terrain_ingestion_contract.md:1)
+and [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).
+
 Viewer quickstart:
 
 ```bash

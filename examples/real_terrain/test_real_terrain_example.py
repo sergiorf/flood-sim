@@ -134,6 +134,15 @@ def run_example(binary_path: Path, terrain_path: Path, output_csv_path: Path, *a
     )
 
 
+def run_example_command(binary_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(binary_path), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
     scenario_file_path = terrain_path.parent / "sample_single_scenario.csv"
@@ -193,6 +202,35 @@ def assert_snapshot_run(binary_path: Path, output_directory: Path) -> None:
             f"wet_cells={benchmark['wet_cells']} "
             f"max_water_depth_m={benchmark['max_water_depth_m']}"
         ) in completed.stdout
+
+
+def assert_area_file_run(binary_path: Path, output_directory: Path) -> None:
+    area_file_path = Path(__file__).resolve().parent / "data" / "sample_area_clip.csv"
+    output_csv_path = output_directory / "area_clip_output.csv"
+    completed = run_example_command(
+        binary_path,
+        "--area-file",
+        str(area_file_path),
+        str(output_csv_path),
+    )
+
+    assert 'loaded_dem="' in completed.stdout
+    assert "area_name=sample_center_clip" in completed.stdout
+    assert "area_source_name=checked_in_sample_dem" in completed.stdout
+    assert "area_source_details=checked_in_demo_clip" in completed.stdout
+    assert "window_row_offset=1 window_col_offset=1 window_rows=3 window_cols=2" in completed.stdout
+    assert "clipped_cells=19" in completed.stdout
+    assert output_csv_path.exists()
+
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["area_name"] == "sample_center_clip"
+    assert metadata["area_source_name"] == "checked_in_sample_dem"
+    assert metadata["area_source_details"] == "checked_in_demo_clip"
+    assert metadata["rows"] == "3"
+    assert metadata["cols"] == "2"
+    assert metadata["origin_x_m"] == "154322.000000"
+    assert metadata["origin_y_m"] == "171203.000000"
+    assert len(rows) == 6
 
 
 def assert_batch_run(binary_path: Path, output_directory: Path) -> None:
@@ -283,6 +321,7 @@ def main() -> int:
             assert_metrics_match_benchmark(benchmarks["baseline_final"], metadata, rows)
 
     assert_snapshot_run(binary_path, output_directory)
+    assert_area_file_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
 

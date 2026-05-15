@@ -19,10 +19,12 @@ int main(int argc, char** argv) {
                     floodsim::examples::real_terrain::write_export(
                         result.grid,
                         result.loaded_terrain.terrain,
+                        scenario_arguments.area_definition,
                         scenario_arguments.scenario,
                         scenario_arguments.scenario.output_csv_path);
                     floodsim::examples::real_terrain::write_snapshot_exports(
                         result,
+                        scenario_arguments.area_definition,
                         scenario_arguments.scenario,
                         scenario_arguments.scenario.output_csv_path);
                     floodsim::examples::real_terrain::print_run_report(
@@ -69,10 +71,12 @@ int main(int argc, char** argv) {
         floodsim::examples::real_terrain::write_export(
             result.grid,
             result.loaded_terrain.terrain,
+            arguments.area_definition,
             arguments.scenario,
             arguments.scenario.output_csv_path);
         floodsim::examples::real_terrain::write_snapshot_exports(
             result,
+            arguments.area_definition,
             arguments.scenario,
             arguments.scenario.output_csv_path);
         floodsim::examples::real_terrain::print_run_report(std::cout, arguments, result);

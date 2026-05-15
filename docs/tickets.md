@@ -47,36 +47,6 @@ Planning note:
 - The minimum deterministic real-terrain comparison path is in place.
 - New tickets should bias toward interpretation, trusted area loading, curated fixtures, and lightweight visualization over broader orchestration.
 
-## FS-034 - Define the first narrow area-loading contract
-
-Status: Todo
-Owner: Unassigned
-Priority: P1
-
-Problem:
-- The real-terrain workflow can load committed rasters, but the repository does not yet expose one explicit MVP contract for loading a user-selected DEM clip with clear provenance and clip status.
-
-Proposed change:
-- Define and implement one narrow area-loading contract around a DEM clip, optional boundary input, and explicit provenance metadata suitable for repeatable local screening workflows.
-
-Constraints:
-- Preserve the current MVP posture: one trustworthy local workflow first, not a broad ingestion subsystem.
-- Keep GDAL usage narrow and optional beyond the current terrain path.
-- Make CRS, nodata, and clip-status reporting explicit.
-
-Acceptance criteria:
-- One documented contract exists for loading a DEM clip with provenance and clip-status reporting.
-- The example workflow can exercise that contract on a small committed or generated case.
-- Failure modes for invalid bounds, CRS assumptions, or missing provenance are explicit.
-
-Required tests:
-- Coverage for the accepted area-loading inputs and at least one invalid contract case.
-
-Required documentation updates:
-- `docs/terrain_ingestion_contract.md`
-- `examples/real_terrain/README.md`
-- `README.md`
-
 ## FS-035 - Add curated real-terrain regression clips for planning cases
 
 Status: Todo

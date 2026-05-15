@@ -132,6 +132,10 @@ The Phase 2 GDAL path may populate that contract from either:
 - a full source raster
 - a clipped rectangular pixel window inside a source raster
 
+The first user-facing area-loading entry point now also accepts one narrow
+single-row CSV contract that names the source DEM clip, optional pixel window,
+and required provenance fields for local repeatable workflows.
+
 When a window is used, the contract still preserves the clipped raster shape
 exactly, keeps row-major indexing local to the clipped result, and shifts the
 optional origin metadata to the clipped top-left cell.
@@ -361,6 +365,49 @@ Minimum validation:
 - `valid_cell_mask.size() == rows * cols`
 - at least one valid cell exists
 - `origin_x_m` and `origin_y_m` are both present or both absent
+
+## Narrow area-loading contract
+
+The current MVP area-loading contract is intentionally small and local. It is
+not yet a broad GIS project file or caching layer.
+
+CLI entry point:
+
+```bash
+./build/floodsim_real_terrain_example \
+  --area-file examples/real_terrain/data/sample_area_clip.csv \
+  area_output.csv
+```
+
+Fixed header:
+
+```text
+area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path
+```
+
+Field meanings:
+
+- `area_name`: short stable identifier for the selected clip
+- `input_dem_path`: DEM or raster path, resolved relative to the area file when not absolute
+- `window_row_offset`, `window_col_offset`, `window_rows`, `window_cols`: optional pixel window; either all four are blank or all four are present
+- `source_name`: required short provenance label such as the checked-in source or external DEM product name
+- `source_details`: required extra provenance note such as why this clip exists or how it was prepared
+- `boundary_path`: optional future-facing boundary reference; currently preserved in metadata when present but not yet used to clip the raster
+
+Current rules:
+
+- the file must contain exactly one non-empty area row
+- `area_name`, `input_dem_path`, `source_name`, and `source_details` must be non-empty
+- if any window field is provided, all four window fields are required
+- window offsets must be non-negative
+- window rows and cols must be positive
+- the resolved window must still lie inside the source raster bounds
+
+Current output/report behavior:
+
+- the example prints `area_name`, contract path, and provenance fields in the run report
+- the export CSV metadata preamble preserves `area_name`, `area_source_name`, and `area_source_details`
+- `clipped_cells` and `window_applied` remain part of the ingestion report so the selected area stays inspectable
 
 ## First GDAL-backed loader scope
 
