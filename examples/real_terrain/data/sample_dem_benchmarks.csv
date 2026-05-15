@@ -1,0 +1,6 @@
+benchmark_name,terrain_fixture,scenario_name,stage,completed_steps,elapsed_seconds,boundary_mode,runoff_coefficient,rainfall_intensity_m_per_hour,time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,deepest_row,deepest_col
+baseline_final,sample_dem.tif,baseline,final,12,3600.000,open,1.000000,0.012000,300.000000,12,0.287744,24,0.096997,2,2
+baseline_step_0004,sample_dem.tif,baseline,snapshot,4,1200.000,open,1.000000,0.012000,300.000000,12,0.095984,24,0.013404,2,2
+baseline_step_0008,sample_dem.tif,baseline,snapshot,8,2400.000,open,1.000000,0.012000,300.000000,12,0.191892,24,0.045749,2,2
+intense_short_final,sample_dem.tif,intense_short,final,6,1800.000,open,1.000000,0.030000,300.000000,6,0.359640,24,0.067712,2,2
+long_moderate_final,sample_dem.tif,long_moderate,final,36,10800.000,open,1.000000,0.008000,300.000000,36,0.575292,24,0.402130,2,2

@@ -338,11 +338,45 @@ Current limits:
 - no basemap tiles or GIS layer stack yet
 - intended for debugging and product iteration, not polished planner delivery
 
+Viewer quickstart notes:
+
+- if you pass one final FloodSim CSV, the viewer auto-discovers matching snapshot CSVs beside it
+- use the left and right arrow keys or the `Prev` and `Next` buttons to move between frames
+- switch layers with the local `Layer` menu to inspect `elevation`, `water_depth`, or `surface_height`
+- small grids automatically show per-cell numeric overlays for the active layer
+- hover a cell to inspect exact `elevation`, `water_depth`, and `surface_height` values
+- the viewer prints the active layer min/max scale so dynamic per-frame coloring is explicit
+
 For direct terrain debugging on the committed sample GeoTIFF:
 
 ```bash
 python3 examples/real_terrain/debug_viewer.py \
   examples/real_terrain/data/sample_dem.tif
+```
+
+GeoTIFF input uses the helper binary built by the normal CMake workflow:
+
+```bash
+cmake -S . -B build
+cmake --build build
+```
+
+By default `debug_viewer.py` looks for:
+
+- `build/floodsim_terrain_debug_export`
+
+If you keep that helper elsewhere, either pass:
+
+```bash
+python3 examples/real_terrain/debug_viewer.py \
+  examples/real_terrain/data/sample_dem.tif \
+  --terrain-export-binary /path/to/floodsim_terrain_debug_export
+```
+
+or set:
+
+```bash
+export FLOODSIM_TERRAIN_DEBUG_EXPORT=/path/to/floodsim_terrain_debug_export
 ```
 
 ## Canonical Comparison Walkthrough
@@ -441,6 +475,31 @@ That invocation writes:
 The comparison CSV currently contains one deterministic row per scenario with
 the summary values listed above. It is intended for manual inspection and
 future scripting, not as a stable long-term analytics schema yet.
+
+The repository also commits one narrow benchmark artifact for this canonical
+sample clip at `examples/real_terrain/data/sample_dem_benchmarks.csv`.
+
+That file is the current regression baseline for:
+
+- the final `baseline`, `intense_short`, and `long_moderate` scenario metrics
+- the intermediate `baseline` snapshot metrics at steps `4` and `8`
+
+It is intentionally small. The goal is not to build a generalized benchmark
+framework yet. The goal is to make output drift explainable when the model or
+workflow changes.
+
+Read the benchmark fields as:
+
+- `total_water_depth_m`: retained water remaining on the in-domain raster at that stage
+- `wet_cells`: count of valid cells with water depth above zero
+- `max_water_depth_m`: deepest ponded cell at that stage
+- `deepest_row` and `deepest_col`: location of that deepest ponded cell
+- `elapsed_seconds`: timing anchor for snapshot and final-state comparison
+
+Those numbers should change when a contributor intentionally changes model
+behavior, rainfall semantics, boundary handling, or valid-domain treatment.
+They should usually not change because of unrelated refactors, export cleanup,
+or viewer work.
 
 What this walkthrough proves today:
 

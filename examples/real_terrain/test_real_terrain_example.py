@@ -9,6 +9,14 @@ from pathlib import Path
 
 from fixtures import REAL_TERRAIN_FIXTURES, RealTerrainFixture
 
+BENCHMARK_CSV_PATH = Path(__file__).resolve().parent / "data" / "sample_dem_benchmarks.csv"
+
+
+def load_benchmarks() -> dict[str, dict[str, str]]:
+    with BENCHMARK_CSV_PATH.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        return {row["benchmark_name"]: row for row in reader}
+
 
 def parse_export(csv_path: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
     metadata: dict[str, str] = {}
@@ -73,6 +81,49 @@ def expected_summary_line(rows: list[dict[str, str]]) -> str:
     )
 
 
+def compute_metrics(rows: list[dict[str, str]]) -> dict[str, str]:
+    wet_rows = [row for row in rows if float(row["water_depth_m"]) > 0.0]
+    total_water_depth_m = sum(float(row["water_depth_m"]) for row in rows)
+    wet_cells = len(wet_rows)
+
+    if wet_rows:
+        deepest = max(wet_rows, key=lambda row: float(row["water_depth_m"]))
+        deepest_row = deepest["row"]
+        deepest_col = deepest["col"]
+        max_water_depth_m = float(deepest["water_depth_m"])
+    else:
+        deepest_row = "none"
+        deepest_col = "none"
+        max_water_depth_m = 0.0
+
+    return {
+        "total_water_depth_m": f"{total_water_depth_m:.6f}",
+        "wet_cells": str(wet_cells),
+        "max_water_depth_m": f"{max_water_depth_m:.6f}",
+        "deepest_row": deepest_row,
+        "deepest_col": deepest_col,
+    }
+
+
+def assert_metrics_match_benchmark(
+    benchmark: dict[str, str],
+    metadata: dict[str, str],
+    rows: list[dict[str, str]],
+) -> None:
+    computed = compute_metrics(rows)
+    assert metadata["scenario_name"] == benchmark["scenario_name"]
+    assert metadata["boundary_mode"] == benchmark["boundary_mode"]
+    assert float(metadata["runoff_coefficient"]) == float(benchmark["runoff_coefficient"])
+    assert float(metadata["rainfall_intensity_m_per_hour"]) == float(benchmark["rainfall_intensity_m_per_hour"])
+    assert float(metadata["time_step_seconds"]) == float(benchmark["time_step_seconds"])
+    assert float(metadata["total_duration_seconds"]) == float(benchmark["elapsed_seconds"])
+    assert computed["total_water_depth_m"] == benchmark["total_water_depth_m"]
+    assert computed["wet_cells"] == benchmark["wet_cells"]
+    assert computed["max_water_depth_m"] == benchmark["max_water_depth_m"]
+    assert computed["deepest_row"] == benchmark["deepest_row"]
+    assert computed["deepest_col"] == benchmark["deepest_col"]
+
+
 def run_example(binary_path: Path, terrain_path: Path, output_csv_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
     output_csv_path.parent.mkdir(parents=True, exist_ok=True)
     return subprocess.run(
@@ -106,6 +157,7 @@ def assert_scenario_file_run(binary_path: Path, output_directory: Path) -> None:
 def assert_snapshot_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
     output_csv_path = output_directory / "snapshot_output.csv"
+    benchmarks = load_benchmarks()
     completed = run_example(
         binary_path,
         terrain_path,
@@ -123,21 +175,23 @@ def assert_snapshot_run(binary_path: Path, output_directory: Path) -> None:
         snapshot_paths[0]: "1200.000",
         snapshot_paths[1]: "2400.000",
     }
+    benchmark_by_step = {
+        snapshot_paths[0]: benchmarks["baseline_step_0004"],
+        snapshot_paths[1]: benchmarks["baseline_step_0008"],
+    }
 
     for snapshot_path in snapshot_paths:
         assert snapshot_path.exists()
         assert f'wrote_snapshot_csv="{snapshot_path}"' in completed.stdout
         metadata, rows = parse_export(snapshot_path)
-        assert metadata["scenario_name"] == "baseline"
-        assert metadata["boundary_mode"] == "open"
-        max_depth = max(float(row["water_depth_m"]) for row in rows)
-        wet_cells = sum(1 for row in rows if float(row["water_depth_m"]) > 0.0)
+        benchmark = benchmark_by_step[snapshot_path]
+        assert_metrics_match_benchmark(benchmark, metadata, rows)
         assert (
             f"snapshot_metrics completed_steps="
             f"{4 if snapshot_path == snapshot_paths[0] else 8} "
             f"elapsed_seconds={expected_elapsed[snapshot_path]} "
-            f"wet_cells={wet_cells} "
-            f"max_water_depth_m={max_depth:.6f}"
+            f"wet_cells={benchmark['wet_cells']} "
+            f"max_water_depth_m={benchmark['max_water_depth_m']}"
         ) in completed.stdout
 
 
@@ -219,11 +273,14 @@ def main() -> int:
     binary_path = Path(sys.argv[1])
     output_directory = Path(sys.argv[2])
     output_directory.mkdir(parents=True, exist_ok=True)
+    benchmarks = load_benchmarks()
 
     for fixture in REAL_TERRAIN_FIXTURES:
         completed, metadata, rows = assert_fixture_run(binary_path, output_directory, fixture)
         assert expected_summary_line(rows) in completed.stdout
         assert metadata["scenario_name"] == "baseline"
+        if fixture.terrain_path.name == "sample_dem.tif":
+            assert_metrics_match_benchmark(benchmarks["baseline_final"], metadata, rows)
 
     assert_snapshot_run(binary_path, output_directory)
     assert_scenario_file_run(binary_path, output_directory)

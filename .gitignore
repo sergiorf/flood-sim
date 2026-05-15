@@ -11,3 +11,4 @@ __pycache__/
 *.dylib
 *.exe
 .DS_Store
+/real_terrain_output*.csv

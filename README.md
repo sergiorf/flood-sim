@@ -145,6 +145,29 @@ FloodSim CSVs, snapshot series, and terrain rasters under
 flows through the same GDAL-backed ingestion path used by the real-terrain
 simulation workflow.
 
+Viewer quickstart:
+
+```bash
+python3 examples/real_terrain/debug_viewer.py real_terrain_output.csv
+```
+
+If you pass one final FloodSim CSV, the viewer automatically discovers matching
+snapshot CSVs beside it and lets you step through them with the left and right
+arrow keys or the `Prev` and `Next` buttons.
+
+GeoTIFF inputs require the helper binary built by the normal CMake flow:
+
+```bash
+cmake -S . -B build
+cmake --build build
+python3 examples/real_terrain/debug_viewer.py \
+  examples/real_terrain/data/sample_dem.tif
+```
+
+By default the viewer looks for `build/floodsim_terrain_debug_export`. You can
+override that path with `--terrain-export-binary` or by setting
+`FLOODSIM_TERRAIN_DEBUG_EXPORT=/path/to/floodsim_terrain_debug_export`.
+
 You can still override preset values directly when experimenting:
 
 ```bash

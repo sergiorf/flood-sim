@@ -29,6 +29,11 @@ class RasterFrame:
     surface_height: list[float] | None
 
 
+OVERLAY_MAX_CELLS = 100
+OVERLAY_MIN_CELL_WIDTH = 55.0
+OVERLAY_MIN_CELL_HEIGHT = 28.0
+
+
 def default_terrain_export_binary() -> Path:
     env_path = os.environ.get("FLOODSIM_TERRAIN_DEBUG_EXPORT")
     if env_path:
@@ -196,11 +201,18 @@ def load_frames(
     parsed_paths = [Path(path) for path in paths]
     if len(parsed_paths) == 1 and parsed_paths[0].suffix.lower() == ".csv":
         candidate_paths = discover_snapshot_series(parsed_paths[0])
+        if not candidate_paths:
+            raise FileNotFoundError(
+                f"No FloodSim CSV frames found for {parsed_paths[0]}. "
+                "Expected the final export CSV itself or matching snapshot CSVs beside it."
+            )
     else:
         candidate_paths = parsed_paths
 
     frames: list[RasterFrame] = []
     for path in candidate_paths:
+        if not path.exists():
+            raise FileNotFoundError(f"Viewer input not found: {path}")
         suffix = path.suffix.lower()
         if suffix == ".csv":
             frames.append(parse_floodsim_csv(path))
@@ -224,6 +236,28 @@ def format_metadata(frame: RasterFrame, layer_name: str, frame_index: int, frame
         f"total_duration_seconds={total_duration}  "
         f"path={frame.path}"
     )
+
+
+def format_value(value: float) -> str:
+    if math.isnan(value):
+        return "nodata"
+    return f"{value:.3f}"
+
+
+def should_draw_value_overlay(rows: int, cols: int, cell_width: float, cell_height: float) -> bool:
+    return (
+        rows * cols <= OVERLAY_MAX_CELLS
+        and cell_width >= OVERLAY_MIN_CELL_WIDTH
+        and cell_height >= OVERLAY_MIN_CELL_HEIGHT
+    )
+
+
+def text_color_for_hex(fill_color: str) -> str:
+    red = int(fill_color[1:3], 16)
+    green = int(fill_color[3:5], 16)
+    blue = int(fill_color[5:7], 16)
+    luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+    return "#111111" if luminance >= 150.0 else "#f2f2f2"
 
 
 def color_for_value(value: float, min_value: float, max_value: float, palette: str) -> str:
@@ -254,6 +288,7 @@ class DebugViewer:
         self.frames = frames
         self.frame_index = 0
         self.layer = "water_depth" if frames[0].water_depth is not None else "elevation"
+        self.hovered_cell: tuple[int, int] | None = None
 
         self.root = tk.Tk()
         self.root.title("FloodSim Debug Viewer")
@@ -280,6 +315,10 @@ class DebugViewer:
 
         self.info_var = tk.StringVar()
         ttk.Label(self.root, textvariable=self.info_var, padding=(8, 0, 8, 8), wraplength=860).pack(fill="x")
+        self.scale_var = tk.StringVar()
+        ttk.Label(self.root, textvariable=self.scale_var, padding=(8, 0, 8, 6), wraplength=860).pack(fill="x")
+        self.detail_var = tk.StringVar(value="hover a cell to inspect exact values")
+        ttk.Label(self.root, textvariable=self.detail_var, padding=(8, 0, 8, 8), wraplength=860).pack(fill="x")
 
         self.canvas = tk.Canvas(self.root, background="#111111", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True, padx=8, pady=(0, 8))
@@ -287,6 +326,8 @@ class DebugViewer:
         self.root.bind("<Left>", lambda _event: self.prev_frame())
         self.root.bind("<Right>", lambda _event: self.next_frame())
         self.root.bind("<Configure>", lambda _event: self.draw())
+        self.canvas.bind("<Motion>", self.on_mouse_move)
+        self.canvas.bind("<Leave>", self.on_mouse_leave)
 
         self.draw()
 
@@ -311,6 +352,40 @@ class DebugViewer:
         self.frame_index = (self.frame_index + 1) % len(self.frames)
         self.draw()
 
+    def on_mouse_move(self, event: tk.Event[tk.Misc]) -> None:
+        frame = self.frames[self.frame_index]
+        canvas_width = max(self.canvas.winfo_width(), 200)
+        canvas_height = max(self.canvas.winfo_height(), 200)
+        cell_width = canvas_width / frame.cols
+        cell_height = canvas_height / frame.rows
+        col = min(max(int(event.x / cell_width), 0), frame.cols - 1)
+        row = min(max(int(event.y / cell_height), 0), frame.rows - 1)
+        hovered = (row, col)
+        if hovered != self.hovered_cell:
+            self.hovered_cell = hovered
+            self.update_detail_label()
+
+    def on_mouse_leave(self, _event: tk.Event[tk.Misc]) -> None:
+        self.hovered_cell = None
+        self.update_detail_label()
+
+    def update_detail_label(self) -> None:
+        if self.hovered_cell is None:
+            self.detail_var.set("hover a cell to inspect exact values")
+            return
+
+        frame = self.frames[self.frame_index]
+        row, col = self.hovered_cell
+        index = row * frame.cols + col
+        water_depth = frame.water_depth[index] if frame.water_depth is not None else math.nan
+        surface_height = frame.surface_height[index] if frame.surface_height is not None else math.nan
+        self.detail_var.set(
+            f"cell=({row},{col})  "
+            f"elevation_m={format_value(frame.elevation[index])}  "
+            f"water_depth_m={format_value(water_depth)}  "
+            f"surface_height_m={format_value(surface_height)}"
+        )
+
     def draw(self) -> None:
         frame = self.frames[self.frame_index]
         dataset, palette = self.dataset_for_layer(frame)
@@ -323,6 +398,7 @@ class DebugViewer:
         canvas_height = max(self.canvas.winfo_height(), 200)
         cell_width = canvas_width / frame.cols
         cell_height = canvas_height / frame.rows
+        draw_overlay = should_draw_value_overlay(frame.rows, frame.cols, cell_width, cell_height)
 
         for row in range(frame.rows):
             for col in range(frame.cols):
@@ -332,16 +408,30 @@ class DebugViewer:
                 y0 = row * cell_height
                 x1 = (col + 1) * cell_width
                 y1 = (row + 1) * cell_height
+                fill_color = color_for_value(value, min_value, max_value, palette)
                 self.canvas.create_rectangle(
                     x0,
                     y0,
                     x1,
                     y1,
-                    fill=color_for_value(value, min_value, max_value, palette),
+                    fill=fill_color,
                     outline="#1e1e1e",
                 )
+                if draw_overlay:
+                    self.canvas.create_text(
+                        (x0 + x1) / 2.0,
+                        (y0 + y1) / 2.0,
+                        text=format_value(value),
+                        fill=text_color_for_hex(fill_color),
+                        font=("TkDefaultFont", 10),
+                    )
 
         self.info_var.set(format_metadata(frame, self.layer, self.frame_index, len(self.frames)))
+        self.scale_var.set(
+            f"scale={self.layer}  min={format_value(min_value)}  max={format_value(max_value)}  "
+            f"mode=dynamic-per-frame"
+        )
+        self.update_detail_label()
 
     def run(self) -> None:
         self.root.mainloop()
@@ -370,7 +460,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    DebugViewer(load_frames(args.inputs, args.terrain_export_binary)).run()
+    try:
+        DebugViewer(load_frames(args.inputs, args.terrain_export_binary)).run()
+    except (FileNotFoundError, ValueError, subprocess.CalledProcessError, tk.TclError) as error:
+        parser.exit(1, f"error: {error}\n")
     return 0
 
 

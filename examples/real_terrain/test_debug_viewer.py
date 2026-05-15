@@ -9,8 +9,12 @@ from pathlib import Path
 from debug_viewer import (
     convert_raster_to_viewer_csv,
     discover_snapshot_series,
+    format_value,
+    load_frames,
     parse_esri_ascii_grid,
     parse_floodsim_csv,
+    should_draw_value_overlay,
+    text_color_for_hex,
 )
 
 TERRAIN_EXPORT_BINARY: Path | None = None
@@ -70,6 +74,27 @@ class DebugViewerParsingTests(unittest.TestCase):
             discovered = discover_snapshot_series(final_path)
 
             self.assertEqual(discovered, [step_four, step_eight, final_path])
+
+    def test_load_frames_rejects_missing_csv_series(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            missing_path = Path(temp_dir) / "missing.csv"
+
+            with self.assertRaisesRegex(FileNotFoundError, "No FloodSim CSV frames found"):
+                load_frames([str(missing_path)])
+
+    def test_format_value_formats_finite_and_nodata(self) -> None:
+        self.assertEqual(format_value(12.34567), "12.346")
+        self.assertEqual(format_value(float("nan")), "nodata")
+
+    def test_should_draw_value_overlay_only_when_readable(self) -> None:
+        self.assertTrue(should_draw_value_overlay(5, 5, 100.0, 100.0))
+        self.assertFalse(should_draw_value_overlay(11, 11, 100.0, 100.0))
+        self.assertFalse(should_draw_value_overlay(5, 5, 40.0, 100.0))
+        self.assertFalse(should_draw_value_overlay(5, 5, 100.0, 20.0))
+
+    def test_text_color_for_hex_prefers_contrast(self) -> None:
+        self.assertEqual(text_color_for_hex("#f0f0f0"), "#111111")
+        self.assertEqual(text_color_for_hex("#202020"), "#f2f2f2")
 
     def test_convert_raster_to_viewer_csv_uses_terrain_export_helper(self) -> None:
         if self.terrain_export_binary is None:
