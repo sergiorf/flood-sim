@@ -25,6 +25,11 @@ struct SimulationConfig {
     // model. A value of 1.0 means all rainfall is retained as surface water;
     // lower values approximate simple losses such as infiltration.
     double runoff_coefficient {1.0};
+    // Per-cell initial rainfall loss in meters. Rainfall must first satisfy
+    // this remaining loss store before any water appears as surface depth.
+    // This approximates simple event-start losses such as interception,
+    // depression storage, or initial infiltration.
+    double initial_loss_m {0.0};
     // Maximum fraction of a cell's current water depth that may leave in one step.
     double max_outflow_fraction {0.25};
     // Boundary handling is explicit. Closed boundaries keep all water inside
@@ -37,7 +42,8 @@ void add_uniform_rainfall(
     Grid& grid,
     const RainfallScenario& rainfall,
     double duration_seconds,
-    double runoff_coefficient = 1.0);
+    double runoff_coefficient = 1.0,
+    double initial_loss_m = 0.0);
 void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& config);
 
 }  // namespace floodsim

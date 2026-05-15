@@ -109,6 +109,7 @@ void write_export(
                 : std::nullopt,
             .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
             .runoff_coefficient = scenario.runoff_coefficient,
+            .initial_loss_m = scenario.initial_loss_m,
             .time_step_seconds = scenario.time_step_seconds,
             .total_duration_seconds = scenario.time_step_seconds * static_cast<double>(scenario.step_count),
             .origin_x_m = terrain.origin_x_m,
@@ -141,6 +142,8 @@ void print_run_report(
     output << "boundary_mode=" << boundary_mode_to_string(scenario.boundary_mode) << '\n';
     output << "runoff_coefficient=" << std::fixed << std::setprecision(6)
            << scenario.runoff_coefficient << '\n';
+    output << "initial_loss_m=" << std::fixed << std::setprecision(6)
+           << scenario.initial_loss_m << '\n';
     output << "rows=" << terrain.rows
            << " cols=" << terrain.cols
            << " cell_size_m=" << std::fixed << std::setprecision(3)
@@ -222,6 +225,7 @@ void write_snapshot_exports(
                 .output_csv_path = snapshot_output_path,
                 .rainfall_intensity_m_per_hour = scenario.rainfall_intensity_m_per_hour,
                 .runoff_coefficient = scenario.runoff_coefficient,
+                .initial_loss_m = scenario.initial_loss_m,
                 .time_step_seconds = scenario.time_step_seconds,
                 .step_count = snapshot.completed_steps,
                 .boundary_mode = scenario.boundary_mode,
@@ -238,7 +242,7 @@ void write_batch_comparison_csv(
         throw std::runtime_error("Failed to open batch comparison CSV output path");
     }
 
-    output << "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,"
+    output << "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,"
               "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
               "deepest_row,deepest_col,output_csv\n";
 
@@ -250,6 +254,7 @@ void write_batch_comparison_csv(
                << std::fixed << std::setprecision(6)
                << scenario.rainfall_intensity_m_per_hour << ','
                << scenario.runoff_coefficient << ','
+               << scenario.initial_loss_m << ','
                << scenario.time_step_seconds << ','
                << scenario.step_count << ','
                << batch_result.result.grid.total_water_depth() << ','

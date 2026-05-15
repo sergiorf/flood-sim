@@ -47,35 +47,6 @@ Planning note:
 - The minimum deterministic real-terrain comparison path is in place.
 - New tickets should bias toward interpretation, trusted area loading, curated fixtures, and lightweight visualization over broader orchestration.
 
-## FS-036 - Add the next realism-bearing hydrology benchmarked against fixtures
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The repository has the first open-boundary and simple runoff-loss controls, but it still needs the next realism-bearing model change that improves practical screening value rather than workflow shape alone.
-
-Proposed change:
-- Implement one additional narrowly scoped hydrology improvement and measure its effect against committed real-terrain fixtures.
-
-Constraints:
-- Keep the model explicit and testable.
-- Prefer one explainable physical approximation over several loosely justified toggles.
-- Record what the new approximation still does not represent.
-
-Acceptance criteria:
-- One new hydrology behavior is implemented behind clear scenario or model inputs.
-- Tests constrain the new behavior on at least one toy or real-terrain fixture.
-- Documentation explains why the change improves interpretation and what limitations remain.
-
-Required tests:
-- Unit or workflow regression coverage for the selected hydrology improvement.
-
-Required documentation updates:
-- `docs/simulation_model.md`
-- `examples/real_terrain/README.md` if the real-terrain workflow exposes the new control
-
 ## In Progress
 
 No tickets in progress.

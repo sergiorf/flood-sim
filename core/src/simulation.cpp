@@ -37,19 +37,26 @@ void add_uniform_rainfall(
     Grid& grid,
     const RainfallScenario& rainfall,
     double duration_seconds,
-    double runoff_coefficient) {
+    double runoff_coefficient,
+    double initial_loss_m) {
     if (duration_seconds < 0.0) {
         throw std::invalid_argument("Rainfall duration cannot be negative");
     }
     if (runoff_coefficient < 0.0 || runoff_coefficient > 1.0) {
         throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
     }
+    if (initial_loss_m < 0.0) {
+        throw std::invalid_argument("Initial loss must be non-negative");
+    }
+
+    if (initial_loss_m > 0.0 && !grid.initial_loss_initialized()) {
+        grid.initialize_uniform_initial_loss(initial_loss_m);
+    }
 
     // RainfallScenario stores an intensity, not a per-step depth. Convert it
     // into a depth increment for this specific step duration.
-    const double added_depth =
-        rainfall.intensity_m_per_hour * (duration_seconds / 3600.0) * runoff_coefficient;
-    if (added_depth <= 0.0) {
+    const double gross_depth = rainfall.intensity_m_per_hour * (duration_seconds / 3600.0);
+    if (gross_depth <= 0.0) {
         return;
     }
 
@@ -59,7 +66,12 @@ void add_uniform_rainfall(
                 continue;
             }
 
-            grid.add_water_depth(row, col, added_depth);
+            const double post_initial_loss_depth =
+                grid.consume_initial_loss(row, col, gross_depth);
+            const double retained_depth = post_initial_loss_depth * runoff_coefficient;
+            if (retained_depth > 0.0) {
+                grid.add_water_depth(row, col, retained_depth);
+            }
         }
     }
 }
@@ -71,6 +83,9 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     if (config.runoff_coefficient < 0.0 || config.runoff_coefficient > 1.0) {
         throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
     }
+    if (config.initial_loss_m < 0.0) {
+        throw std::invalid_argument("Initial loss must be non-negative");
+    }
     if (config.max_outflow_fraction < 0.0 || config.max_outflow_fraction > 1.0) {
         throw std::invalid_argument("Max outflow fraction must be in [0, 1]");
     }
@@ -80,7 +95,12 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
     }
 
     // Each step first injects rainfall, then redistributes water already on the grid.
-    add_uniform_rainfall(grid, rainfall, config.time_step_seconds, config.runoff_coefficient);
+    add_uniform_rainfall(
+        grid,
+        rainfall,
+        config.time_step_seconds,
+        config.runoff_coefficient,
+        config.initial_loss_m);
 
     const std::size_t rows = grid.rows();
     const std::size_t cols = grid.cols();

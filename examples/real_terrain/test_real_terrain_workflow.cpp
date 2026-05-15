@@ -117,6 +117,7 @@ TEST_CASE("real terrain helper loads single external scenario definition file") 
     CHECK(arguments.scenario.name == "reviewed_screening");
     CHECK(arguments.scenario.rainfall_intensity_m_per_hour == doctest::Approx(0.012));
     CHECK(arguments.scenario.runoff_coefficient == doctest::Approx(1.0));
+    CHECK(arguments.scenario.initial_loss_m == doctest::Approx(0.0));
     CHECK(arguments.scenario.time_step_seconds == doctest::Approx(300.0));
     CHECK(arguments.scenario.step_count == 12);
     CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
@@ -311,8 +312,8 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
     const auto invalid_boundary_path = std::filesystem::temp_directory_path() / "floodsim_invalid_scenario_boundary.csv";
     write_text_file(
         invalid_boundary_path,
-        "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode\n"
-        "demo,0.012000,1.000000,300.000000,12,sideways\n");
+        "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode\n"
+        "demo,0.012000,1.000000,0.000000,300.000000,12,sideways\n");
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(
             {
@@ -460,6 +461,44 @@ TEST_CASE("real terrain helper runoff coefficient reduces retained water and is 
     std::filesystem::remove(export_path);
 }
 
+TEST_CASE("real terrain helper initial loss delays runoff and is exported") {
+    ExampleArguments baseline_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "baseline.csv",
+        });
+    const auto baseline_result = run_example(baseline_arguments);
+
+    ExampleArguments initial_loss_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "initial_loss.csv",
+            "--initial-loss-m",
+            "0.002",
+        });
+    const auto initial_loss_result = run_example(initial_loss_arguments);
+
+    CHECK(initial_loss_result.grid.total_water_depth() < baseline_result.grid.total_water_depth());
+    CHECK(initial_loss_result.summary_metrics.max_water_depth_m < baseline_result.summary_metrics.max_water_depth_m);
+
+    std::ostringstream report;
+    print_run_report(report, initial_loss_arguments, initial_loss_result);
+    CHECK(report.str().find("initial_loss_m=0.002000") != std::string::npos);
+
+    const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_initial_loss_export.csv";
+    write_export(
+        initial_loss_result.grid,
+        initial_loss_result.loaded_terrain.terrain,
+        initial_loss_arguments.area_definition,
+        initial_loss_arguments.scenario,
+        export_path);
+    const std::string export_text = slurp_file(export_path);
+    CHECK(export_text.find("# initial_loss_m,0.002000") != std::string::npos);
+    std::filesystem::remove(export_path);
+}
+
 TEST_CASE("named real-terrain scenarios produce deterministic comparison metrics on sample clip") {
     const auto sample_dem = fixture_path("examples/real_terrain/data/sample_dem.tif").string();
 
@@ -586,11 +625,11 @@ TEST_CASE("batch comparison export writes deterministic scenario summary table")
     const std::string export_text = slurp_file(export_path);
 
     CHECK(export_text.find(
-              "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,"
+              "scenario_name,boundary_mode,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,"
               "time_step_seconds,steps,total_water_depth_m,wet_cells,max_water_depth_m,"
               "deepest_row,deepest_col,output_csv") == 0);
-    CHECK(export_text.find("baseline,open,0.012000,1.000000,300.000000,12,0.287743,24,0.096997,2,2,batch_outputs_baseline.csv") != std::string::npos);
-    CHECK(export_text.find("intense_short,open,0.030000,1.000000,300.000000,6,0.359635,24,0.067712,2,2,batch_outputs_intense_short.csv") != std::string::npos);
+    CHECK(export_text.find("baseline,open,0.012000,1.000000,0.000000,300.000000,12,0.287743,24,0.096997,2,2,batch_outputs_baseline.csv") != std::string::npos);
+    CHECK(export_text.find("intense_short,open,0.030000,1.000000,0.000000,300.000000,6,0.359635,24,0.067712,2,2,batch_outputs_intense_short.csv") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 

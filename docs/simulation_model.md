@@ -47,10 +47,19 @@ The current model can also scale that rainfall input through a simple
 
 `retained_rainfall_depth = intensity_m_per_hour * (time_step_seconds / 3600.0) * runoff_coefficient`
 
+It can also apply a narrow event-start loss through `initial_loss_m`:
+
+1. compute the gross rainfall depth for the current step
+2. consume any remaining per-cell `initial_loss_m` from that gross depth
+3. apply `runoff_coefficient` to the residual rainfall depth
+4. add only that retained residual to surface water before routing
+
 Implications:
 
 - `runoff_coefficient = 1.0` means all rainfall becomes immediate surface water
 - lower values approximate simple losses before water appears in the surface raster
+- `initial_loss_m = 0.0` disables the event-start loss and preserves the earlier behavior
+- positive `initial_loss_m` delays the first appearance of surface water until cumulative rainfall exceeds that per-cell loss depth
 - this is a practical screening control, not a calibrated infiltration model
 
 ## Phase 1 semantic choices
@@ -59,6 +68,7 @@ The current Phase 1 model makes these explicit choices:
 
 - rainfall is spatially uniform across all cells
 - rainfall input is expressed as intensity in meters per hour, then converted to per-step depth using `time_step_seconds`
+- an optional per-cell `initial_loss_m` can absorb the first part of an event before any surface ponding appears
 - a simple `runoff_coefficient` can reduce how much rainfall becomes immediate surface water
 - rainfall is applied before flow during each step
 - only the 4 orthogonal neighbors participate in flow routing
@@ -118,6 +128,7 @@ The current model does not yet include:
 
 - physically rigorous shallow-water equations
 - calibrated infiltration or evaporation
+- time-varying infiltration, recovery, or subsurface storage
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events

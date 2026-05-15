@@ -136,6 +136,15 @@ That batch run also writes one compact comparison CSV beside the per-scenario
 outputs so the first real-scenario workflow does not require manually reading
 every scenario export in isolation.
 
+Those scenario inputs now include both `runoff_coefficient` and a narrow
+`initial_loss_m` control. Together they let the MVP represent:
+
+- a retained fraction of rainfall that becomes immediate surface water
+- a simple event-start loss depth that must be satisfied before ponding begins
+
+This remains a screening-oriented approximation, not a calibrated infiltration
+or drainage model.
+
 The same workflow can also emit deterministic intermediate snapshot CSVs using
 `--snapshot-every-steps <count>` so scenario timing can be inspected before a
 richer viewer exists.

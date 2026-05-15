@@ -25,6 +25,7 @@ struct GridCsvMetadata {
     std::optional<std::string> area_boundary_path;
     std::optional<double> rainfall_intensity_m_per_hour;
     std::optional<double> runoff_coefficient;
+    std::optional<double> initial_loss_m;
     std::optional<double> time_step_seconds;
     std::optional<double> total_duration_seconds;
     std::optional<double> origin_x_m;

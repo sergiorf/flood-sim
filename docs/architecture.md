@@ -90,6 +90,7 @@ Terrain-derived exports may also include:
 - `boundary_mode`
 - `rainfall_intensity_m_per_hour`
 - `runoff_coefficient`
+- `initial_loss_m`
 - `time_step_seconds`
 - `total_duration_seconds`
 - `origin_x_m`
@@ -121,6 +122,12 @@ coefficient. In the current MVP this acts as a narrow rainfall-retention
 control: it scales how much rainfall becomes immediate surface water before
 routing. That is useful for practical screening, but it should not be confused
 with a calibrated infiltration or subsurface model.
+
+The same configuration now also includes `initial_loss_m`, a small event-start
+abstraction control. In the current MVP it represents a fixed per-cell depth
+that must be satisfied before rainfall appears as surface water. This improves
+screening realism for short events, but it is still not a full infiltration,
+soil-moisture, or drainage-process model.
 
 The first real-terrain example workflow now lives in
 [examples/real_terrain/README.md](/home/sergio/dev/flood-sim/examples/real_terrain/README.md:1).

@@ -146,6 +146,19 @@ TEST_CASE("runoff coefficient scales retained rainfall") {
     CHECK(nearly_equal(grid.water_depth(0, 0), 0.003));
 }
 
+TEST_CASE("initial loss delays rainfall becoming surface water") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    floodsim::add_uniform_rainfall(grid, rainfall, 1800.0, 1.0, 0.008);
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.0));
+    CHECK(nearly_equal(grid.remaining_initial_loss(0, 0), 0.002));
+
+    floodsim::add_uniform_rainfall(grid, rainfall, 1800.0, 1.0, 0.008);
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.004));
+    CHECK(nearly_equal(grid.remaining_initial_loss(0, 0), 0.0));
+}
+
 TEST_CASE("runoff coefficient must stay within bounds") {
     Grid grid(1, 1);
     RainfallScenario rainfall {0.012};
@@ -153,6 +166,15 @@ TEST_CASE("runoff coefficient must stay within bounds") {
     CHECK_THROWS_WITH(
         floodsim::add_uniform_rainfall(grid, rainfall, 3600.0, 1.5),
         "Runoff coefficient must be in [0, 1]");
+}
+
+TEST_CASE("initial loss must stay non-negative") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {0.012};
+
+    CHECK_THROWS_WITH(
+        floodsim::add_uniform_rainfall(grid, rainfall, 3600.0, 1.0, -0.001),
+        "Initial loss must be non-negative");
 }
 
 TEST_CASE("unit runoff coefficient preserves default rainfall behavior") {
@@ -442,6 +464,22 @@ TEST_CASE("step applies runoff coefficient before routing") {
     CHECK(nearly_equal(grid.water_depth(0, 0), 0.4));
 }
 
+TEST_CASE("step applies initial loss before runoff coefficient and routing") {
+    Grid grid(1, 1);
+    RainfallScenario rainfall {1.0};
+    SimulationConfig config {
+        .time_step_seconds = 3600.0,
+        .runoff_coefficient = 0.5,
+        .initial_loss_m = 0.25,
+        .max_outflow_fraction = 0.25,
+    };
+
+    floodsim::step(grid, rainfall, config);
+
+    CHECK(nearly_equal(grid.water_depth(0, 0), 0.375));
+    CHECK(nearly_equal(grid.remaining_initial_loss(0, 0), 0.0));
+}
+
 TEST_CASE("positive runoff loss reduces retained water without going negative") {
     Grid baseline_grid(1, 2);
     baseline_grid.set_elevation(0, 0, 1.0);
@@ -607,6 +645,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
             .boundary_mode = "open",
             .rainfall_intensity_m_per_hour = 0.012,
             .runoff_coefficient = 0.700000,
+            .initial_loss_m = 0.002000,
             .time_step_seconds = 300.0,
             .total_duration_seconds = 3600.0,
         });
@@ -620,6 +659,7 @@ TEST_CASE("csv export writes optional scenario and timing metadata when present"
         "# boundary_mode,open\n"
         "# rainfall_intensity_m_per_hour,0.012000\n"
         "# runoff_coefficient,0.700000\n"
+        "# initial_loss_m,0.002000\n"
         "# time_step_seconds,300.000000\n"
         "# total_duration_seconds,3600.000000\n"
         "row,col,elevation_m,water_depth_m,surface_height_m\n"

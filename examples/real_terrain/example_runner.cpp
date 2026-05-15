@@ -173,6 +173,7 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
     const floodsim::SimulationConfig config {
         .time_step_seconds = arguments.scenario.time_step_seconds,
         .runoff_coefficient = arguments.scenario.runoff_coefficient,
+        .initial_loss_m = arguments.scenario.initial_loss_m,
         .max_outflow_fraction = 0.20,
         .boundary_mode = arguments.scenario.boundary_mode,
     };

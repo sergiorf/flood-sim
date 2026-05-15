@@ -18,6 +18,7 @@ struct ScenarioConfig {
     std::filesystem::path output_csv_path;
     double rainfall_intensity_m_per_hour {0.012};
     double runoff_coefficient {1.0};
+    double initial_loss_m {0.0};
     double time_step_seconds {300.0};
     int step_count {12};
     floodsim::BoundaryMode boundary_mode {floodsim::BoundaryMode::Open};
@@ -29,6 +30,7 @@ struct ScenarioConfig {
 struct ScenarioOverrides {
     std::optional<double> rainfall_intensity_m_per_hour;
     std::optional<double> runoff_coefficient;
+    std::optional<double> initial_loss_m;
     std::optional<double> time_step_seconds;
     std::optional<int> step_count;
     std::optional<floodsim::BoundaryMode> boundary_mode;

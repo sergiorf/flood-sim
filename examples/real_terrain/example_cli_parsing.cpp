@@ -12,7 +12,7 @@ namespace {
 
 constexpr const char* kDefaultScenarioName = "baseline";
 constexpr std::string_view kScenarioFileHeader =
-    "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,time_step_seconds,steps,boundary_mode";
+    "scenario_name,rainfall_intensity_m_per_hour,runoff_coefficient,initial_loss_m,time_step_seconds,steps,boundary_mode";
 constexpr std::string_view kAreaFileHeader =
     "area_name,input_dem_path,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,boundary_path";
 
@@ -116,6 +116,9 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
     if (scenario.runoff_coefficient < 0.0 || scenario.runoff_coefficient > 1.0) {
         throw_usage_error("Runoff coefficient must be in [0, 1]");
     }
+    if (scenario.initial_loss_m < 0.0) {
+        throw_usage_error("Initial loss must be non-negative");
+    }
     if (scenario.time_step_seconds <= 0.0) {
         throw_usage_error("Time step must be positive");
     }
@@ -133,6 +136,9 @@ void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides&
     }
     if (overrides.runoff_coefficient.has_value()) {
         scenario.runoff_coefficient = *overrides.runoff_coefficient;
+    }
+    if (overrides.initial_loss_m.has_value()) {
+        scenario.initial_loss_m = *overrides.initial_loss_m;
     }
     if (overrides.time_step_seconds.has_value()) {
         scenario.time_step_seconds = *overrides.time_step_seconds;
@@ -307,10 +313,10 @@ std::vector<ScenarioConfig> load_scenario_file_definitions(const std::filesystem
         }
 
         const std::vector<std::string> fields = split_csv_line(line);
-        if (fields.size() != 6) {
+        if (fields.size() != 7) {
             throw_usage_error(
                 "Scenario file row " + std::to_string(line_number) + " in '" +
-                scenario_file_path.string() + "' must contain exactly 6 comma-separated fields");
+                scenario_file_path.string() + "' must contain exactly 7 comma-separated fields");
         }
 
         ScenarioConfig scenario;
@@ -319,12 +325,14 @@ std::vector<ScenarioConfig> load_scenario_file_definitions(const std::filesystem
             parse_double_argument("scenario file rainfall intensity", fields[1]);
         scenario.runoff_coefficient =
             parse_double_argument("scenario file runoff coefficient", fields[2]);
+        scenario.initial_loss_m =
+            parse_double_argument("scenario file initial loss", fields[3]);
         scenario.time_step_seconds =
-            parse_double_argument("scenario file time step", fields[3]);
+            parse_double_argument("scenario file time step", fields[4]);
         scenario.step_count =
-            parse_int_argument("scenario file step count", fields[4]);
+            parse_int_argument("scenario file step count", fields[5]);
         scenario.boundary_mode =
-            parse_boundary_mode_value(fields[5], "scenario file boundary mode");
+            parse_boundary_mode_value(fields[6], "scenario file boundary mode");
         scenario.file_applied = true;
         validate_scenario_config(scenario);
         scenarios.push_back(std::move(scenario));
@@ -350,6 +358,7 @@ std::string usage_message() {
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
         " [--runoff-coefficient <value>]"
+        " [--initial-loss-m <value>]"
         " [--time-step-seconds <value>]"
         " [--steps <count>]"
         " [--window-row-offset <value>]"
@@ -395,6 +404,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     std::optional<int> snapshot_every_steps;
     std::optional<double> rainfall_override;
     std::optional<double> runoff_coefficient_override;
+    std::optional<double> initial_loss_override;
     std::optional<double> time_step_override;
     std::optional<int> step_count_override;
 
@@ -423,6 +433,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         } else if (option == "--runoff-coefficient") {
             runoff_coefficient_override = parse_double_argument(option, value);
             arguments.scenario_overrides.runoff_coefficient = runoff_coefficient_override;
+        } else if (option == "--initial-loss-m") {
+            initial_loss_override = parse_double_argument(option, value);
+            arguments.scenario_overrides.initial_loss_m = initial_loss_override;
         } else if (option == "--time-step-seconds") {
             time_step_override = parse_double_argument(option, value);
             arguments.scenario_overrides.time_step_seconds = time_step_override;
@@ -500,6 +513,9 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     if (runoff_coefficient_override.has_value()) {
         arguments.scenario.runoff_coefficient = *runoff_coefficient_override;
     }
+    if (initial_loss_override.has_value()) {
+        arguments.scenario.initial_loss_m = *initial_loss_override;
+    }
     if (time_step_override.has_value()) {
         arguments.scenario.time_step_seconds = *time_step_override;
     }
@@ -508,6 +524,7 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     }
     const bool has_cli_scenario_overrides =
         rainfall_override.has_value() || runoff_coefficient_override.has_value() ||
+        initial_loss_override.has_value() ||
         time_step_override.has_value() || step_count_override.has_value();
     arguments.scenario.cli_overrides_applied =
         (arguments.scenario.preset_applied || arguments.scenario.file_applied) &&

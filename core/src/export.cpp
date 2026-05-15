@@ -62,6 +62,9 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.runoff_coefficient.has_value()) {
         output << "# runoff_coefficient," << *metadata.runoff_coefficient << '\n';
     }
+    if (metadata.initial_loss_m.has_value()) {
+        output << "# initial_loss_m," << *metadata.initial_loss_m << '\n';
+    }
     if (metadata.time_step_seconds.has_value()) {
         output << "# time_step_seconds," << *metadata.time_step_seconds << '\n';
     }
