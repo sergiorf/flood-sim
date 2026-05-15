@@ -533,13 +533,23 @@ TEST_CASE("additional real-terrain fixtures cover distinct retention patterns") 
         });
     const auto urban_result = run_example(urban_arguments);
 
+    const auto split_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/split_basin.asc").string(),
+            "split.csv",
+        });
+    const auto split_result = run_example(split_arguments);
+
     CHECK(flat_result.grid.total_water_depth() == doctest::Approx(0.266520).epsilon(1e-6));
     CHECK(edge_result.grid.total_water_depth() == doctest::Approx(0.235312).epsilon(1e-6));
     CHECK(urban_result.grid.total_water_depth() == doctest::Approx(0.403640).epsilon(1e-6));
+    CHECK(split_result.grid.total_water_depth() == doctest::Approx(0.419473).epsilon(1e-6));
 
     CHECK(flat_result.summary_metrics.max_water_depth_m == doctest::Approx(0.088587).epsilon(1e-6));
     CHECK(edge_result.summary_metrics.max_water_depth_m == doctest::Approx(0.024176).epsilon(1e-6));
     CHECK(urban_result.summary_metrics.max_water_depth_m == doctest::Approx(0.039982).epsilon(1e-6));
+    CHECK(split_result.summary_metrics.max_water_depth_m == doctest::Approx(0.082292).epsilon(1e-6));
 
     CHECK(flat_result.summary_metrics.deepest_row == 2);
     CHECK(flat_result.summary_metrics.deepest_col == 2);
@@ -547,6 +557,8 @@ TEST_CASE("additional real-terrain fixtures cover distinct retention patterns") 
     CHECK(edge_result.summary_metrics.deepest_col == 3);
     CHECK(urban_result.summary_metrics.deepest_row == 2);
     CHECK(urban_result.summary_metrics.deepest_col == 2);
+    CHECK(split_result.summary_metrics.deepest_row == 2);
+    CHECK(split_result.summary_metrics.deepest_col == 2);
 }
 
 TEST_CASE("batch comparison export writes deterministic scenario summary table") {

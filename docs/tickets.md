@@ -47,34 +47,6 @@ Planning note:
 - The minimum deterministic real-terrain comparison path is in place.
 - New tickets should bias toward interpretation, trusted area loading, curated fixtures, and lightweight visualization over broader orchestration.
 
-## FS-035 - Add curated real-terrain regression clips for planning cases
-
-Status: Todo
-Owner: Unassigned
-Priority: P2
-
-Problem:
-- The fixture set is useful but still narrow relative to the planning cases called out in the roadmap.
-
-Proposed change:
-- Add a small number of curated real-terrain regression clips that emphasize distinct screening situations such as drainage dominance, ponding, and nodata-heavy edges.
-
-Constraints:
-- Keep fixtures tiny, deterministic, and easy to review.
-- Do not expand into a large data catalog.
-- Each fixture should justify the behavior it is meant to cover.
-
-Acceptance criteria:
-- At least one additional committed fixture broadens regression coverage beyond the current set.
-- Tests exercise the intended behavior of the new fixture.
-- The example docs describe why each fixture exists.
-
-Required tests:
-- Real-terrain example or workflow regression coverage for the new fixtures.
-
-Required documentation updates:
-- `examples/real_terrain/README.md`
-
 ## FS-036 - Add the next realism-bearing hydrology benchmarked against fixtures
 
 Status: Todo

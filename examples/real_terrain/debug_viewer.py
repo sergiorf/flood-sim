@@ -32,6 +32,7 @@ class RasterFrame:
 OVERLAY_MAX_CELLS = 100
 OVERLAY_MIN_CELL_WIDTH = 55.0
 OVERLAY_MIN_CELL_HEIGHT = 28.0
+SCALE_MODES = ("dynamic-per-frame", "fixed-series")
 
 
 def default_terrain_export_binary() -> Path:
@@ -238,10 +239,35 @@ def format_metadata(frame: RasterFrame, layer_name: str, frame_index: int, frame
     )
 
 
+def dataset_for_layer(frame: RasterFrame, layer_name: str) -> tuple[list[float], str]:
+    if layer_name == "elevation":
+        return frame.elevation, "terrain"
+    if layer_name == "water_depth" and frame.water_depth is not None:
+        return frame.water_depth, "water"
+    if layer_name == "surface_height" and frame.surface_height is not None:
+        return frame.surface_height, "surface"
+    return frame.elevation, "terrain"
+
+
 def format_value(value: float) -> str:
     if math.isnan(value):
         return "nodata"
     return f"{value:.3f}"
+
+
+def finite_range(values: list[float]) -> tuple[float, float]:
+    finite_values = [value for value in values if not math.isnan(value)]
+    if not finite_values:
+        return 0.0, 0.0
+    return min(finite_values), max(finite_values)
+
+
+def series_range_for_layer(frames: list[RasterFrame], layer_name: str) -> tuple[float, float]:
+    series_values: list[float] = []
+    for frame in frames:
+        dataset, _palette = dataset_for_layer(frame, layer_name)
+        series_values.extend(value for value in dataset if not math.isnan(value))
+    return finite_range(series_values)
 
 
 def should_draw_value_overlay(rows: int, cols: int, cell_width: float, cell_height: float) -> bool:
@@ -288,6 +314,7 @@ class DebugViewer:
         self.frames = frames
         self.frame_index = 0
         self.layer = "water_depth" if frames[0].water_depth is not None else "elevation"
+        self.scale_mode = "dynamic-per-frame"
         self.hovered_cell: tuple[int, int] | None = None
 
         self.root = tk.Tk()
@@ -313,6 +340,17 @@ class DebugViewer:
         )
         layer_menu.pack(side="left", padx=(4, 0))
 
+        ttk.Label(controls, text="Scale").pack(side="left", padx=(16, 0))
+        self.scale_mode_var = tk.StringVar(value=self.scale_mode)
+        scale_menu = ttk.OptionMenu(
+            controls,
+            self.scale_mode_var,
+            self.scale_mode,
+            *SCALE_MODES,
+            command=self.on_scale_mode_change,
+        )
+        scale_menu.pack(side="left", padx=(4, 0))
+
         self.info_var = tk.StringVar()
         ttk.Label(self.root, textvariable=self.info_var, padding=(8, 0, 8, 8), wraplength=860).pack(fill="x")
         self.scale_var = tk.StringVar()
@@ -331,17 +369,12 @@ class DebugViewer:
 
         self.draw()
 
-    def dataset_for_layer(self, frame: RasterFrame) -> tuple[list[float], str]:
-        if self.layer == "elevation":
-            return frame.elevation, "terrain"
-        if self.layer == "water_depth" and frame.water_depth is not None:
-            return frame.water_depth, "water"
-        if self.layer == "surface_height" and frame.surface_height is not None:
-            return frame.surface_height, "surface"
-        return frame.elevation, "terrain"
-
     def on_layer_change(self, _value: str | None = None) -> None:
         self.layer = self.layer_var.get()
+        self.draw()
+
+    def on_scale_mode_change(self, _value: str | None = None) -> None:
+        self.scale_mode = self.scale_mode_var.get()
         self.draw()
 
     def prev_frame(self) -> None:
@@ -388,10 +421,11 @@ class DebugViewer:
 
     def draw(self) -> None:
         frame = self.frames[self.frame_index]
-        dataset, palette = self.dataset_for_layer(frame)
-        finite_values = [value for value in dataset if not math.isnan(value)]
-        min_value = min(finite_values) if finite_values else 0.0
-        max_value = max(finite_values) if finite_values else 0.0
+        dataset, palette = dataset_for_layer(frame, self.layer)
+        if self.scale_mode == "fixed-series":
+            min_value, max_value = series_range_for_layer(self.frames, self.layer)
+        else:
+            min_value, max_value = finite_range(dataset)
 
         self.canvas.delete("all")
         canvas_width = max(self.canvas.winfo_width(), 200)
@@ -429,7 +463,7 @@ class DebugViewer:
         self.info_var.set(format_metadata(frame, self.layer, self.frame_index, len(self.frames)))
         self.scale_var.set(
             f"scale={self.layer}  min={format_value(min_value)}  max={format_value(max_value)}  "
-            f"mode=dynamic-per-frame"
+            f"mode={self.scale_mode}"
         )
         self.update_detail_label()
 

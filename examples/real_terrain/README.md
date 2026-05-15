@@ -20,6 +20,7 @@ The repository also carries a small regression-fixture set for this example:
 - `flat_pond.asc`: flat ponding-prone basin fixture for retained-water behavior
 - `edge_notch.asc`: clipped-edge nodata notch fixture for domain and outflow interaction
 - `urban_block.asc`: slightly larger barrier-style fixture for split routing and future viewer/debug work
+- `split_basin.asc`: dual-depression fixture for split-retention behavior across an interior saddle
 
 Those fixtures are example and test assets, not engine-level scenario
 definitions. The simulation core still receives only validated terrain data
@@ -374,9 +375,10 @@ Viewer quickstart notes:
 - if you pass one final FloodSim CSV, the viewer auto-discovers matching snapshot CSVs beside it
 - use the left and right arrow keys or the `Prev` and `Next` buttons to move between frames
 - switch layers with the local `Layer` menu to inspect `elevation`, `water_depth`, or `surface_height`
+- switch `Scale` between `dynamic-per-frame` and `fixed-series` when you want either maximum local contrast or stable cross-frame comparison
 - small grids automatically show per-cell numeric overlays for the active layer
 - hover a cell to inspect exact `elevation`, `water_depth`, and `surface_height` values
-- the viewer prints the active layer min/max scale so dynamic per-frame coloring is explicit
+- the viewer prints the active layer min/max scale so the current coloring mode is explicit
 
 For direct terrain debugging on the committed sample GeoTIFF:
 
@@ -564,6 +566,7 @@ Why the fixtures exist:
 - `flat_pond.asc` keeps regression coverage on center-ponding behavior in a mostly flat basin
 - `edge_notch.asc` keeps regression coverage on downslope nodata-edge handling where clipped outflow is the main question
 - `urban_block.asc` keeps regression coverage on a slightly larger blocked-routing pattern that is useful for future visualization and debugging
+- `split_basin.asc` keeps regression coverage on a two-basin catchment where retention is split by an interior saddle instead of one dominant pond
 
 That split keeps fixture intent readable in tests and docs without pushing
 test-specific case naming into the simulation engine or the example CLI.

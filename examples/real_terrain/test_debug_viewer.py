@@ -8,11 +8,14 @@ from pathlib import Path
 
 from debug_viewer import (
     convert_raster_to_viewer_csv,
+    dataset_for_layer,
     discover_snapshot_series,
+    finite_range,
     format_value,
     load_frames,
     parse_esri_ascii_grid,
     parse_floodsim_csv,
+    series_range_for_layer,
     should_draw_value_overlay,
     text_color_for_hex,
 )
@@ -85,6 +88,52 @@ class DebugViewerParsingTests(unittest.TestCase):
     def test_format_value_formats_finite_and_nodata(self) -> None:
         self.assertEqual(format_value(12.34567), "12.346")
         self.assertEqual(format_value(float("nan")), "nodata")
+
+    def test_dataset_for_layer_selects_requested_series(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_path = Path(temp_dir) / "export.csv"
+            csv_path.write_text(
+                "# floodsim_csv_version,1\n"
+                "# rows,1\n"
+                "# cols,2\n"
+                "row,col,elevation_m,water_depth_m,surface_height_m\n"
+                "0,0,10.000000,1.000000,11.000000\n"
+                "0,1,12.000000,0.500000,12.500000\n",
+                encoding="utf-8",
+            )
+            frame = parse_floodsim_csv(csv_path)
+
+            dataset, palette = dataset_for_layer(frame, "water_depth")
+            self.assertEqual(dataset, [1.0, 0.5])
+            self.assertEqual(palette, "water")
+
+    def test_finite_range_ignores_nodata(self) -> None:
+        self.assertEqual(finite_range([float("nan"), 2.0, 5.0]), (2.0, 5.0))
+        self.assertEqual(finite_range([float("nan")]), (0.0, 0.0))
+
+    def test_series_range_for_layer_uses_all_frames(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            first_path = Path(temp_dir) / "first.csv"
+            second_path = Path(temp_dir) / "second.csv"
+            first_path.write_text(
+                "# floodsim_csv_version,1\n"
+                "# rows,1\n"
+                "# cols,1\n"
+                "row,col,elevation_m,water_depth_m,surface_height_m\n"
+                "0,0,10.000000,0.100000,10.100000\n",
+                encoding="utf-8",
+            )
+            second_path.write_text(
+                "# floodsim_csv_version,1\n"
+                "# rows,1\n"
+                "# cols,1\n"
+                "row,col,elevation_m,water_depth_m,surface_height_m\n"
+                "0,0,12.000000,0.300000,12.300000\n",
+                encoding="utf-8",
+            )
+            frames = [parse_floodsim_csv(first_path), parse_floodsim_csv(second_path)]
+
+            self.assertEqual(series_range_for_layer(frames, "water_depth"), (0.1, 0.3))
 
     def test_should_draw_value_overlay_only_when_readable(self) -> None:
         self.assertTrue(should_draw_value_overlay(5, 5, 100.0, 100.0))

@@ -167,7 +167,9 @@ python3 examples/real_terrain/debug_viewer.py real_terrain_output.csv
 
 If you pass one final FloodSim CSV, the viewer automatically discovers matching
 snapshot CSVs beside it and lets you step through them with the left and right
-arrow keys or the `Prev` and `Next` buttons.
+arrow keys or the `Prev` and `Next` buttons. Use the viewer `Scale` control to
+switch between `dynamic-per-frame` coloring and a `fixed-series` scale when you
+want stable cross-frame comparison.
 
 GeoTIFF inputs require the helper binary built by the normal CMake flow:
 
