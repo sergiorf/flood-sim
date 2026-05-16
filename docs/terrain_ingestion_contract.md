@@ -148,6 +148,11 @@ data. In that path:
 This is intentionally narrow. The repository still does not download DEMs
 itself or manage a broad source catalog yet.
 
+The adjacent terrain-library protocol now lives in
+[docs/terrain_library.md](/home/sergio/dev/flood-sim/docs/terrain_library.md:1).
+That protocol defines how FloodSim should describe and curate reviewed terrain
+areas above this ingestion contract.
+
 ## External staged-source contract
 
 The current external area-file header is:

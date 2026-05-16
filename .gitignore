@@ -1,5 +1,6 @@
 build/
 build-debug/
+build-*/
 cmake-build-*/
 __pycache__/
 *.pyc
@@ -12,3 +13,21 @@ __pycache__/
 *.exe
 .DS_Store
 /real_terrain_output*.csv
+
+# Local terrain-library cache and derived artifacts.
+# Keep reviewed manifests, README files, and catalog metadata tracked, but do
+# not accidentally commit downloaded DEMs or locally derived rasters.
+/terrain_library/areas/*/staged/*
+/terrain_library/areas/*/derived/*
+
+# Re-allow documentation and tiny metadata files inside those trees.
+!/terrain_library/areas/*/staged/
+!/terrain_library/areas/*/derived/
+!/terrain_library/areas/*/staged/*.md
+!/terrain_library/areas/*/staged/*.txt
+!/terrain_library/areas/*/staged/*.json
+!/terrain_library/areas/*/staged/*.csv
+!/terrain_library/areas/*/derived/*.md
+!/terrain_library/areas/*/derived/*.txt
+!/terrain_library/areas/*/derived/*.json
+!/terrain_library/areas/*/derived/*.csv

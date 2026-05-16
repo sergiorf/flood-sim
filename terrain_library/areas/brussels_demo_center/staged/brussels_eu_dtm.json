@@ -1,0 +1,11 @@
+{
+  "dataset": "EU_DTM",
+  "east": 4.42,
+  "endpoint": "https://portal.opentopography.org/API/globaldem",
+  "north": 50.9,
+  "output_path": "/home/sergio/dev/flood-sim/terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.tif",
+  "request_url": "https://portal.opentopography.org/API/globaldem?demtype=EU_DTM&south=50.8&north=50.9&west=4.3&east=4.42&outputFormat=GTiff&API_Key=%3Credacted%3E",
+  "source": "opentopography",
+  "south": 50.8,
+  "west": 4.3
+}

@@ -32,6 +32,7 @@ flood-sim/
   data/scripts/       preprocessing and ingestion helpers
   docs/               architecture, model notes, roadmap
   examples/           runnable toy examples
+  terrain_library/    curated real-terrain catalog and area notes
   AGENTS.md           instructions for future Codex work
 ```
 
@@ -216,6 +217,35 @@ There is now also one staged external-source variant for free DEM workflows:
 That path still expects a locally available staged DEM file, but it now
 materializes that source into a deterministic cache and preserves source kind,
 URL, license, and cache identity in reports and CSV metadata.
+
+## Terrain library
+
+The repository now also includes a small terrain-library protocol for curated
+real-place sources and demo areas.
+
+Use it to track:
+
+- trusted demo clips
+- candidate free terrain sources
+- provenance, license, and intended-use notes
+
+Start with:
+
+- [docs/terrain_library.md](/home/sergio/dev/flood-sim/docs/terrain_library.md:1)
+- [terrain_library/README.md](/home/sergio/dev/flood-sim/terrain_library/README.md:1)
+- [terrain_library/catalog.csv](/home/sergio/dev/flood-sim/terrain_library/catalog.csv:1)
+
+The repository also includes a small terrain downloader:
+
+```bash
+python3 data/scripts/download_terrain.py --help
+```
+
+It currently supports:
+
+- `OpenTopography` global DEM API
+- `Copernicus DEM` process API
+- direct file download for documented source URLs
 
 Viewer quickstart:
 

@@ -11,7 +11,7 @@ option(FLOODSIM_ENABLE_GDAL "Enable GDAL-backed terrain ingestion support" ON)
 
 if(FLOODSIM_BUILD_TESTS)
     enable_testing()
-    find_package(doctest CONFIG REQUIRED)
+    add_subdirectory(third_party/doctest)
     find_package(Python3 COMPONENTS Interpreter)
 endif()
 
