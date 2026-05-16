@@ -28,38 +28,68 @@ toy scenario mechanics. Once the repository has enough scaffolding to run,
 label, and compare a small number of deterministic real-terrain cases, priority
 should shift to the first realism-bearing simulation improvements.
 
+## Near-term demo priority
+
+The current product priority is no longer broad architectural preparation. The
+goal is to make the screening product demoable within a few weeks.
+
+That changes the next-step order:
+
+- prioritize one trusted real-terrain demo workflow over general refactoring
+- prioritize visual interpretation over additional internal architecture layers
+- prioritize a small recognizable area over broad geographic coverage
+- keep the product explicitly positioned as screening, not certified analysis
+
+The preferred near-term demonstration target is a narrow real place, such as a
+small Brussels clip with explicit provenance, documented assumptions, and a
+repeatable scenario walkthrough.
+
+Success for this phase is not "support any city." Success is:
+
+- load one trusted Brussels-area terrain clip reproducibly
+- run a few named screening scenarios
+- produce outputs that are visually legible and easy to compare
+- explain clearly what the results mean and what they do not mean
+
 ## Product MVP Task List
 
 This is the current product-focused task stack for a free-data MVP aimed at
 city-planning screening workflows in markets such as Europe and Brazil.
 
+### Demo-first workflow
+
+1. Define one canonical demo area on real terrain, preferably a small Brussels clip with explicit source and provenance notes.
+2. Keep the area-loading contract narrow: DEM clip, nodata handling, CRS identity, and repeatable clipping or fixture storage.
+3. Add 2-3 named screening scenarios that are easy to explain and compare on that area.
+4. Make the run path presentation-ready: one canonical command flow, one walkthrough, and deterministic outputs.
+
+### Visualization and interpretation
+
+1. Add a minimal local viewer or equally legible visual-output path for terrain plus flood-depth overlays.
+2. Preserve snapshot-aware exports so scenario evolution can be shown, not only final state.
+3. Add planner-facing comparison artifacts that help a demo audience understand differences safely.
+4. Add simple reproducible screenshots or presentation-ready artifacts for the canonical demo scenarios.
+
+### Real-terrain hardening
+
+1. Add a few more curated real-terrain regression clips that represent distinct planning cases such as steep drainage, flat ponding, and nodata-heavy edges.
+2. Normalize CRS, nodata, and clip-status reporting so imported areas are trustworthy enough for planner review.
+3. Add local cache and provenance metadata so repeated area loads are reproducible and inspectable.
+4. Expand from one trusted demo area to broader user-selected free-data area loading only after the first demo path is solid.
+
 ### Hydrology engine
 
-1. Add intermediate runoff snapshots so short and long events can be compared through time, not only at final state.
-2. Add a few more curated real-terrain regression clips that represent distinct planning cases such as steep drainage, flat ponding, and nodata-heavy edges.
-3. Add the next realism-bearing hydrology improvement after snapshots, biased toward model meaning rather than more workflow mechanics.
-4. Add benchmark-style fixture comparisons so changes in retained water, peak depth, and timing remain explainable.
-
-### Map loading
-
-1. Define one narrow MVP area-loading contract around a DEM clip, optional boundary, and explicit provenance.
-2. Add support for clipping user-selected areas from free baseline DEM sources, starting from globally or regionally available products.
-3. Normalize CRS, nodata, and clip-status reporting so imported areas are trustworthy enough for planner review.
-4. Add local cache and provenance metadata so repeated area loads are reproducible and inspectable.
-
-### Visualization
-
-1. Add snapshot-aware exports that can support time-based review before any richer viewer exists.
-2. Build a minimal local viewer that can show terrain plus flood-depth overlays over time.
-   Current v1 scope: local debugging viewer for FloodSim CSV exports, snapshot series, and direct GeoTIFF viewing through the same GDAL-backed terrain ingestion path used by the simulation workflow, without a server or web stack.
-3. Add scenario comparison views, including side-by-side or delta inspection.
-4. Add exportable planner-facing artifacts such as screenshots, summary tables, and run provenance bundles.
+1. Add the next realism-bearing hydrology improvement after the demo path is visually legible, biased toward model meaning rather than more workflow mechanics.
+2. Prioritize realism changes that visibly improve clipped real-terrain behavior, such as better outlet handling or related screening-focused drainage approximations.
+3. Add benchmark-style fixture comparisons so changes in retained water, peak depth, and timing remain explainable.
+4. Keep the toy model fast and deterministic enough to remain useful for live screening and rapid demo iteration.
 
 ### Product guardrails
 
 1. Keep the MVP positioned as screening and scenario-comparison support, not regulatory or drainage-design analysis.
 2. Prefer a few reliable free-data workflows over broad source coverage without clear interpretation.
-3. Stop adding workflow mechanics once they no longer improve trust, usability, or decision value.
+3. Prefer one credible Brussels-style demo workflow over premature generalization to many cities or many model engines.
+4. Stop adding workflow mechanics once they no longer improve trust, usability, or decision value.
 
 ## Phase 1. Toy grid simulation
 
@@ -145,6 +175,10 @@ Guardrails:
 - prefer a few explicit, documented workflows over flexible but weakly justified abstractions
 - stop once the repository can support one clear comparison workflow on a real clip
 
+For the current demo goal, Phase 3 should be read as "make one real-place
+scenario workflow legible and repeatable," not "add more batch or orchestration
+features."
+
 ## Phase 4. First realism-bearing hydrology
 
 After the minimum real-scenario scaffolding is in place, priority should move
@@ -181,6 +215,10 @@ Why this phase matters:
 
 - flood outputs become much more interpretable once they can be compared to real geography
 - this is where technical outputs start becoming usable planning artifacts rather than internal model artifacts
+
+For the near-term demo window, selected parts of this phase should be pulled
+forward aggressively. A simple local viewer or similarly legible visual output
+is more important than deeper architecture cleanup.
 
 ## Phase 6. Graphical viewer
 
@@ -254,6 +292,15 @@ The critical bridge from prototype to credible product is:
 
 Until the repository has completed the real-terrain workflow plus at least one
 realism-bearing modeling step, it is still mainly proving the simulation kernel.
+
+For the current near-term milestone, the bridge should be interpreted more
+tactically:
+
+1. one trusted Brussels-area clip
+2. one clear demo workflow
+3. one visual interpretation path
+4. one or two believable screening scenario differences
+5. explicit screening-only positioning
 
 Once Phase 2 through Phase 8 are substantially in place, FloodSim can begin to support real pilot workflows for:
 

@@ -130,6 +130,13 @@ struct BatchScenarioResult {
     ExampleRunResult result;
 };
 
+[[nodiscard]] const char* default_scenario_name();
+[[nodiscard]] bool has_cli_scenario_overrides(const ScenarioOverrides& overrides);
+[[nodiscard]] const ScenarioPreset& find_scenario_preset(std::string_view name);
+void apply_scenario_preset(ScenarioConfig& scenario, const ScenarioPreset& preset);
+void apply_scenario_overrides(ScenarioConfig& scenario, const ScenarioOverrides& overrides);
+void validate_scenario_config(const ScenarioConfig& scenario);
+
 [[nodiscard]] std::string usage_message();
 [[nodiscard]] std::string nodata_status_to_string(floodsim::TerrainNodataStatus status);
 [[nodiscard]] std::string boundary_mode_to_string(floodsim::BoundaryMode mode);
@@ -147,6 +154,10 @@ struct BatchScenarioResult {
     const std::filesystem::path& base_output_path,
     int completed_steps,
     double elapsed_seconds);
+int execute_example_cli(
+    const ExampleArguments& arguments,
+    std::ostream& output,
+    std::ostream& error);
 
 [[nodiscard]] ExampleRunResult run_example(const ExampleArguments& arguments);
 void write_export(

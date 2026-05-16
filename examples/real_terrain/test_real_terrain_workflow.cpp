@@ -340,6 +340,24 @@ TEST_CASE("real terrain helper defaults to open boundary for clipped-terrain run
     CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Open);
 }
 
+TEST_CASE("real terrain helper treats boundary mode as a CLI scenario override") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/sample_dem.tif").string(),
+            "output.csv",
+            "--scenario",
+            "baseline",
+            "--boundary-mode",
+            "closed",
+        });
+
+    CHECK(arguments.scenario.preset_applied);
+    CHECK(arguments.scenario.cli_overrides_applied);
+    CHECK(arguments.scenario.boundary_mode == floodsim::BoundaryMode::Closed);
+    CHECK(scenario_source_to_string(arguments.scenario) == "preset_with_cli_overrides");
+}
+
 TEST_CASE("real terrain helper rejects invalid scenario configuration") {
     CHECK_THROWS_WITH(
         static_cast<void>(parse_arguments(

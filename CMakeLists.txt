@@ -34,8 +34,10 @@ target_compile_features(floodsim_simple_grid PRIVATE cxx_std_20)
 
 add_library(floodsim_real_terrain_support
     examples/real_terrain/example_cli_parsing.cpp
+    examples/real_terrain/example_execution.cpp
     examples/real_terrain/example_reporting.cpp
     examples/real_terrain/example_runner.cpp
+    examples/real_terrain/example_scenarios.cpp
 )
 
 target_link_libraries(floodsim_real_terrain_support
