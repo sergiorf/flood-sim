@@ -20,6 +20,7 @@ if(FLOODSIM_ENABLE_GDAL)
 endif()
 
 add_subdirectory(core)
+add_subdirectory(apps)
 
 add_executable(floodsim_simple_grid
     examples/simple_grid/main.cpp

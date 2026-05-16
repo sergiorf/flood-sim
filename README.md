@@ -28,6 +28,7 @@ This is not a certified hydrology or hydrodynamics engine. The MVP is designed f
 
 ```text
 flood-sim/
+  apps/               product-facing local applications such as the native viewer
   core/               C++ simulation library and tests
   data/scripts/       preprocessing and ingestion helpers
   docs/               architecture, model notes, roadmap
@@ -246,6 +247,24 @@ It currently supports:
 - `OpenTopography` global DEM API
 - `Copernicus DEM` process API
 - direct file download for documented source URLs
+
+## Native viewer scaffold
+
+The repository now includes the first native viewer scaffold under
+`apps/native_viewer/`.
+
+Current scope:
+
+- native app target location for the future product viewer
+- raster and FloodSim CSV inspection entrypoint
+- no rendering UI yet
+
+Run the current scaffold with:
+
+```bash
+./build/floodsim_native_viewer --inspect \
+  terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.tif
+```
 
 Viewer quickstart:
 

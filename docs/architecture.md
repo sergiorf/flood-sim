@@ -250,6 +250,11 @@ GeoTIFF.
 
 A future visualization layer can render flood depth over basemaps and city layers. This may begin as a lightweight local viewer and later evolve into a richer graphical application if the simulation outputs and workflows justify it. It is intentionally not included in the first version of this repository.
 
+The repository now reserves `apps/native_viewer/` for that product-facing
+local visualization path. The current scaffold is intentionally narrow: it
+starts as a native raster/result inspection app boundary rather than as a full
+GIS shell or simulation orchestrator.
+
 ## Technical paper artifact
 
 The repository also carries a LaTeX paper describing the implemented Phase 1 simulator in `docs/paper/phase1_simulator.tex`.

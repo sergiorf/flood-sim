@@ -66,6 +66,7 @@ city-planning screening workflows in markets such as Europe and Brazil.
 ### Visualization and interpretation
 
 1. Add a minimal local viewer or equally legible visual-output path for terrain plus flood-depth overlays.
+   Current direction: a lean native viewer under `apps/native_viewer/`, not a heavier desktop framework.
 2. Preserve snapshot-aware exports so scenario evolution can be shown, not only final state.
 3. Add planner-facing comparison artifacts that help a demo audience understand differences safely.
 4. Add simple reproducible screenshots or presentation-ready artifacts for the canonical demo scenarios.
