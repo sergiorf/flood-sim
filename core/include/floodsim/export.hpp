@@ -28,6 +28,10 @@ struct GridCsvMetadata {
     std::optional<std::string> boundary_mode;
     std::optional<std::string> rainfall_mode;
     std::optional<std::string> rainfall_profile_path;
+    std::optional<std::string> surface_class_file;
+    std::optional<std::size_t> impervious_cell_count;
+    std::optional<double> impervious_runoff_coefficient;
+    std::optional<double> impervious_initial_loss_m;
     std::optional<std::string> area_name;
     std::optional<std::string> area_source_name;
     std::optional<std::string> area_source_details;

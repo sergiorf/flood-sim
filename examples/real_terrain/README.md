@@ -215,6 +215,14 @@ scenario and these columns:
 - `deepest_col`
 - `output_csv`
 
+When a surface-class overlay is active, the main export and any snapshot
+exports also preserve:
+
+- `surface_class_file`
+- `impervious_cell_count`
+- `impervious_runoff_coefficient`
+- `impervious_initial_loss_m`
+
 You can also override the rainfall and time-step settings through a small CLI:
 
 ```bash
@@ -250,6 +258,54 @@ For a non-uniform event, use `--rainfall-profile-file` instead of
 `--rainfall-intensity-m-per-hour`. The profile keeps the same
 `time_step_seconds`, but intensity can vary from one step to the next. That
 is the repository's first narrow "real storm shape" input path.
+
+The same workflow can also apply one narrow land-surface overlay so selected
+cells shed water more like impervious urban surfaces:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/drainage_slope.asc \
+  real_terrain_surface_classes.csv \
+  --runoff-coefficient 0.40 \
+  --initial-loss-m 0.002 \
+  --surface-class-file examples/real_terrain/data/drainage_slope_surface_classes.csv \
+  --impervious-runoff-coefficient 1.0 \
+  --impervious-initial-loss-m 0.0
+```
+
+The surface-class file is intentionally narrow:
+
+```text
+row,col,runoff_class
+```
+
+Each non-empty row identifies one cell override. The committed sample looks
+like:
+
+```text
+row,col,runoff_class
+0,0,impervious
+0,1,impervious
+1,0,impervious
+1,1,impervious
+```
+
+Field meanings:
+
+- `row`: zero-based raster row index inside the loaded terrain clip
+- `col`: zero-based raster column index inside the loaded terrain clip
+- `runoff_class`: currently only `impervious`
+
+Current behavior:
+
+- unspecified valid cells remain `pervious`
+- `pervious` cells use the scenario `runoff_coefficient` and `initial_loss_m`
+- `impervious` cells use `--impervious-runoff-coefficient` and `--impervious-initial-loss-m`
+- the same rainfall intensity or reviewed rainfall profile still applies across the whole clip
+
+This is an MVP screening contract, not a full land-use or infiltration system.
+It exists to make paved or sealed patches behave differently from surrounding
+pervious cells without introducing polygon catchments or a drainage network.
 
 You can clip a smaller pixel window from a larger source raster when you want a
 repeatable real-area scenario without preprocessing a separate file first:
@@ -360,6 +416,9 @@ Supported options:
 - `--rainfall-profile-file <path.csv>`: load one per-step rainfall profile instead of one constant intensity
 - `--runoff-coefficient <value>`: fraction of rainfall retained as immediate surface runoff, default `1.0`
 - `--initial-loss-m <value>`: per-cell event-start loss depth in meters, default `0.0`
+- `--surface-class-file <path.csv>`: load one narrow per-cell runoff-class overlay, currently supporting only `impervious` rows
+- `--impervious-runoff-coefficient <value>`: retained rainfall fraction for impervious cells, requires `--surface-class-file`, default `1.0`
+- `--impervious-initial-loss-m <value>`: event-start loss depth for impervious cells, requires `--surface-class-file`, default `0.0`
 - `--time-step-seconds <value>`: simulation step duration in seconds, default `300`
 - `--steps <count>`: number of simulation steps to run, default `12`
 - `--window-row-offset <value>`: top-row index of a clipped terrain window, default `0`
@@ -379,7 +438,9 @@ mutually exclusive, and `--steps` cannot be combined with
 Scenario validation is kept local to that `ScenarioConfig` construction
 instead of being spread across the simulation setup path. External area-file
 validation also requires source kind, source URL, license name, cache key, and
-an existing staged DEM path.
+an existing staged DEM path. Surface-class validation also requires every
+referenced cell to stay inside the loaded terrain clip and fall on a valid
+terrain cell.
 
 The example prints a short load and simulation summary, then writes the same
 CSV contract used elsewhere in the repository with added georeferencing
@@ -409,6 +470,10 @@ ingestion_report source_rows=5 source_cols=5 loaded_rows=5 loaded_cols=5 clipped
 # total_rainfall_depth_m,0.012000
 # runoff_coefficient,1.000000
 # initial_loss_m,0.000000
+# surface_class_file,...
+# impervious_cell_count,...
+# impervious_runoff_coefficient,...
+# impervious_initial_loss_m,...
 # time_step_seconds,300.000000
 # total_duration_seconds,3600.000000
 # origin_x_m,154320.000000

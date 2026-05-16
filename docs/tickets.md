@@ -47,36 +47,80 @@ Planning note:
 - The minimum deterministic real-terrain comparison path is in place.
 - New tickets should bias toward interpretation, trusted area loading, curated fixtures, and lightweight visualization over broader orchestration.
 
-## FS-039 - Add simple land-surface runoff classes for pervious and impervious areas
+## FS-043 - Refactor architecture to support screening and engineering model engines
 
 Status: Todo
 Owner: Unassigned
 Priority: P1
 
 Problem:
-- Current rainfall treatment is still spatially uniform apart from nodata masking.
-- Market simulators typically distinguish runoff behavior by land surface or subcatchment properties much earlier than they add full drainage-network complexity.
+- The current architecture is centered on one in-repo toy raster model.
+- That is appropriate for screening and product iteration, but it is not a strong long-term product posture if the product may later support real engineering workflows.
+- Without an explicit engine boundary, future integration of an accepted external model risks leaking product concerns into solver-specific code and weakening the clarity of result claims.
 
 Proposed change:
-- Add one narrow land-surface classification path so cells can use different runoff-loss settings, starting with simple pervious vs impervious behavior or an equivalent two-class contract.
+- Introduce a narrow engine-agnostic execution contract so the product workflow can run either:
+- the current in-repo toy model as a screening engine
+- a future accepted open-source external model as an engineering engine
+- Move shared ingestion, scenario normalization, output identity, and comparison logic above that engine boundary.
+- Ensure every run artifact identifies which engine produced it and what level of confidence or intended use applies.
 
 Constraints:
-- Keep the model explicit and raster-first.
-- Do not introduce a full urban drainage or polygon subcatchment subsystem yet.
-- Preserve explainable fixture behavior and deterministic exports.
+- Preserve the current toy model and its deterministic regression fixtures as the local screening path.
+- Do not claim that integrating an accepted model makes the whole product certified.
+- Keep the first refactor focused on architecture seams, contracts, and workflow boundaries rather than full external-model feature parity.
+- Prefer open-source and free-to-use engineering-model candidates where they fit the intended use case.
 
 Acceptance criteria:
-- The simulation can apply at least two runoff-behavior classes over the same terrain.
-- Exports and reports preserve enough metadata to explain which runoff-class inputs were used.
-- Tests show materially different runoff results for contrasting class layouts.
+- The repository documents a clear engine boundary and the responsibilities above and below it.
+- A shared run contract exists that can represent at least the current screening engine and one future engineering-engine adapter path.
+- Exports, reports, or run metadata distinguish screening-mode outputs from engineering-mode outputs.
+- The current toy model remains usable without any external-engine dependency.
 
 Required tests:
-- Core or workflow regression coverage for mixed land-surface class behavior.
+- Regression coverage for the screening-engine path must remain green after the boundary extraction.
+- New tests should constrain engine identity metadata and any engine-selection workflow behavior introduced by the refactor.
 
 Required documentation updates:
-- `docs/simulation_model.md`
 - `docs/architecture.md`
-- `examples/real_terrain/README.md`
+- `docs/simulation_model.md`
+- `docs/roadmap.md`
+- `README.md`
+
+## FS-044 - Define a reusable simulation-platform boundary above flood-specific engines
+
+Status: Todo
+Owner: Unassigned
+Priority: P2
+
+Problem:
+- The repository may eventually support other simulator products beyond flood modeling.
+- Today, the architecture is still centered on flood-specific concepts such as terrain rasters, rainfall, and routing.
+- Without a clean platform boundary, reusing the workflow stack for other domains such as RF or macroeconomics would require copy-paste rather than composition.
+
+Proposed change:
+- Define a narrow simulation-platform layer above domain-specific engines.
+- Identify the reusable contracts for run requests, scenario identity, execution lifecycle, artifact metadata, result summaries, and comparison workflows.
+- Keep flood-specific state and solver semantics below that boundary so the current repository does not over-generalize its numerical core.
+
+Constraints:
+- Do not force the current flood solver to pretend it is domain-agnostic.
+- Prefer interfaces proven by near-term needs such as multiple flood-engine support before extracting broader abstractions.
+- Keep the first pass architectural and contractual; do not expand scope into a full plugin marketplace or cross-domain product framework.
+
+Acceptance criteria:
+- The architecture documents which layers are reusable platform concerns and which layers remain flood-specific.
+- A first-pass vocabulary exists for platform-level concepts such as run request, engine identity, artifact metadata, and result summary.
+- The proposed boundary remains compatible with the screening-versus-engineering flood-engine split.
+
+Required tests:
+- No new numerical behavior is required for the planning pass.
+- If code extraction begins, tests must preserve current flood-engine behavior unchanged while covering any new platform metadata or orchestration contracts.
+
+Required documentation updates:
+- `docs/architecture.md`
+- `docs/roadmap.md`
+- `README.md`
 
 ## FS-040 - Add explicit outlet or sink features beyond raster-edge open boundaries
 

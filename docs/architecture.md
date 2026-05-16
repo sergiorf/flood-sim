@@ -6,6 +6,14 @@ FloodSim is planned as a pipeline with clear boundaries between data preparation
 
 `data ingestion -> simulation core -> output raster/tiles -> graphical visualization`
 
+```mermaid
+flowchart LR
+    A[Terrain and scenario inputs] --> B[Ingestion and validation]
+    B --> C[Simulation core]
+    C --> D[Exports and metrics]
+    D --> E[Viewer or downstream analysis]
+```
+
 ## Components
 
 ### 1. Data ingestion
@@ -47,6 +55,9 @@ bringing in broader config-file tooling.
 That contract can now describe either a constant-intensity rainfall event or a
 profile-backed event through one referenced per-step rainfall CSV, while still
 normalizing both paths into the same `ScenarioConfig` before execution.
+The same support layer now also accepts one narrow surface-class CSV overlay so
+reviewed terrain clips can distinguish simple pervious and impervious runoff
+behavior without introducing a broader land-use subsystem.
 Regression fixtures for that example live alongside the example assets and test
 harness, not in the simulation-core interfaces. That keeps fixture identity,
 test expectations, and smoke-case intent out of the engine configuration
@@ -73,6 +84,7 @@ Important public types:
 - `TerrainRaster`: validated imported terrain with dimensions, elevations, valid-cell mask, and optional origin / CRS metadata
 - `LoadedTerrainRaster`: `TerrainRaster` plus a `TerrainIngestionReport` so ingestion diagnostics stay out of the simulation state itself
 - `ScenarioConfig` in the real-terrain example: one normalized workflow scenario assembled from presets, files, and CLI overrides before the run starts
+- `SurfaceClassConfig` in the real-terrain example: one narrow raster-aligned overlay describing impervious cells plus their runoff-loss settings
 
 Later responsibilities may include:
 
@@ -80,6 +92,80 @@ Later responsibilities may include:
 - additional boundary modes beyond the current open edge-outflow behavior
 - drainage and impervious surface effects
 - better time stepping and calibration hooks
+
+## Target model architecture
+
+The current repository should keep one explicit distinction in view:
+
+- the in-repo toy model is a screening engine
+- a later integrated accepted external model can serve as the engineering engine for more serious studies
+
+That split supports a more credible product posture without pretending that the
+current raster MVP is itself a certified or regulator-ready solver.
+
+### Why separate engines
+
+- The toy model is fast, transparent, deterministic, and easy to regression test.
+- It is appropriate for product iteration, first-pass site screening, and UX development.
+- A real engineering workflow usually needs a more established hydrology or hydraulics engine, plus the calibration, reporting, and review process that goes with it.
+- Keeping those paths separate helps the product communicate confidence and intended use clearly.
+
+### Target flow with multiple engines
+
+```mermaid
+flowchart LR
+    A[Project inputs] --> B[Shared ingestion and scenario normalization]
+    B --> C{Engine selection}
+    C --> D[Screening engine<br/>in-repo toy raster model]
+    C --> E[Engineering engine<br/>accepted external model adapter]
+    D --> F[Shared outputs, summaries, and comparison artifacts]
+    E --> F
+    F --> G[Viewer, reports, and audit trail]
+```
+
+### Target responsibility split
+
+```mermaid
+flowchart TB
+    subgraph ProductLayer[Product workflow layer]
+        A[Input import]
+        B[Scenario setup]
+        C[Run orchestration]
+        D[Result comparison]
+        E[Reporting]
+    end
+
+    subgraph EngineLayer[Simulation engine layer]
+        F[Screening engine interface]
+        G[Engineering engine interface]
+    end
+
+    subgraph ExternalLayer[Engine implementations]
+        H[Current toy model]
+        I[Future external model integration]
+    end
+
+    A --> B --> C --> D --> E
+    C --> F --> H
+    C --> G --> I
+    H --> D
+    I --> D
+```
+
+### Refactor direction
+
+To support that target architecture, future refactoring should bias toward:
+
+- a narrow engine-agnostic run contract shared by all execution paths
+- shared ingestion, scenario normalization, and export logic above the engine boundary
+- explicit engine metadata in outputs so users can tell whether a result came from screening or engineering mode
+- preserving deterministic local fixtures for the screening engine even after an external engine path exists
+- keeping regulatory or engineering claims attached to the selected engine and workflow evidence, not to the product UI alone
+
+This would make the product more serious in a practical sense if it is done
+carefully: the product can stay simple locally while also offering a path to
+more defensible engineering workflows. It does not, by itself, make every
+output certified or suitable for formal flood-risk assessment.
 
 ### 3. Output raster and tiles
 
@@ -107,6 +193,10 @@ Terrain-derived exports may also include:
 - `total_rainfall_depth_m`
 - `runoff_coefficient`
 - `initial_loss_m`
+- `surface_class_file`
+- `impervious_cell_count`
+- `impervious_runoff_coefficient`
+- `impervious_initial_loss_m`
 - `time_step_seconds`
 - `total_duration_seconds`
 - `origin_x_m`

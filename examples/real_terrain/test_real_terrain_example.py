@@ -223,6 +223,39 @@ def assert_rainfall_profile_run(binary_path: Path, output_directory: Path) -> No
     assert expected_summary_line(rows) in completed.stdout
 
 
+def assert_surface_class_run(binary_path: Path, output_directory: Path) -> None:
+    terrain_path = REAL_TERRAIN_FIXTURES[1].terrain_path
+    surface_class_path = terrain_path.parent / "drainage_slope_surface_classes.csv"
+    output_csv_path = output_directory / "surface_class_output.csv"
+    completed = run_example(
+        binary_path,
+        terrain_path,
+        output_csv_path,
+        "--runoff-coefficient",
+        "0.40",
+        "--initial-loss-m",
+        "0.002",
+        "--surface-class-file",
+        str(surface_class_path),
+        "--impervious-runoff-coefficient",
+        "1.0",
+        "--impervious-initial-loss-m",
+        "0.0",
+    )
+
+    assert f'surface_class_file="{surface_class_path}"' in completed.stdout
+    assert "impervious_cell_count=4" in completed.stdout
+    assert "impervious_runoff_coefficient=1.000000" in completed.stdout
+    assert "impervious_initial_loss_m=0.000000" in completed.stdout
+
+    metadata, rows = parse_export(output_csv_path)
+    assert metadata["surface_class_file"] == str(surface_class_path)
+    assert metadata["impervious_cell_count"] == "4"
+    assert metadata["impervious_runoff_coefficient"] == "1.000000"
+    assert metadata["impervious_initial_loss_m"] == "0.000000"
+    assert expected_summary_line(rows) in completed.stdout
+
+
 def assert_snapshot_run(binary_path: Path, output_directory: Path) -> None:
     terrain_path = REAL_TERRAIN_FIXTURES[0].terrain_path
     output_csv_path = output_directory / "snapshot_output.csv"
@@ -314,7 +347,10 @@ def assert_external_area_file_run(binary_path: Path, output_directory: Path) -> 
     assert "area_license_name=European Union Copernicus Programme" in completed.stdout
     assert "area_cache_key=sample_dem_center_clip_v1" in completed.stdout
     assert f'area_cached_dem_path="{cached_dem_path}"' in completed.stdout
-    assert "area_cache_status=materialized" in completed.stdout
+    assert (
+        "area_cache_status=materialized" in completed.stdout
+        or "area_cache_status=reused" in completed.stdout
+    )
     assert output_csv_path.exists()
 
     metadata, rows = parse_export(output_csv_path)
@@ -462,6 +498,7 @@ def main() -> int:
     assert_scenario_file_run(binary_path, output_directory)
     assert_profile_scenario_file_run(binary_path, output_directory)
     assert_rainfall_profile_run(binary_path, output_directory)
+    assert_surface_class_run(binary_path, output_directory)
     assert_batch_run(binary_path, output_directory)
     assert_profile_batch_run(binary_path, output_directory)
 

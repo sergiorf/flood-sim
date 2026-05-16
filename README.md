@@ -164,6 +164,24 @@ That contract keeps the time step fixed and supplies one uniform intensity per
 simulation step. It is the first narrow path toward reviewed real storm
 scenarios without adding a broader scenario-management subsystem yet.
 
+The same workflow now also supports one narrow per-cell surface-class overlay
+so selected cells can behave as impervious areas while the rest of the clip
+stays pervious:
+
+```bash
+./build/floodsim_real_terrain_example \
+  examples/real_terrain/data/drainage_slope.asc \
+  real_terrain_surface_classes.csv \
+  --runoff-coefficient 0.40 \
+  --initial-loss-m 0.002 \
+  --surface-class-file examples/real_terrain/data/drainage_slope_surface_classes.csv \
+  --impervious-runoff-coefficient 1.0 \
+  --impervious-initial-loss-m 0.0
+```
+
+That keeps the MVP raster-first: one small CSV marks impervious cells, while
+the reviewed scenario or CLI still defines the shared storm itself.
+
 The same workflow can also emit deterministic intermediate snapshot CSVs using
 `--snapshot-every-steps <count>` so scenario timing can be inspected before a
 richer viewer exists.

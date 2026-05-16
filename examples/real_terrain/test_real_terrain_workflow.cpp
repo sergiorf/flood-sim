@@ -244,6 +244,28 @@ TEST_CASE("real terrain helper parses batch scenario list") {
     CHECK(arguments.scenario_overrides.runoff_coefficient == doctest::Approx(0.5));
 }
 
+TEST_CASE("real terrain helper loads surface class file and impervious overrides") {
+    const auto arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "output.csv",
+            "--surface-class-file",
+            fixture_path("examples/real_terrain/data/drainage_slope_surface_classes.csv").string(),
+            "--impervious-runoff-coefficient",
+            "1.0",
+            "--impervious-initial-loss-m",
+            "0.0",
+        });
+
+    REQUIRE(arguments.surface_class_config.has_value());
+    CHECK(arguments.surface_class_config->source_path ==
+          fixture_path("examples/real_terrain/data/drainage_slope_surface_classes.csv"));
+    CHECK(arguments.surface_class_config->impervious_cells.size() == 4);
+    CHECK(arguments.surface_class_config->impervious_runoff_coefficient == doctest::Approx(1.0));
+    CHECK(arguments.surface_class_config->impervious_initial_loss_m == doctest::Approx(0.0));
+}
+
 TEST_CASE("real terrain helper parses snapshot interval") {
     const auto arguments = parse_arguments(
         {
@@ -453,6 +475,23 @@ TEST_CASE("real terrain helper rejects invalid scenario configuration") {
                 "12",
             })),
         doctest::Contains("Do not use --steps with --rainfall-profile-file"));
+
+    const auto invalid_surface_class_path = std::filesystem::temp_directory_path() / "floodsim_invalid_surface_class.csv";
+    write_text_file(
+        invalid_surface_class_path,
+        "row,col,runoff_class\n"
+        "0,0,sealed\n");
+    CHECK_THROWS_WITH(
+        static_cast<void>(parse_arguments(
+            {
+                "floodsim_real_terrain_example",
+                fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+                "output.csv",
+                "--surface-class-file",
+                invalid_surface_class_path.string(),
+            })),
+        doctest::Contains("supports only the 'impervious' runoff_class"));
+    std::filesystem::remove(invalid_surface_class_path);
 }
 
 TEST_CASE("real terrain helper runs nodata basin fixture and reports deterministic summary") {
@@ -502,7 +541,13 @@ TEST_CASE("real terrain helper runs drainage slope fixture and exports metadata"
     CHECK(*result.summary_metrics.deepest_col == 3);
 
     const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_helper_export.csv";
-    write_export(result.grid, result.loaded_terrain.terrain, arguments.area_definition, arguments.scenario, export_path);
+    write_export(
+        result.grid,
+        result.loaded_terrain.terrain,
+        arguments.area_definition,
+        arguments.surface_class_config,
+        arguments.scenario,
+        export_path);
     const std::string export_text = slurp_file(export_path);
     CHECK(export_text.find("# rows,4") != std::string::npos);
     CHECK(export_text.find("# cols,4") != std::string::npos);
@@ -573,6 +618,7 @@ TEST_CASE("real terrain helper runoff coefficient reduces retained water and is 
         reduced_runoff_result.grid,
         reduced_runoff_result.loaded_terrain.terrain,
         reduced_runoff_arguments.area_definition,
+        reduced_runoff_arguments.surface_class_config,
         reduced_runoff_arguments.scenario,
         export_path);
     const std::string export_text = slurp_file(export_path);
@@ -611,6 +657,7 @@ TEST_CASE("real terrain helper initial loss delays runoff and is exported") {
         initial_loss_result.grid,
         initial_loss_result.loaded_terrain.terrain,
         initial_loss_arguments.area_definition,
+        initial_loss_arguments.surface_class_config,
         initial_loss_arguments.scenario,
         export_path);
     const std::string export_text = slurp_file(export_path);
@@ -653,6 +700,7 @@ TEST_CASE("real terrain helper supports external rainfall profile events") {
         profile_result.grid,
         profile_result.loaded_terrain.terrain,
         profile_arguments.area_definition,
+        profile_arguments.surface_class_config,
         profile_arguments.scenario,
         export_path);
     const std::string export_text = slurp_file(export_path);
@@ -660,6 +708,63 @@ TEST_CASE("real terrain helper supports external rainfall profile events") {
     CHECK(export_text.find("# rainfall_profile_path,") != std::string::npos);
     CHECK(export_text.find("# peak_rainfall_intensity_m_per_hour,0.030000") != std::string::npos);
     CHECK(export_text.find("# total_rainfall_depth_m,0.007500") != std::string::npos);
+    std::filesystem::remove(export_path);
+}
+
+TEST_CASE("real terrain helper supports pervious and impervious runoff classes") {
+    ExampleArguments baseline_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "baseline.csv",
+            "--runoff-coefficient",
+            "0.40",
+            "--initial-loss-m",
+            "0.002",
+        });
+    const auto baseline_result = run_example(baseline_arguments);
+
+    ExampleArguments surface_class_arguments = parse_arguments(
+        {
+            "floodsim_real_terrain_example",
+            fixture_path("examples/real_terrain/data/drainage_slope.asc").string(),
+            "surface_classes.csv",
+            "--runoff-coefficient",
+            "0.40",
+            "--initial-loss-m",
+            "0.002",
+            "--surface-class-file",
+            fixture_path("examples/real_terrain/data/drainage_slope_surface_classes.csv").string(),
+            "--impervious-runoff-coefficient",
+            "1.0",
+            "--impervious-initial-loss-m",
+            "0.0",
+        });
+    const auto surface_class_result = run_example(surface_class_arguments);
+
+    CHECK(surface_class_result.grid.total_water_depth() > baseline_result.grid.total_water_depth());
+    CHECK(surface_class_result.summary_metrics.max_water_depth_m > baseline_result.summary_metrics.max_water_depth_m);
+
+    std::ostringstream report;
+    print_run_report(report, surface_class_arguments, surface_class_result);
+    CHECK(report.str().find("surface_class_file=") != std::string::npos);
+    CHECK(report.str().find("impervious_cell_count=4") != std::string::npos);
+    CHECK(report.str().find("impervious_runoff_coefficient=1.000000") != std::string::npos);
+    CHECK(report.str().find("impervious_initial_loss_m=0.000000") != std::string::npos);
+
+    const auto export_path = std::filesystem::temp_directory_path() / "floodsim_real_terrain_surface_class_export.csv";
+    write_export(
+        surface_class_result.grid,
+        surface_class_result.loaded_terrain.terrain,
+        surface_class_arguments.area_definition,
+        surface_class_arguments.surface_class_config,
+        surface_class_arguments.scenario,
+        export_path);
+    const std::string export_text = slurp_file(export_path);
+    CHECK(export_text.find("# surface_class_file,") != std::string::npos);
+    CHECK(export_text.find("# impervious_cell_count,4") != std::string::npos);
+    CHECK(export_text.find("# impervious_runoff_coefficient,1.000000") != std::string::npos);
+    CHECK(export_text.find("# impervious_initial_loss_m,0.000000") != std::string::npos);
     std::filesystem::remove(export_path);
 }
 

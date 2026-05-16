@@ -115,6 +115,7 @@ void write_export(
     const floodsim::Grid& grid,
     const floodsim::TerrainRaster& terrain,
     const std::optional<AreaDefinition>& area_definition,
+    const std::optional<SurfaceClassConfig>& surface_class_config,
     const ScenarioConfig& scenario,
     const std::filesystem::path& output_path) {
     std::ofstream output(output_path);
@@ -131,6 +132,18 @@ void write_export(
             .rainfall_mode = rainfall_mode_to_string(scenario),
             .rainfall_profile_path = scenario.rainfall_profile.has_value()
                 ? std::optional<std::string>(scenario.rainfall_profile->source_path.string())
+                : std::nullopt,
+            .surface_class_file = surface_class_config.has_value()
+                ? std::optional<std::string>(surface_class_config->source_path.string())
+                : std::nullopt,
+            .impervious_cell_count = surface_class_config.has_value()
+                ? std::optional<std::size_t>(surface_class_config->impervious_cells.size())
+                : std::nullopt,
+            .impervious_runoff_coefficient = surface_class_config.has_value()
+                ? std::optional<double>(surface_class_config->impervious_runoff_coefficient)
+                : std::nullopt,
+            .impervious_initial_loss_m = surface_class_config.has_value()
+                ? std::optional<double>(surface_class_config->impervious_initial_loss_m)
                 : std::nullopt,
             .area_name = area_definition.has_value()
                 ? std::optional<std::string>(area_definition->area_name)
@@ -178,6 +191,7 @@ void print_run_report(
     const floodsim::TerrainRaster& terrain = result.loaded_terrain.terrain;
     const floodsim::TerrainIngestionReport& ingestion_report = result.loaded_terrain.report;
     const ScenarioConfig& scenario = arguments.scenario;
+    const std::optional<SurfaceClassConfig>& surface_class_config = arguments.surface_class_config;
 
     output << "loaded_dem=" << arguments.input_dem_path << '\n';
     output << "scenario_name=" << scenario.name
@@ -209,6 +223,14 @@ void print_run_report(
                << scenario_peak_rainfall_intensity_m_per_hour(scenario) << '\n';
         output << "total_rainfall_depth_m=" << std::fixed << std::setprecision(6)
                << scenario_total_rainfall_depth_m(scenario) << '\n';
+    }
+    if (surface_class_config.has_value()) {
+        output << "surface_class_file=" << surface_class_config->source_path << '\n';
+        output << "impervious_cell_count=" << surface_class_config->impervious_cells.size() << '\n';
+        output << "impervious_runoff_coefficient=" << std::fixed << std::setprecision(6)
+               << surface_class_config->impervious_runoff_coefficient << '\n';
+        output << "impervious_initial_loss_m=" << std::fixed << std::setprecision(6)
+               << surface_class_config->impervious_initial_loss_m << '\n';
     }
     output << "runoff_coefficient=" << std::fixed << std::setprecision(6)
            << scenario.runoff_coefficient << '\n';
@@ -285,6 +307,7 @@ void print_run_report(
 void write_snapshot_exports(
     const ExampleRunResult& result,
     const std::optional<AreaDefinition>& area_definition,
+    const std::optional<SurfaceClassConfig>& surface_class_config,
     const ScenarioConfig& scenario,
     const std::filesystem::path& base_output_path) {
     for (const auto& snapshot : result.snapshots) {
@@ -294,6 +317,7 @@ void write_snapshot_exports(
             snapshot.grid,
             result.loaded_terrain.terrain,
             area_definition,
+            surface_class_config,
             ScenarioConfig {
                 .name = scenario.name,
                 .output_csv_path = snapshot_output_path,

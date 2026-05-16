@@ -76,16 +76,7 @@ void add_uniform_rainfall(
     }
 }
 
-void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& config) {
-    if (config.time_step_seconds <= 0.0) {
-        throw std::invalid_argument("Simulation time step must be positive");
-    }
-    if (config.runoff_coefficient < 0.0 || config.runoff_coefficient > 1.0) {
-        throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
-    }
-    if (config.initial_loss_m < 0.0) {
-        throw std::invalid_argument("Initial loss must be non-negative");
-    }
+void route_surface_water(Grid& grid, const SimulationConfig& config) {
     if (config.max_outflow_fraction < 0.0 || config.max_outflow_fraction > 1.0) {
         throw std::invalid_argument("Max outflow fraction must be in [0, 1]");
     }
@@ -93,14 +84,6 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
         config.boundary_mode != BoundaryMode::Open) {
         throw std::invalid_argument("Unsupported boundary mode");
     }
-
-    // Each step first injects rainfall, then redistributes water already on the grid.
-    add_uniform_rainfall(
-        grid,
-        rainfall,
-        config.time_step_seconds,
-        config.runoff_coefficient,
-        config.initial_loss_m);
 
     const std::size_t rows = grid.rows();
     const std::size_t cols = grid.cols();
@@ -206,6 +189,28 @@ void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& 
             grid.add_water_depth(row, col, delta[idx]);
         }
     }
+}
+
+void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& config) {
+    if (config.time_step_seconds <= 0.0) {
+        throw std::invalid_argument("Simulation time step must be positive");
+    }
+    if (config.runoff_coefficient < 0.0 || config.runoff_coefficient > 1.0) {
+        throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
+    }
+    if (config.initial_loss_m < 0.0) {
+        throw std::invalid_argument("Initial loss must be non-negative");
+    }
+
+    // Each step first injects rainfall, then redistributes water already on the grid.
+    add_uniform_rainfall(
+        grid,
+        rainfall,
+        config.time_step_seconds,
+        config.runoff_coefficient,
+        config.initial_loss_m);
+
+    route_surface_water(grid, config);
 }
 
 }  // namespace floodsim

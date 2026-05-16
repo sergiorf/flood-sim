@@ -1,6 +1,8 @@
 #include "example_runner.hpp"
 
+#include <cstddef>
 #include <stdexcept>
+#include <vector>
 
 namespace floodsim::examples::real_terrain {
 
@@ -88,6 +90,101 @@ void validate_scenario_config(const ScenarioConfig& scenario) {
         static_cast<std::size_t>(scenario.step_count) !=
             scenario.rainfall_profile->step_intensities_m_per_hour.size()) {
         throw std::runtime_error("Step count must match the rainfall profile length");
+    }
+}
+
+std::vector<std::uint8_t> build_impervious_mask(
+    const SurfaceClassConfig& surface_class_config,
+    const floodsim::Grid& grid) {
+    std::vector<std::uint8_t> impervious_mask(grid.rows() * grid.cols(), 0);
+    for (const SurfaceClassCell& cell : surface_class_config.impervious_cells) {
+        if (cell.row >= grid.rows() || cell.col >= grid.cols()) {
+            throw std::runtime_error("Surface class cell is outside the loaded terrain extent");
+        }
+        if (!grid.is_cell_valid(cell.row, cell.col)) {
+            throw std::runtime_error("Surface class cell targets an invalid or nodata terrain cell");
+        }
+        impervious_mask[cell.row * grid.cols() + cell.col] = 1;
+    }
+    return impervious_mask;
+}
+
+void initialize_surface_class_initial_loss(
+    floodsim::Grid& grid,
+    const std::vector<std::uint8_t>& impervious_mask,
+    double pervious_initial_loss_m,
+    double impervious_initial_loss_m) {
+    for (std::size_t row = 0; row < grid.rows(); ++row) {
+        for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
+            const std::size_t idx = row * grid.cols() + col;
+            const double initial_loss_m =
+                impervious_mask[idx] != 0 ? impervious_initial_loss_m : pervious_initial_loss_m;
+            grid.set_initial_loss_remaining(row, col, initial_loss_m);
+        }
+    }
+}
+
+void add_surface_class_rainfall(
+    floodsim::Grid& grid,
+    const floodsim::RainfallScenario& rainfall,
+    double duration_seconds,
+    double pervious_runoff_coefficient,
+    double pervious_initial_loss_m,
+    const SurfaceClassConfig& surface_class_config,
+    const std::vector<std::uint8_t>& impervious_mask) {
+    if (duration_seconds < 0.0) {
+        throw std::invalid_argument("Rainfall duration cannot be negative");
+    }
+    if (pervious_runoff_coefficient < 0.0 || pervious_runoff_coefficient > 1.0) {
+        throw std::invalid_argument("Runoff coefficient must be in [0, 1]");
+    }
+    if (pervious_initial_loss_m < 0.0) {
+        throw std::invalid_argument("Initial loss must be non-negative");
+    }
+    if (surface_class_config.impervious_runoff_coefficient < 0.0 ||
+        surface_class_config.impervious_runoff_coefficient > 1.0) {
+        throw std::invalid_argument("Impervious runoff coefficient must be in [0, 1]");
+    }
+    if (surface_class_config.impervious_initial_loss_m < 0.0) {
+        throw std::invalid_argument("Impervious initial loss must be non-negative");
+    }
+
+    if ((pervious_initial_loss_m > 0.0 || surface_class_config.impervious_initial_loss_m > 0.0) &&
+        !grid.initial_loss_initialized()) {
+        initialize_surface_class_initial_loss(
+            grid,
+            impervious_mask,
+            pervious_initial_loss_m,
+            surface_class_config.impervious_initial_loss_m);
+    }
+
+    const double gross_depth = rainfall.intensity_m_per_hour * (duration_seconds / 3600.0);
+    if (gross_depth <= 0.0) {
+        return;
+    }
+
+    for (std::size_t row = 0; row < grid.rows(); ++row) {
+        for (std::size_t col = 0; col < grid.cols(); ++col) {
+            if (!grid.is_cell_valid(row, col)) {
+                continue;
+            }
+
+            const std::size_t idx = row * grid.cols() + col;
+            const double runoff_coefficient =
+                impervious_mask[idx] != 0
+                    ? surface_class_config.impervious_runoff_coefficient
+                    : pervious_runoff_coefficient;
+            const double post_initial_loss_depth =
+                grid.consume_initial_loss(row, col, gross_depth);
+            const double retained_depth = post_initial_loss_depth * runoff_coefficient;
+            if (retained_depth > 0.0) {
+                grid.add_water_depth(row, col, retained_depth);
+            }
+        }
     }
 }
 
@@ -205,6 +302,9 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
         .max_outflow_fraction = 0.20,
         .boundary_mode = arguments.scenario.boundary_mode,
     };
+    const std::vector<std::uint8_t> impervious_mask = arguments.surface_class_config.has_value()
+        ? build_impervious_mask(*arguments.surface_class_config, result.grid)
+        : std::vector<std::uint8_t> {};
 
     for (int step = 0; step < arguments.scenario.step_count; ++step) {
         const double rainfall_intensity_m_per_hour = arguments.scenario.rainfall_profile.has_value()
@@ -213,7 +313,19 @@ ExampleRunResult run_example(const ExampleArguments& arguments) {
         const floodsim::RainfallScenario rainfall {
             .intensity_m_per_hour = rainfall_intensity_m_per_hour,
         };
-        floodsim::step(result.grid, rainfall, config);
+        if (arguments.surface_class_config.has_value()) {
+            add_surface_class_rainfall(
+                result.grid,
+                rainfall,
+                config.time_step_seconds,
+                arguments.scenario.runoff_coefficient,
+                arguments.scenario.initial_loss_m,
+                *arguments.surface_class_config,
+                impervious_mask);
+            floodsim::route_surface_water(result.grid, config);
+        } else {
+            floodsim::step(result.grid, rainfall, config);
+        }
         const int completed_steps = step + 1;
         if (arguments.snapshot_every_steps.has_value() &&
             completed_steps % *arguments.snapshot_every_steps == 0 &&

@@ -47,6 +47,15 @@ Higher-level workflows can represent a simple storm profile by calling `step()`
 repeatedly with a different uniform intensity for each step while keeping the
 same `SimulationConfig`.
 
+The real-terrain workflow can now also apply a narrow per-cell surface-class
+overlay on top of that shared storm input. In the current MVP this means:
+
+- every cell still sees the same gross rainfall intensity for a given step
+- selected cells may use different runoff-loss settings before rainfall
+  appears as surface water
+- the committed two-class contract is `pervious` versus `impervious`
+- unspecified cells remain `pervious`
+
 The current model can also scale that rainfall input through a simple
 `runoff_coefficient` in the simulation configuration:
 
@@ -75,6 +84,7 @@ The current Phase 1 model makes these explicit choices:
 - rainfall input is expressed as intensity in meters per hour, then converted to per-step depth using `time_step_seconds`
 - an optional per-cell `initial_loss_m` can absorb the first part of an event before any surface ponding appears
 - a simple `runoff_coefficient` can reduce how much rainfall becomes immediate surface water
+- reviewed workflow inputs may override that rainfall-to-runoff behavior for a narrow `impervious` cell subset
 - rainfall is applied before flow during each step
 - only the 4 orthogonal neighbors participate in flow routing
 - routing compares full water surface height, not terrain elevation alone
@@ -134,6 +144,7 @@ The current model does not yet include:
 - physically rigorous shallow-water equations
 - calibrated infiltration or evaporation
 - time-varying infiltration, recovery, or subsurface storage
+- full land-use, soil, or subcatchment parameterization
 - drainage networks
 - buildings, culverts, or sewer behavior
 - calibration against observed flood events

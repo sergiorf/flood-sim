@@ -53,6 +53,11 @@ void add_uniform_rainfall(
     double runoff_coefficient = 1.0,
     double initial_loss_m = 0.0);
 
+// Route already-ponded surface water across the grid without adding rainfall.
+// This lets higher-level workflows reuse the same deterministic routing logic
+// after custom rainfall application paths.
+void route_surface_water(Grid& grid, const SimulationConfig& config);
+
 // Execute one full simulation step: rainfall first, then routing.
 void step(Grid& grid, const RainfallScenario& rainfall, const SimulationConfig& config);
 

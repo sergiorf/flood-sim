@@ -19,6 +19,8 @@ constexpr std::string_view kExternalAreaFileHeader =
     "area_name,source_kind,staged_dem_path,cache_key,window_row_offset,window_col_offset,window_rows,window_cols,source_name,source_details,source_url,license_name,boundary_path";
 constexpr std::string_view kRainfallProfileHeader =
     "step_index,rainfall_intensity_m_per_hour";
+constexpr std::string_view kSurfaceClassHeader =
+    "row,col,runoff_class";
 constexpr std::string_view kDefaultCacheDir = ".floodsim_cache/external_dem";
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
@@ -171,6 +173,65 @@ RainfallProfile load_rainfall_profile(const std::filesystem::path& profile_path)
     }
 
     return profile;
+}
+
+SurfaceClassConfig load_surface_class_file(const std::filesystem::path& surface_class_path) {
+    std::ifstream input(surface_class_path);
+    if (!input) {
+        throw_usage_error("Failed to open surface class file: '" + surface_class_path.string() + "'");
+    }
+
+    std::string header_line;
+    if (!std::getline(input, header_line)) {
+        throw_usage_error("Surface class file is empty: '" + surface_class_path.string() + "'");
+    }
+    if (trim_copy(header_line) != kSurfaceClassHeader) {
+        throw_usage_error(
+            "Surface class file has invalid header in '" + surface_class_path.string() +
+            "'. Expected: " + std::string(kSurfaceClassHeader));
+    }
+
+    SurfaceClassConfig config {
+        .source_path = surface_class_path,
+    };
+
+    std::string line;
+    std::size_t line_number = 1;
+    while (std::getline(input, line)) {
+        ++line_number;
+        if (trim_copy(line).empty()) {
+            continue;
+        }
+
+        const std::vector<std::string> fields = split_csv_line(line);
+        if (fields.size() != 3) {
+            throw_usage_error(
+                "Surface class row " + std::to_string(line_number) + " in '" +
+                surface_class_path.string() + "' must contain exactly 3 comma-separated fields");
+        }
+
+        const int row = parse_int_argument("surface class row", fields[0]);
+        const int col = parse_int_argument("surface class col", fields[1]);
+        if (row < 0 || col < 0) {
+            throw_usage_error("Surface class row and col must be non-negative");
+        }
+        if (fields[2] != "impervious") {
+            throw_usage_error(
+                "Surface class file currently supports only the 'impervious' runoff_class");
+        }
+
+        config.impervious_cells.push_back(
+            SurfaceClassCell {
+                .row = static_cast<std::size_t>(row),
+                .col = static_cast<std::size_t>(col),
+            });
+    }
+
+    if (config.impervious_cells.empty()) {
+        throw_usage_error("Surface class file does not contain any impervious cells: '" + surface_class_path.string() + "'");
+    }
+
+    return config;
 }
 
 void validate_scenario_config(const ScenarioConfig& scenario) {
@@ -591,6 +652,9 @@ std::string usage_message() {
         " [--batch-scenarios <name1,name2,...>]"
         " [--scenario-file <path.csv>]"
         " [--cache-dir <path>]"
+        " [--surface-class-file <path.csv>]"
+        " [--impervious-runoff-coefficient <value>]"
+        " [--impervious-initial-loss-m <value>]"
         " [--snapshot-every-steps <count>]"
         " [--boundary-mode <closed|open>]"
         " [--rainfall-intensity-m-per-hour <value>]"
@@ -653,6 +717,8 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     std::optional<RainfallProfile> rainfall_profile_override;
     std::optional<double> runoff_coefficient_override;
     std::optional<double> initial_loss_override;
+    std::optional<double> impervious_runoff_coefficient_override;
+    std::optional<double> impervious_initial_loss_override;
     std::optional<double> time_step_override;
     std::optional<int> step_count_override;
 
@@ -671,6 +737,12 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
             scenario_file_path = value;
         } else if (option == "--cache-dir") {
             arguments.cache_dir = value;
+        } else if (option == "--surface-class-file") {
+            arguments.surface_class_config = load_surface_class_file(value);
+        } else if (option == "--impervious-runoff-coefficient") {
+            impervious_runoff_coefficient_override = parse_double_argument(option, value);
+        } else if (option == "--impervious-initial-loss-m") {
+            impervious_initial_loss_override = parse_double_argument(option, value);
         } else if (option == "--snapshot-every-steps") {
             snapshot_every_steps = parse_int_argument(option, value);
             arguments.snapshot_every_steps = snapshot_every_steps;
@@ -747,6 +819,11 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
     if (step_count_override.has_value() && rainfall_profile_override.has_value()) {
         throw_usage_error("Do not use --steps with --rainfall-profile-file; the profile length defines the step count");
     }
+    if ((impervious_runoff_coefficient_override.has_value() || impervious_initial_loss_override.has_value()) &&
+        !arguments.surface_class_config.has_value()) {
+        throw_usage_error(
+            "Impervious runoff settings require --surface-class-file");
+    }
 
     if (scenario_preset_name.has_value()) {
         apply_scenario_preset(arguments.scenario, find_scenario_preset(*scenario_preset_name));
@@ -770,6 +847,21 @@ ExampleArguments parse_arguments(const std::vector<std::string>& args) {
         arguments.area_definition = load_external_area_definition(*pending_external_area_file_path, *arguments.cache_dir);
         arguments.input_dem_path = arguments.area_definition->input_dem_path;
         arguments.terrain_window = arguments.area_definition->terrain_window;
+    }
+    if (arguments.surface_class_config.has_value()) {
+        if (impervious_runoff_coefficient_override.has_value()) {
+            arguments.surface_class_config->impervious_runoff_coefficient = *impervious_runoff_coefficient_override;
+        }
+        if (impervious_initial_loss_override.has_value()) {
+            arguments.surface_class_config->impervious_initial_loss_m = *impervious_initial_loss_override;
+        }
+        if (arguments.surface_class_config->impervious_runoff_coefficient < 0.0 ||
+            arguments.surface_class_config->impervious_runoff_coefficient > 1.0) {
+            throw_usage_error("Impervious runoff coefficient must be in [0, 1]");
+        }
+        if (arguments.surface_class_config->impervious_initial_loss_m < 0.0) {
+            throw_usage_error("Impervious initial loss must be non-negative");
+        }
     }
     if (rainfall_override.has_value()) {
         arguments.scenario.rainfall_intensity_m_per_hour = *rainfall_override;

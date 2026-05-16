@@ -24,6 +24,18 @@ struct RainfallProfile {
     std::vector<double> step_intensities_m_per_hour;
 };
 
+struct SurfaceClassCell {
+    std::size_t row;
+    std::size_t col;
+};
+
+struct SurfaceClassConfig {
+    std::filesystem::path source_path;
+    std::vector<SurfaceClassCell> impervious_cells;
+    double impervious_runoff_coefficient {1.0};
+    double impervious_initial_loss_m {0.0};
+};
+
 // One fully resolved scenario passed into the example runner.
 //
 // This is intentionally a small, explicit contract rather than a generalized
@@ -80,6 +92,7 @@ struct ExampleArguments {
     std::filesystem::path input_dem_path;
     std::optional<AreaDefinition> area_definition;
     ScenarioConfig scenario;
+    std::optional<SurfaceClassConfig> surface_class_config;
     std::optional<std::filesystem::path> cache_dir;
     std::optional<floodsim::TerrainWindow> terrain_window;
     std::optional<int> snapshot_every_steps;
@@ -140,6 +153,7 @@ void write_export(
     const floodsim::Grid& grid,
     const floodsim::TerrainRaster& terrain,
     const std::optional<AreaDefinition>& area_definition,
+    const std::optional<SurfaceClassConfig>& surface_class_config,
     const ScenarioConfig& scenario,
     const std::filesystem::path& output_path);
 void print_run_report(
@@ -149,6 +163,7 @@ void print_run_report(
 void write_snapshot_exports(
     const ExampleRunResult& result,
     const std::optional<AreaDefinition>& area_definition,
+    const std::optional<SurfaceClassConfig>& surface_class_config,
     const ScenarioConfig& scenario,
     const std::filesystem::path& base_output_path);
 void write_batch_comparison_csv(

@@ -1,0 +1,5 @@
+row,col,runoff_class
+0,0,impervious
+0,1,impervious
+1,0,impervious
+1,1,impervious

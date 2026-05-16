@@ -50,6 +50,18 @@ void write_grid_csv(const Grid& grid, std::ostream& output, const GridCsvMetadat
     if (metadata.rainfall_profile_path.has_value()) {
         output << "# rainfall_profile_path," << *metadata.rainfall_profile_path << '\n';
     }
+    if (metadata.surface_class_file.has_value()) {
+        output << "# surface_class_file," << *metadata.surface_class_file << '\n';
+    }
+    if (metadata.impervious_cell_count.has_value()) {
+        output << "# impervious_cell_count," << *metadata.impervious_cell_count << '\n';
+    }
+    if (metadata.impervious_runoff_coefficient.has_value()) {
+        output << "# impervious_runoff_coefficient," << *metadata.impervious_runoff_coefficient << '\n';
+    }
+    if (metadata.impervious_initial_loss_m.has_value()) {
+        output << "# impervious_initial_loss_m," << *metadata.impervious_initial_loss_m << '\n';
+    }
     if (metadata.area_name.has_value()) {
         output << "# area_name," << *metadata.area_name << '\n';
     }
