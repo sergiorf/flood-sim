@@ -7,6 +7,7 @@
 - `status`: `candidate`
 - `intended_use`: `demo`
 - `locked_bbox_wgs84`: `south=50.80, north=50.90, west=4.30, east=4.42`
+- `current_runtime_crs`: `EPSG:3035`
 
 This is the first planned real-place demo area for FloodSim.
 
@@ -22,12 +23,12 @@ layered demo package.
 
 ## Layer inventory
 
-- terrain: present, baseline source chosen, staged locally for review
+- terrain: present, procurement baseline chosen, current runtime baseline verified
 - buildings: missing
 - land_cover: missing
 - drainage: missing
 - scenarios: missing
-- viewer_path: present through the native viewer scaffold
+- viewer_path: present through the native viewer MVP
 
 ## Source candidates
 
@@ -85,14 +86,46 @@ python3 data/scripts/download_terrain.py copernicus-dem \
 5. Only replace the baseline when one exact UrbIS elevation dataset is
    identified and reviewed against the same clip.
 
-Current staged baseline files:
+Current staged procurement/reference files:
 
 - `terrain_library/areas/brussels_demo_center/staged/brussels_copernicus_30.tif`
 - `terrain_library/areas/brussels_demo_center/staged/brussels_copernicus_30.json`
+- `terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.tif`
+- `terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.json`
 
-The currently staged `brussels_eu_dtm.tif` file is acceptable as a local
-comparison or convenience artifact, but it should not be treated as the
-canonical cited source for the demo package.
+Current derived Copernicus runtime reference files:
+
+- `terrain_library/areas/brussels_demo_center/derived/brussels_copernicus_30_epsg3035.tif`
+
+Current derived-raster procedure:
+
+```bash
+mkdir -p terrain_library/areas/brussels_demo_center/derived
+
+gdalwarp \
+  -t_srs EPSG:3035 \
+  -tr 30 30 \
+  -r bilinear \
+  -dstnodata -9999 \
+  -overwrite \
+  terrain_library/areas/brussels_demo_center/staged/brussels_copernicus_30.tif \
+  terrain_library/areas/brussels_demo_center/derived/brussels_copernicus_30_epsg3035.tif
+```
+
+The explicit `-dstnodata -9999` is required for the current Phase 2 workflow.
+Without it, the reprojected raster may contain `0`-valued edge cells outside
+the transformed terrain footprint, and FloodSim will treat those as valid
+terrain instead of nodata.
+
+Current runtime terrain decision:
+
+- `Copernicus DEM GLO-30` remains the locked procurement/reference baseline
+- `brussels_eu_dtm.tif` is now the preferred runtime simulation terrain for
+  the Brussels demo workflow
+- the derived Copernicus runtime raster remains useful as a reproducible
+  comparison path, but it is not the preferred runtime baseline because it
+  introduces nodata border loss from the reprojection footprint while producing
+  broadly similar simulation behavior
 
 ## Open questions
 
@@ -104,6 +137,76 @@ canonical cited source for the demo package.
   staged-only?
 - What exact downstream target CRS should be standardized across the terrain
   and later Brussels-specific layers?
+
+## Current inspection path
+
+The current preferred runnable Brussels terrain path is:
+
+- `terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.tif`
+
+The current Copernicus comparison/runtime-reference path is:
+
+- `terrain_library/areas/brussels_demo_center/derived/brussels_copernicus_30_epsg3035.tif`
+
+Current verified runtime status:
+
+- `brussels_eu_dtm.tif` loads directly through the Phase 2 GDAL path with no
+  derived reprojection step
+- the current loader preserves `crs=EPSG:3035` for both runtime candidates
+- the Copernicus-derived comparison raster now preserves nodata correctly, but
+  still loses edge area because of the transformed footprint
+- both runtime candidates complete successfully through the real-terrain example
+- the native viewer can inspect both the terrain raster and the exported CSV
+
+Current verified runtime summaries:
+
+- `EU_DTM`: `rows=392`, `cols=309`, `valid_cells=121128`, `invalid_cells=0`
+- `Copernicus-derived`: `rows=391`, `cols=309`, `valid_cells=104467`,
+  `invalid_cells=16352`
+- `cell_size_m=30`
+- `scenario_name=baseline`
+
+Current native-viewer inspection commands:
+
+```bash
+./build/apps/native_viewer/floodsim_native_viewer \
+  terrain_library/areas/brussels_demo_center/staged/brussels_eu_dtm.tif
+```
+
+```bash
+./build/apps/native_viewer/floodsim_native_viewer \
+  terrain_library/areas/brussels_demo_center/derived/brussels_copernicus_30_epsg3035.tif
+```
+
+```bash
+./build/apps/native_viewer/floodsim_native_viewer \
+  brussels_demo_output.csv
+```
+
+Current native-viewer controls:
+
+- mouse wheel: zoom
+- left mouse drag: pan
+- left click: inspect one cell and print exact values to stdout
+- left and right arrows: step snapshot frames when a FloodSim CSV series is present
+- `Tab`: cycle available layers
+- `1`, `2`, `3`: switch directly to `elevation`, `water_depth`, or `surface_height`
+- `0`: reset the view
+
+## Next steps
+
+The next concrete tasks for this area are:
+
+1. Define one canonical Brussels scenario walkthrough on the `EU_DTM` runtime
+   raster and commit that procedure to the docs.
+2. Keep the Copernicus-derived runtime raster as a documented comparison path,
+   and crop it later only if a tighter comparison presentation is useful.
+3. Add the first additional Brussels city layer, likely `buildings` or
+   `land_cover`, with explicit provenance and alignment notes.
+4. Document how future Brussels-specific layers from `UrbIS` or other sources
+   align onto the same runtime CRS and clip.
+5. Once the scenario and viewer path are stable, promote this area from
+   `candidate` to `reviewed`, and later to `active_demo`.
 
 ## First acceptance target
 

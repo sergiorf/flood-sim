@@ -326,6 +326,41 @@ For that area, the current baseline terrain choice should be:
 README should still cite the direct underlying source choice that FloodSim is
 claiming for the demo package.
 
+For the current runnable Brussels workflow, FloodSim now uses one additional
+derived-raster step after staging:
+
+- keep the raw Copernicus raster under `staged/`
+- create one projected runtime raster under `derived/`
+- preserve explicit destination nodata during reprojection so outside-footprint
+  edge cells do not become fake `0 m` terrain
+
+Current Brussels runtime command:
+
+```bash
+gdalwarp \
+  -t_srs EPSG:3035 \
+  -tr 30 30 \
+  -r bilinear \
+  -dstnodata -9999 \
+  -overwrite \
+  terrain_library/areas/brussels_demo_center/staged/brussels_copernicus_30.tif \
+  terrain_library/areas/brussels_demo_center/derived/brussels_copernicus_30_epsg3035.tif
+```
+
+That pattern is currently preferred over widening the core terrain/grid
+contracts to accept geographic or anisotropic pixels directly.
+
+The current Brussels runtime decision is slightly narrower than the
+procurement decision:
+
+- `Copernicus DEM GLO-30` remains the documented procurement/reference baseline
+- `EU_DTM` is the current preferred runtime simulation terrain because it loads
+  directly in `EPSG:3035` and avoids the nodata border loss introduced by the
+  current Copernicus reprojection footprint
+- the derived Copernicus raster remains a valid comparison path and a useful
+  record of how the official baseline source behaves under the current runtime
+  assumptions
+
 ## Download automation
 
 The repository now includes a small staging helper:

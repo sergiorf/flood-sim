@@ -15,7 +15,9 @@ std::string usage_message() {
         "Current scope:\n"
         "- inspect terrain rasters such as .tif, .tiff, and .asc\n"
         "- inspect FloodSim CSV result rasters\n"
-        "- display one raster layer through the current graphics backend\n";
+        "- pan and zoom\n"
+        "- click for cell inspection\n"
+        "- step snapshot series from FloodSim CSV outputs\n";
 }
 
 }  // namespace
@@ -40,29 +42,27 @@ int main(int argc, char** argv) {
             input_path = argv[2];
         }
 
-        const auto frame = floodsim::native_viewer::load_raster_frame(input_path);
+        const auto document = floodsim::native_viewer::load_raster_document(input_path);
+        const auto& frame = document.frames.front();
         if (inspect_only) {
-            std::cout << "floodsim_native_viewer_scaffold=true\n";
+            std::cout << "floodsim_native_viewer_scaffold=false\n";
+            std::cout << "frame_count=" << document.frames.size() << '\n';
             std::cout << floodsim::native_viewer::format_raster_summary(frame);
             std::cout << "default_layer="
                       << floodsim::native_viewer::raster_layer_name(
                              floodsim::native_viewer::default_display_layer(frame))
                       << '\n';
-            std::cout << "next_step=add_image_based_native_rendering\n";
             return 0;
         }
 
-        const auto layer = floodsim::native_viewer::default_display_layer(frame);
-        const auto image = floodsim::native_viewer::make_color_image(frame, layer);
         auto backend = floodsim::native_viewer::make_default_graphics_backend();
-        return backend->show_image(
+        return backend->show_document(
             floodsim::native_viewer::GraphicsWindowConfig {
-                .title = "FloodSim Native Viewer - " +
-                    floodsim::native_viewer::raster_layer_name(layer),
+                .title = "FloodSim Native Viewer",
                 .window_width = 1280,
                 .window_height = 900,
             },
-            image);
+            document);
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;

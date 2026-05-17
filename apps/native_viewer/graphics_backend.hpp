@@ -17,9 +17,9 @@ class GraphicsBackend {
 public:
     virtual ~GraphicsBackend() = default;
 
-    virtual int show_image(
+    virtual int show_document(
         const GraphicsWindowConfig& config,
-        const ColorImage& image) = 0;
+        const RasterDocument& document) = 0;
 };
 
 [[nodiscard]] std::unique_ptr<GraphicsBackend> make_default_graphics_backend();

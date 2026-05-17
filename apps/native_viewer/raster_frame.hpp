@@ -31,6 +31,10 @@ struct RasterFrame {
     std::vector<double> surface_height;
 };
 
+struct RasterDocument {
+    std::vector<RasterFrame> frames;
+};
+
 struct ColorImage {
     std::size_t width {0};
     std::size_t height {0};
@@ -38,9 +42,18 @@ struct ColorImage {
 };
 
 [[nodiscard]] RasterFrame load_raster_frame(const std::filesystem::path& input_path);
+[[nodiscard]] RasterDocument load_raster_document(const std::filesystem::path& input_path);
 [[nodiscard]] std::string format_raster_summary(const RasterFrame& summary);
 [[nodiscard]] RasterLayer default_display_layer(const RasterFrame& frame);
 [[nodiscard]] ColorImage make_color_image(const RasterFrame& frame, RasterLayer layer);
 [[nodiscard]] std::string raster_layer_name(RasterLayer layer);
+[[nodiscard]] std::vector<RasterLayer> available_layers(const RasterFrame& frame);
+[[nodiscard]] const std::vector<double>& dataset_for_layer(const RasterFrame& frame, RasterLayer layer);
+[[nodiscard]] bool frame_has_layer(const RasterFrame& frame, RasterLayer layer);
+[[nodiscard]] std::string format_cell_details(
+    const RasterFrame& frame,
+    RasterLayer layer,
+    std::size_t row,
+    std::size_t col);
 
 }  // namespace floodsim::native_viewer

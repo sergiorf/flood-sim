@@ -516,66 +516,48 @@ You can inspect the exported CSV with the existing consumer example:
 python3 examples/simple_grid/inspect_export.py real_terrain_output.csv
 ```
 
-For local debugging, the repository now also includes a lightweight viewer:
+For local debugging and the current local inspection workflow, the repository
+now includes a native viewer:
 
 ```bash
-python3 examples/real_terrain/debug_viewer.py real_terrain_output.csv
+./build/apps/native_viewer/floodsim_native_viewer real_terrain_output.csv
 ```
 
-Viewer v1 scope:
+Native viewer scope:
 
 - loads one FloodSim export CSV and automatically discovers matching snapshot CSVs beside it
 - can open GeoTIFF terrain rasters through the same GDAL-backed ingestion path used by the simulation workflow
-- can also open one or more ESRI ASCII terrain rasters directly
-- lets you step through frames locally without a server or web client
+- can also open ESRI ASCII terrain rasters directly
+- supports pan and zoom for larger clips
 - supports quick inspection of `elevation`, `water_depth`, and `surface_height`
+- prints exact per-cell values on click
+- steps through snapshot frames locally without a server or web client
 
 Current limits:
 
 - no basemap tiles or GIS layer stack yet
 - intended for debugging and product iteration, not polished planner delivery
 
-Viewer quickstart notes:
+Native viewer quickstart notes:
 
 - if you pass one final FloodSim CSV, the viewer auto-discovers matching snapshot CSVs beside it
-- use the left and right arrow keys or the `Prev` and `Next` buttons to move between frames
-- switch layers with the local `Layer` menu to inspect `elevation`, `water_depth`, or `surface_height`
-- switch `Scale` between `dynamic-per-frame` and `fixed-series` when you want either maximum local contrast or stable cross-frame comparison
-- small grids automatically show per-cell numeric overlays for the active layer
-- hover a cell to inspect exact `elevation`, `water_depth`, and `surface_height` values
-- the viewer prints the active layer min/max scale so the current coloring mode is explicit
+- use the left and right arrow keys to move between frames
+- use `Tab` to cycle layers, or `1`, `2`, `3` to jump to `elevation`, `water_depth`, or `surface_height`
+- use the mouse wheel to zoom
+- drag with the left mouse button to pan
+- left click a cell to print exact `elevation`, `water_depth`, and `surface_height` values
+- use `0` to reset the current view
 
 For direct terrain debugging on the committed sample GeoTIFF:
 
 ```bash
-python3 examples/real_terrain/debug_viewer.py \
+./build/apps/native_viewer/floodsim_native_viewer \
   examples/real_terrain/data/sample_dem.tif
 ```
 
-GeoTIFF input uses the helper binary built by the normal CMake workflow:
-
-```bash
-cmake -S . -B build
-cmake --build build
-```
-
-By default `debug_viewer.py` looks for:
-
-- `build/floodsim_terrain_debug_export`
-
-If you keep that helper elsewhere, either pass:
-
-```bash
-python3 examples/real_terrain/debug_viewer.py \
-  examples/real_terrain/data/sample_dem.tif \
-  --terrain-export-binary /path/to/floodsim_terrain_debug_export
-```
-
-or set:
-
-```bash
-export FLOODSIM_TERRAIN_DEBUG_EXPORT=/path/to/floodsim_terrain_debug_export
-```
+The older Python `debug_viewer.py` remains available as a fallback debug tool,
+but it should no longer be treated as the canonical inspection path for larger
+terrain clips.
 
 ## Canonical Comparison Walkthrough
 

@@ -3,7 +3,9 @@
 #include "floodsim/terrain.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -13,6 +15,8 @@
 namespace floodsim::native_viewer {
 
 namespace {
+
+constexpr const char* kFloodsimCsvHeader = "row,col,elevation_m,water_depth_m,surface_height_m";
 
 std::vector<std::string> split_csv_line(const std::string& line) {
     std::vector<std::string> fields;
@@ -24,7 +28,7 @@ std::vector<std::string> split_csv_line(const std::string& line) {
     return fields;
 }
 
-std::vector<double> dataset_for_layer(const RasterFrame& frame, const RasterLayer layer) {
+const std::vector<double>& dataset_for_layer_impl(const RasterFrame& frame, const RasterLayer layer) {
     switch (layer) {
         case RasterLayer::Elevation:
             return frame.elevation;
@@ -35,6 +39,61 @@ std::vector<double> dataset_for_layer(const RasterFrame& frame, const RasterLaye
     }
 
     throw std::runtime_error("Unhandled raster layer");
+}
+
+std::string csv_stem_without_snapshot_suffix(const std::filesystem::path& input_path) {
+    const std::string stem = input_path.stem().string();
+    const std::size_t step_marker = stem.rfind("_step");
+    const std::size_t time_marker = stem.rfind("_t");
+    if (step_marker == std::string::npos ||
+        time_marker == std::string::npos ||
+        time_marker <= step_marker + 5 ||
+        stem.back() != 's') {
+        return stem;
+    }
+
+    const std::string step_digits = stem.substr(step_marker + 5, time_marker - (step_marker + 5));
+    const std::string time_digits = stem.substr(time_marker + 2, stem.size() - (time_marker + 3));
+    const bool valid_step = !step_digits.empty() &&
+        std::all_of(step_digits.begin(), step_digits.end(), [](const char value) { return std::isdigit(value) != 0; });
+    const bool valid_time = !time_digits.empty() &&
+        std::all_of(time_digits.begin(), time_digits.end(), [](const char value) { return std::isdigit(value) != 0; });
+    if (!valid_step || !valid_time) {
+        return stem;
+    }
+    return stem.substr(0, step_marker);
+}
+
+std::vector<std::filesystem::path> discover_snapshot_series(const std::filesystem::path& input_path) {
+    if (input_path.extension() != ".csv") {
+        return {input_path};
+    }
+
+    const std::string final_stem = csv_stem_without_snapshot_suffix(input_path);
+    const std::filesystem::path parent_directory =
+        input_path.has_parent_path() ? input_path.parent_path() : std::filesystem::path(".");
+    const std::filesystem::path final_path = parent_directory / (final_stem + ".csv");
+    std::vector<std::filesystem::path> paths;
+    for (const auto& entry : std::filesystem::directory_iterator(parent_directory)) {
+        if (!entry.is_regular_file() || entry.path().extension() != ".csv") {
+            continue;
+        }
+        const std::string candidate_stem = entry.path().stem().string();
+        if (candidate_stem == final_stem) {
+            continue;
+        }
+        if (candidate_stem.rfind(final_stem + "_step", 0) == 0) {
+            paths.push_back(entry.path());
+        }
+    }
+
+    std::sort(paths.begin(), paths.end());
+    if (std::filesystem::exists(final_path)) {
+        paths.push_back(final_path);
+    } else if (paths.empty()) {
+        paths.push_back(input_path);
+    }
+    return paths;
 }
 
 std::pair<double, double> finite_range(const std::vector<double>& values) {
@@ -157,7 +216,7 @@ RasterFrame load_floodsim_csv_frame(const std::filesystem::path& input_path) {
         }
 
         if (!header_seen) {
-            if (line != "row,col,elevation_m,water_depth_m,surface_height_m") {
+            if (line != kFloodsimCsvHeader) {
                 throw std::runtime_error("Unexpected FloodSim CSV header in " + input_path.string());
             }
             header_seen = true;
@@ -238,6 +297,17 @@ RasterFrame load_raster_frame(const std::filesystem::path& input_path) {
     throw std::runtime_error("Unsupported native viewer input format: " + input_path.string());
 }
 
+RasterDocument load_raster_document(const std::filesystem::path& input_path) {
+    RasterDocument document;
+    for (const auto& path : discover_snapshot_series(input_path)) {
+        document.frames.push_back(load_raster_frame(path));
+    }
+    if (document.frames.empty()) {
+        throw std::runtime_error("No raster frames were loaded from " + input_path.string());
+    }
+    return document;
+}
+
 std::string format_raster_summary(const RasterFrame& summary) {
     std::ostringstream output;
     output << "source_path=\"" << summary.source_path.string() << "\"\n";
@@ -266,8 +336,28 @@ RasterLayer default_display_layer(const RasterFrame& frame) {
     return frame.has_water_depth ? RasterLayer::WaterDepth : RasterLayer::Elevation;
 }
 
+std::vector<RasterLayer> available_layers(const RasterFrame& frame) {
+    std::vector<RasterLayer> layers {RasterLayer::Elevation};
+    if (frame.has_water_depth) {
+        layers.push_back(RasterLayer::WaterDepth);
+        layers.push_back(RasterLayer::SurfaceHeight);
+    }
+    return layers;
+}
+
+bool frame_has_layer(const RasterFrame& frame, const RasterLayer layer) {
+    if (layer == RasterLayer::Elevation) {
+        return true;
+    }
+    return frame.has_water_depth;
+}
+
+const std::vector<double>& dataset_for_layer(const RasterFrame& frame, const RasterLayer layer) {
+    return dataset_for_layer_impl(frame, layer);
+}
+
 ColorImage make_color_image(const RasterFrame& frame, const RasterLayer layer) {
-    const std::vector<double> dataset = dataset_for_layer(frame, layer);
+    const std::vector<double>& dataset = dataset_for_layer_impl(frame, layer);
     if (dataset.empty()) {
         throw std::runtime_error("Selected raster layer does not contain any data");
     }
@@ -296,6 +386,40 @@ std::string raster_layer_name(const RasterLayer layer) {
     }
 
     throw std::runtime_error("Unhandled raster layer");
+}
+
+std::string format_cell_details(
+    const RasterFrame& frame,
+    const RasterLayer layer,
+    const std::size_t row,
+    const std::size_t col) {
+    if (row >= frame.rows || col >= frame.cols) {
+        throw std::runtime_error("Requested cell lies outside the raster bounds");
+    }
+
+    const std::size_t index = (row * frame.cols) + col;
+    const auto value_or_nodata = [](const double value) {
+        if (std::isnan(value)) {
+            return std::string("nodata");
+        }
+        std::ostringstream output;
+        output.setf(std::ios::fixed);
+        output.precision(3);
+        output << value;
+        return output.str();
+    };
+
+    std::ostringstream output;
+    output << "cell row=" << row
+           << " col=" << col
+           << " layer=" << raster_layer_name(layer)
+           << " value=" << value_or_nodata(dataset_for_layer_impl(frame, layer).at(index))
+           << " elevation_m=" << value_or_nodata(frame.elevation.at(index));
+    if (frame.has_water_depth) {
+        output << " water_depth_m=" << value_or_nodata(frame.water_depth.at(index))
+               << " surface_height_m=" << value_or_nodata(frame.surface_height.at(index));
+    }
+    return output.str();
 }
 
 }  // namespace floodsim::native_viewer

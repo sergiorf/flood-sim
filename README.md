@@ -71,7 +71,7 @@ Real-terrain example:
 Local CSV and terrain inspection viewer:
 
 ```bash
-python3 examples/real_terrain/debug_viewer.py real_terrain_output.csv
+./build/apps/native_viewer/floodsim_native_viewer real_terrain_output.csv
 ```
 
 ## Where the rest lives

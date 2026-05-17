@@ -38,3 +38,18 @@ else()
 endif()
 
 target_compile_features(floodsim_native_viewer PRIVATE cxx_std_20)
+
+if(FLOODSIM_BUILD_TESTS)
+    add_executable(floodsim_native_viewer_tests
+        test_raster_frame.cpp
+    )
+
+    target_link_libraries(floodsim_native_viewer_tests
+        PRIVATE
+            floodsim_native_viewer_support
+            doctest::doctest
+    )
+
+    target_compile_features(floodsim_native_viewer_tests PRIVATE cxx_std_20)
+    add_test(NAME floodsim_native_viewer_tests COMMAND floodsim_native_viewer_tests)
+endif()
