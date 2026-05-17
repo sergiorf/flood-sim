@@ -9,10 +9,15 @@ import os
 import re
 import subprocess
 import tempfile
-import tkinter as tk
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import ttk
+
+try:
+    import tkinter as tk
+    from tkinter import ttk
+except ModuleNotFoundError:  # pragma: no cover - exercised in CI environments without Tk
+    tk = None  # type: ignore[assignment]
+    ttk = None  # type: ignore[assignment]
 
 
 SNAPSHOT_RE = re.compile(r"^(?P<stem>.+)_step(?P<step>\d+)_t(?P<seconds>\d+)s\.csv$")
@@ -311,6 +316,12 @@ def color_for_value(value: float, min_value: float, max_value: float, palette: s
 
 class DebugViewer:
     def __init__(self, frames: list[RasterFrame]) -> None:
+        if tk is None or ttk is None:
+            raise RuntimeError(
+                "Tkinter is not available in this Python environment. "
+                "The debug viewer UI requires tkinter."
+            )
+
         self.frames = frames
         self.frame_index = 0
         self.layer = "water_depth" if frames[0].water_depth is not None else "elevation"

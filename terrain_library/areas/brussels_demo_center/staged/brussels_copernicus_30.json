@@ -1,0 +1,13 @@
+{
+  "dem_instance": "COPERNICUS_30",
+  "east": 4.42,
+  "egm": false,
+  "endpoint": "https://sh.dataspace.copernicus.eu/process/v1",
+  "north": 50.9,
+  "output_path": "/home/sergio/dev/flood-sim/terrain_library/areas/brussels_demo_center/staged/brussels_copernicus_30.tif",
+  "resx": 0.0003,
+  "resy": 0.0003,
+  "source": "copernicus-dem",
+  "south": 50.8,
+  "west": 4.3
+}
